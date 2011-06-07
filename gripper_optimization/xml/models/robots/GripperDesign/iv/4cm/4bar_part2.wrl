@@ -1,0 +1,35 @@
+#VRML V1.0 ascii
+Separator {
+MaterialBinding {
+value OVERALL
+}
+
+
+Material {
+ambientColor [
+ 0.796078 0.823529 0.997255
+]
+diffuseColor [
+ 0.796078 0.823529 0.997255
+]
+emissiveColor [
+ 0.063686 0.065882 0.574980
+]
+specularColor [
+ 0.756275 0.782353 0.990392
+]
+shininess [
+ 0.550000
+]
+transparency [
+ 0.000000
+]
+}
+
+Separator {
+  Transform {
+    translation -7 0 0
+  }
+  Cube{width 14 height 2 depth 2}
+}
+}

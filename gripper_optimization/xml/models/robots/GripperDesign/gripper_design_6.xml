@@ -1,0 +1,251 @@
+<?xml version="1.0" ?>
+<robot type="HumanHand">
+    <palm>4cm/finger_link_pad.xml</palm>
+    <dof type="r">
+        <defaultVelocity>1.0</defaultVelocity>
+        <maxEffort>2.5e+9</maxEffort>
+        <Kp>1.0e+11</Kp>
+        <Kd>1.0e+7</Kd>
+        <draggerScale>7</draggerScale>
+    </dof>
+    <dof type="r">
+        <defaultVelocity>1.0</defaultVelocity>
+        <maxEffort>5.0e+9</maxEffort>
+        <Kp>1.0e+11</Kp>
+        <Kd>1.0e+7</Kd>
+        <draggerScale>7</draggerScale>
+    </dof>
+    <dof type="r">
+        <defaultVelocity>1.0</defaultVelocity>
+        <maxEffort>5.0e+9</maxEffort>
+        <Kp>1.0e+11</Kp>
+        <Kd>1.0e+7</Kd>
+        <draggerScale>7</draggerScale>
+    </dof>
+    <dof type="r">
+        <defaultVelocity>1.0</defaultVelocity>
+        <maxEffort>5.0e+9</maxEffort>
+        <Kp>1.0e+11</Kp>
+        <Kd>1.0e+7</Kd>
+        <draggerScale>7</draggerScale>
+    </dof>
+    <chain>
+        <transform>
+            <translation>-40 0 0</translation>
+            <rotation>180 y</rotation>
+        </transform>
+        <joint type="Revolute">
+            <theta>d0+10</theta>
+            <d>0</d>
+            <a>40</a>
+            <alpha>0</alpha>
+            <minValue>-5</minValue>
+            <maxValue>100</maxValue>
+            <viscousFriction>5.0e+7</viscousFriction>
+            <CoulombFriction>0</CoulombFriction>
+            <springStiffness>0</springStiffness>
+        </joint>
+        <joint type="Revolute">
+            <theta>d1+80</theta>
+            <d>0</d>
+            <a>40</a>
+            <alpha>0</alpha>
+            <minValue>-100</minValue>
+            <maxValue>30</maxValue>
+            <viscousFriction>5.0e+7</viscousFriction>
+            <CoulombFriction>0</CoulombFriction>
+            <springStiffness>0</springStiffness>
+        </joint>
+        <link dynamicJointType="Revolute">4cm/finger_link_pad.xml</link>
+        <link dynamicJointType="Revolute">4cm/finger_link_pad_last.xml</link>
+    </chain>
+
+    <chain>
+        <transform>
+            <translation>0 0 0</translation>
+        </transform>
+        <joint type="Revolute">
+            <theta>d2+10</theta>
+            <d>0</d>
+            <a>40</a>
+            <alpha>0</alpha>
+            <minValue>-5</minValue>
+            <maxValue>100</maxValue>
+            <viscousFriction>5.0e+7</viscousFriction>
+            <CoulombFriction>0</CoulombFriction>
+            <springStiffness>0</springStiffness>
+        </joint>
+        <joint type="Revolute">
+            <theta>d3+80</theta>
+            <d>0</d>
+            <a>40</a>
+            <alpha>0</alpha>
+            <minValue>-110</minValue>
+            <maxValue>30</maxValue>
+            <viscousFriction>5.0e+7</viscousFriction>
+            <CoulombFriction>0</CoulombFriction>
+            <springStiffness>0</springStiffness>
+        </joint>
+        <link dynamicJointType="Revolute">4cm/finger_link_pad.xml</link>
+        <link dynamicJointType="Revolute">4cm/finger_link_pad_last.xml</link>
+    </chain>
+
+
+    <tendon name="Finger 0 flexor">
+        <insertionPoint>
+			<chain>-1</chain>
+			<link>-1</link>
+			<position>-25 -30 0</position>
+        </insertionPoint>
+        <insertionPoint>
+			<chain>-1</chain>
+			<link>-1</link>
+			<position>-25 5 0</position>
+        </insertionPoint>
+        <!-- --------------- l0 --------------- -->
+        <insertionPoint>
+			<chain>-1</chain>
+			<link>-1</link>
+			<position>-34.7638750098477 2.9259179927995 0</position>
+        </insertionPoint>
+        <insertionPoint>
+			<chain>0</chain>
+			<link>0</link>
+			<position>-32.1300980691473 4.15219780390719 0</position>
+        </insertionPoint>
+        <!-- --------------- l1 --------------- -->
+        <insertionPoint>
+			<chain>0</chain>
+			<link>0</link>
+			<position>-2.92201048364956 0.666912817241118 0</position>
+        </insertionPoint>
+        <insertionPoint>
+			<chain>0</chain>
+			<link>1</link>
+			<position>-38.9451062115585 6.85529769484666 0</position>
+        </insertionPoint>
+    </tendon>
+
+ 
+    <tendon name="Finger 0 extensor">
+        <stiffness>1.5</stiffness>
+        <!-- --------------- l0 --------------- -->
+        <insertionPoint>
+			<chain>-1</chain>
+			<link>-1</link>
+			<position>-33.4980637829276 -3.82536556610156 0</position>
+        </insertionPoint>
+        <insertionPoint>
+			<chain>0</chain>
+			<link>0</link>
+			<position>-36.3705134048921 -5.95018192005818 0</position>
+        </insertionPoint>
+        <!-- --------------- l1 --------------- -->
+        <insertionPoint>
+			<chain>0</chain>
+			<link>0</link>
+			<position>-0.883018235155856 -1.33171083281362 0</position>
+        </insertionPoint>
+        <insertionPoint>
+			<chain>0</chain>
+			<link>1</link>
+			<position>-37.8595183779763 -4.3202356529982 0</position>
+        </insertionPoint>
+    </tendon>
+
+    <tendonWrapper>
+      <chain>0</chain>
+      <link>0</link>
+      <position>-40 -4.44364589613101 0</position>
+      <orientation>0 0 1</orientation>
+      <radius>2.87148299527889</radius>	
+    </tendonWrapper>
+    <tendonWrapper>
+      <chain>0</chain>
+      <link>0</link>
+      <position>0 -0.0221989932573399 0</position>
+      <orientation>0 0 1</orientation>
+      <radius>2.42991981163152</radius>	
+    </tendonWrapper>
+
+    <tendon name="Finger 1 flexor">
+        <insertionPoint>
+			<chain>-1</chain>
+			<link>-1</link>
+			<position>-15 -30 0</position>
+        </insertionPoint>
+        <insertionPoint>
+			<chain>-1</chain>
+			<link>-1</link>
+			<position>-15 5 0</position>
+        </insertionPoint>
+        <!-- --------------- l3 --------------- -->
+        <insertionPoint>
+			<chain>-1</chain>
+			<link>-1</link>
+			<position>-8 5 0</position>
+        </insertionPoint>
+        <insertionPoint>
+			<chain>1</chain>
+			<link>0</link>
+			<position>-32 5 0</position>
+        </insertionPoint>
+        <!-- --------------- l4 --------------- -->
+        <insertionPoint>
+			<chain>1</chain>
+			<link>0</link>
+			<position>-2 2 0</position>
+        </insertionPoint>
+        <insertionPoint>
+			<chain>1</chain>
+			<link>1</link>
+			<position>-35 2 0</position>
+        </insertionPoint>
+    </tendon>
+
+    <tendon name="Finger 1 extensor">
+        <stiffness>1.5</stiffness>
+        <!-- --------------- l0 --------------- -->
+        <insertionPoint>
+			<chain>-1</chain>
+			<link>-1</link>
+			<position>-5 -5 0</position>
+        </insertionPoint>
+        <insertionPoint>
+			<chain>1</chain>
+			<link>0</link>
+			<position>-35 -5 0</position>
+        </insertionPoint>
+        <!-- --------------- l1 --------------- -->
+        <insertionPoint>
+			<chain>1</chain>
+			<link>0</link>
+			<position>-2 -4 0</position>
+        </insertionPoint>
+        <insertionPoint>
+			<chain>1</chain>
+			<link>1</link>
+			<position>-38 -4 0</position>
+        </insertionPoint>
+    </tendon>
+
+    <tendonWrapper>
+      <chain>1</chain>
+      <link>0</link>
+      <position>-40 0 0</position>
+      <orientation>0 0 1</orientation>
+      <radius>5</radius>	
+    </tendonWrapper>
+    <tendonWrapper>
+      <chain>1</chain>
+      <link>0</link>
+      <position>0 -2 0</position>
+      <orientation>0 0 1</orientation>
+      <radius>2</radius>	
+    </tendonWrapper>
+
+    <approachDirection>
+        <referenceLocation>-15 5 0</referenceLocation>
+        <direction>0 1 0</direction>
+    </approachDirection>
+</robot>
