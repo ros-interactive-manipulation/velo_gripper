@@ -1,9 +1,0 @@
-<stack>
-  <description brief="gripper_design">gripper_design</description>
-  <author>Maintained by Matei Ciocarlie</author>
-  <license>BSD</license>  
-  <review status="unreviewed" notes=""/>
-  <url>http://ros.org/wiki/gripper_design</url>
-  <depend stack="ros" />
-
-</stack>
