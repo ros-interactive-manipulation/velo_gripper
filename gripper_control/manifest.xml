@@ -1,0 +1,6 @@
+<package>
+  <description brief="gripper_control">Controller code and config files for the gripper project</description>
+  <author>Matei Ciocarlie</author>
+</package>
+
+
