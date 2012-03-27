@@ -55,15 +55,24 @@ def main():
     # TAKE NUMBER OF CYCLES AS INPUT ARG
     try:      num_cycles = int( sys.argv[1] )
     except:   num_cycles = 1000
+    print "num_cycles = %d" % num_cycles
+    depth = 0.011
+    try:      depth = min(depth,eval( sys.argv[2] ))
+    except:   depth = depth
+    print "depth = %5.3f m" % depth
+    try:      cycletime = float( sys.argv[3] )
+    except:   cycletime = 6.0
+    print "cycletime = %3.1f sec" % cycletime
 
     for n in range(2*num_cycles):
         pub.publish(Float64(goal))
-        if goal > .010:
+        if goal > .003:
             goal = 0.002
             print "Cycle # %4d" % (n/2+1)
         else:
-            goal = 0.062
-        time.sleep(3)
+            goal = depth
+            print "%5.3f" % goal
+        time.sleep(cycletime/2.0)
 
         if rospy.is_shutdown():
             break
