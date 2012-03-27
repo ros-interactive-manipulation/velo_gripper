@@ -10,7 +10,9 @@
 <transmission type="pr2_mechanism_model/SimpleTransmission" name="gripper_trans">
   <actuator name="low_cost_gripper_motor"/>
   <joint name="gripper_joint"/>
-  <mechanicalReduction>1</mechanicalReduction> 
+  <mechanicalReduction> 28032.673 </mechanicalReduction> 
 </transmission>
 
 </robot>
+<!--  4461.5385 -->
+<!-- 28032.673  -->
