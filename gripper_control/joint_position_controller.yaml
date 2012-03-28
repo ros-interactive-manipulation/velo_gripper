@@ -1,0 +1,11 @@
+calibration_controller:
+    type: pr2_calibration_controllers/FakeCalibrationController
+    joint: gripper_joint
+cycle_controller:
+    type: robot_mechanism_controllers/JointPositionController
+    joint: gripper_joint
+    pid:
+        p: 40000.0
+        d: 200.0
+        i: 100.0
+        i_clamp: 0.0
