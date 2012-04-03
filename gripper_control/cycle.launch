@@ -15,8 +15,11 @@
         type="spawner" 
         args="--wait=calibration_controller/calibrated cycle_controller"
         respawn="false" output="screen" />
+<!-- Run this from the command line separately so that different 
+     arguments can be given.
   <node name="cycle_control"
         pkg="gripper_controller"
         type="cycle.py"
         output="screen" />
+-->
 </launch>

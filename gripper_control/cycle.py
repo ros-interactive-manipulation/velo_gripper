@@ -56,7 +56,7 @@ def main():
     try:      num_cycles = int( sys.argv[1] )
     except:   num_cycles = 1000
     print "num_cycles = %d" % num_cycles
-    depth = 0.011
+    depth = 0.014
     try:      depth = min(depth,eval( sys.argv[2] ))
     except:   depth = depth
     print "depth = %5.3f m" % depth
