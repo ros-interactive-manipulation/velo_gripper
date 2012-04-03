@@ -52,7 +52,8 @@ def main():
 
     pub = rospy.Publisher("%s/command" % CONTROLLER_NAME, Float64)
 
-    goal = 0.0
+    depth_min = 0.002
+    depth_max = 0.014
 
     # TAKE NUMBER OF CYCLES AS INPUT ARG
     
@@ -61,30 +62,33 @@ def main():
                       type="int", default=1000,
                       help="Number of cycles" )
     parser.add_option("-d","--depth", dest="depth", metavar="depth",
-                      type="float", default=0.014,
-                      help="Max depth for cycles" )
+                      type="float", default=depth_max,
+                      help="Max depth for cycles. (default is %5.3f m)"%depth_max )
     parser.add_option("-t","--cycletime", dest="cycletime", metavar="cycletime",
                       type="float", default=6.0,
                       help="Time for one cycle" )
     (options, args) = parser.parse_args()
 
+    depth_max = options.depth
+
     print "num_cycles = %d" % options.num_cycles
     print "depth      = %5.3f m" % options.depth
     print "cycletime  = %3.1f sec" % options.cycletime
 
+    goal = depth_min
     for n in range(2*options.num_cycles):
         pub.publish(Float64(goal))
-        if goal > .003:
-            goal = 0.002
+        if goal > depth_min:
+            goal = depth_min
             print "Cycle # %4d" % (n/2+1)
         else:
-            goal = options.depth
+            goal = depth_max
         time.sleep(options.cycletime/2.0)
 
         if rospy.is_shutdown():
             break
 
-    pub.publish(Float64(0.0))
+    pub.publish(Float64(depth_min))
 
 if __name__ == '__main__':
     main()
