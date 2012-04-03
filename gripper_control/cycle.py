@@ -38,6 +38,8 @@ import roslib
 roslib.load_manifest('robot_mechanism_controllers')
 import rospy
 
+from optparse import OptionParser
+
 from std_msgs.msg import *
 from pr2_controller_manager import pr2_controller_manager_interface
 
@@ -53,26 +55,31 @@ def main():
     goal = 0.0
 
     # TAKE NUMBER OF CYCLES AS INPUT ARG
-    try:      num_cycles = int( sys.argv[1] )
-    except:   num_cycles = 1000
-    print "num_cycles = %d" % num_cycles
-    depth = 0.014
-    try:      depth = min(depth,eval( sys.argv[2] ))
-    except:   depth = depth
-    print "depth = %5.3f m" % depth
-    try:      cycletime = float( sys.argv[3] )
-    except:   cycletime = 6.0
-    print "cycletime = %3.1f sec" % cycletime
+    
+    parser = OptionParser()
+    parser.add_option("-n","--num_cycles", dest="num_cycles", metavar="num_cycles", 
+                      type="int", default=1000,
+                      help="Number of cycles" )
+    parser.add_option("-d","--depth", dest="depth", metavar="depth",
+                      type="float", default=0.014,
+                      help="Max depth for cycles" )
+    parser.add_option("-t","--cycletime", dest="cycletime", metavar="cycletime",
+                      type="float", default=6.0,
+                      help="Time for one cycle" )
+    (options, args) = parser.parse_args()
 
-    for n in range(2*num_cycles):
+    print "num_cycles = %d" % options.num_cycles
+    print "depth      = %5.3f m" % options.depth
+    print "cycletime  = %3.1f sec" % options.cycletime
+
+    for n in range(2*options.num_cycles):
         pub.publish(Float64(goal))
         if goal > .003:
             goal = 0.002
             print "Cycle # %4d" % (n/2+1)
         else:
-            goal = depth
-            print "%5.3f" % goal
-        time.sleep(cycletime/2.0)
+            goal = options.depth
+        time.sleep(options.cycletime/2.0)
 
         if rospy.is_shutdown():
             break
