@@ -78,7 +78,7 @@ def main():
     goal = depth_min
     for n in range(2*options.num_cycles):
         pub.publish(Float64(goal))
-        if goal > depth_min:
+        if goal != depth_min:
             goal = depth_min
             print "Cycle # %4d" % (n/2+1)
         else:

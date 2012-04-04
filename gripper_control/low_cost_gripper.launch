@@ -1,3 +1,3 @@
 <launch>
-  <node name="controller_manager" pkg="pr2_etherCAT"  type="pr2_etherCAT" args="-i eth1 -x $(find gripper_controller)/low_cost_gripper.xml" output="screen" />
+  <node name="controller_manager" launch-prefix="pr2-grant" pkg="pr2_etherCAT"  type="pr2_etherCAT" args="-i eth1 -x $(find gripper_controller)/low_cost_gripper.xml" output="screen"/>
 </launch>
