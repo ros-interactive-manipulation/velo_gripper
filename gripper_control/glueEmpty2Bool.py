@@ -50,13 +50,16 @@ inTopic_result = None
 def main():
     print("Starting %s"%__file__)
 
+    inTopic_default = "calibration_controller/calibrated"
+    outTopic_default= "glueEmpty2Bool/calibratedBool"
+
     parser=OptionParser()
     parser.add_option("-i", dest="inTopic", metavar="inTopic", 
-                      type="str", default="calibration_controller/calibrated",
-                      help="Name of input topic to listen for. Type is <Empty>." )
+        type="str", default=inTopic_default,
+        help="Topic to listen for <Empty> on. Default is %s."%inTopic_default )
     parser.add_option("-o", dest="outTopic", metavar="outTopic", 
-                      type="str", default="glueEmpty2Bool/calibratedBool",
-                      help="Name of output topic to publish to. Type is <Bool>." )
+        type="str", default=outTopic_default,
+        help="Topic to publish <Bool> to.  Default is %s."%outTopic_default )
     (options, args) = parser.parse_args()
 
 
