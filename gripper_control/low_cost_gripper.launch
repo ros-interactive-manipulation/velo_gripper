@@ -1,3 +1,3 @@
 <launch>
-  <node pkg="pr2_etherCAT" name="realtime_loop" type="pr2_etherCAT" args="-ieth1 -x /u/matei/ros_sandbox/gripper_controller/low_cost_gripper.xml"
+  <node name="controller_manager" pkg="pr2_etherCAT"  type="pr2_etherCAT" args="-i eth1 -x $(find gripper_controller)/low_cost_gripper.xml" output="screen" />
 </launch>
