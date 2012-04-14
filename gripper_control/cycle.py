@@ -34,6 +34,8 @@ CONTROLLER_NAME = "cycle_controller"
 
 import sys
 import time
+import random
+
 import roslib
 roslib.load_manifest('robot_mechanism_controllers')
 import rospy
@@ -52,8 +54,13 @@ def main():
 
     pub = rospy.Publisher("%s/command" % CONTROLLER_NAME, Float64)
 
-    depth_min = 0.002
-    depth_max = 0.014
+    gearSign  = -1     # -1 for no idler; +1 for idler in gear train.
+    depth_min = 0.0018
+    depth_max = 0.0135
+    # Absolute magnitude of stopping point randomization 
+    # so we don't stop on exactly the same tooth each time.
+    # 0.00325/14.5 = 0.000224 = 1 motor rev (with 14.5 & 3.25mm pitch)
+    epsilon_mag = 0.000224/2
 
     # TAKE NUMBER OF CYCLES AS INPUT ARG
     
@@ -69,7 +76,8 @@ def main():
                       help="Time for one cycle" )
     (options, args) = parser.parse_args()
 
-    depth_max = options.depth
+    depth_max = abs(options.depth)
+    if depth_max > 1.0:  depth_max /= 1000.0  # Force to mm
 
     print "num_cycles = %d" % options.num_cycles
     print "depth      = %5.3f m" % options.depth
@@ -77,7 +85,8 @@ def main():
 
     goal = depth_min
     for n in range(2*options.num_cycles):
-        pub.publish(Float64(goal))
+        epsilon = epsilon_mag * (2*random.random()-1)
+        pub.publish(Float64(gearSign*abs(goal+epsilon)))
         if goal != depth_min:
             goal = depth_min
             print "Cycle # %4d" % (n/2+1)
@@ -88,7 +97,7 @@ def main():
         if rospy.is_shutdown():
             break
 
-    pub.publish(Float64(depth_min))
+    pub.publish(Float64(gearSign*abs(depth_min)))
 
 if __name__ == '__main__':
     main()

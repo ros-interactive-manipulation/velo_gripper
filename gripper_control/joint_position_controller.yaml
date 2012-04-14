@@ -5,7 +5,7 @@ calibration_controller:
     type: pr2_calibration_controllers/GripperCalibrationController
     joint: gripper_joint
     actuator: low_cost_gripper_motor
-    velocity: -0.004
+    velocity: 0.004
     pid:
         p: 40000.0
         d: 200.0
@@ -14,7 +14,7 @@ cycle_controller:
     type: robot_mechanism_controllers/JointPositionController
     joint: gripper_joint
     pid:
-        p: 40000.0
-        d: 200.0
-        i: 100.0
-        i_clamp: 0.0
+        p: 1440000.0
+        d: 2400.0
+        i: 2000.0
+        i_clamp: 40000.0

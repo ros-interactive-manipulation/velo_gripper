@@ -20,5 +20,15 @@
         args="--wait=glueEmpty2Bool/calibratedBool  cycle_controller"
         respawn="false" output="screen" />
 
+  <node if="0" name="plot_effort"
+        pkg="rxtools" type="rxplot"
+        args="-t EFFORT joint_states/effort[0]"
+        respawn="false" output="screen" />
+
+  <node if="0" name="plot_pos"
+        pkg="rxtools" type="rxplot"
+        args="-t POSITION joint_states/position[0]"
+        respawn="false" output="screen" />
+
 </launch>
 
