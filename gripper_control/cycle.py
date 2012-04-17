@@ -89,7 +89,8 @@ def main():
         pub.publish(Float64(gearSign*abs(goal+epsilon)))
         if goal != depth_min:
             goal = depth_min
-            print "Cycle # %4d" % (n/2+1)
+            sys.stdout.write("\rCycle # %4d   " % (n/2+1))
+            sys.stdout.flush()
         else:
             goal = depth_max
         time.sleep(options.cycletime/2.0)
