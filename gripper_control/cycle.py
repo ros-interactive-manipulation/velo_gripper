@@ -80,7 +80,7 @@ def main():
     if depth_max > 1.0:  depth_max /= 1000.0  # Force to mm
 
     print "num_cycles = %d" % options.num_cycles
-    print "depth      = %5.3f m" % options.depth
+    print "depth      = %5.3f m" % depth_max
     print "cycletime  = %3.1f sec" % options.cycletime
 
     goal = depth_min
