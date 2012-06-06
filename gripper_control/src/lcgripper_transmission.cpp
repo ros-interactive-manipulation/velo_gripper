@@ -1164,8 +1164,7 @@ void LCGripperTransmission::propagatePosition(std::vector<Actuator*>& as, std::v
 		ROS_ASSERT(js.size() == 1 + passive_joints_.size());
 	}
 	
-	double enc_pos 			= as[0]->state_.position_ - 5762.49;
-	double motor_pos 		= getMotorPosFromEncoderPos(enc_pos);
+	double motor_pos 		= -as[0]->state_.position_;
 	double motor_vel 		= getMotorVelFromEncoderVel(as[0]->state_.velocity_); 
 	double motor_torque 	= getMotorTorqueFromEffort(as[0]->state_.last_measured_effort_); // Convert current -> Nm
 	
@@ -1174,26 +1173,26 @@ void LCGripperTransmission::propagatePosition(std::vector<Actuator*>& as, std::v
 	double tendon_force 	= getTendonForceFromMotorTorque(motor_torque);
 	//ROS_ERROR("TENDON LENGTH = %f", tendon_length);
 	
-	double gap_size 		= getGapFromTendonLength(tendon_length); // Gap size is in mm
-	gap_size 				= validateGapSize(gap_size); // Check bounds
+	double gap_size 		= fabs(getGapFromTendonLength(tendon_length) - gap_open_); // Gap size is in mm
+	gap_size 			= validateGapSize(gap_size); // Check bounds
 	double gap_vel			= getGapVelFromTendonLengthVel(tendon_length, tendon_vel);
 	double gap_force		= getGripperForceFromTendonForce(tendon_force, gap_size);
 	
-	ROS_ERROR("PropagatePosition(): ENC_POS = %f --> MOTOR_POS = %f --> TENDON_LENGTH = %f --> GAP_SIZE = %f", as[0]->state_.position_, motor_pos, tendon_length, gap_size);
+	//ROS_INFO("PropagatePosition(): ENC_POS = %f --> MOTOR_POS = %f --> TENDON_LENGTH = %f --> GAP_SIZE = %f", as[0]->state_.position_, motor_pos, tendon_length, gap_size);
 	
 	double theta 			= getThetaFromGap(gap_size);
 	
 	// Determines the state of the gap joint.
 	js[0]->position_        = gap_size;
 	js[0]->velocity_        = gap_vel; // each finger is moving with this velocity.
-	js[0]->measured_effort_ = gap_force/2.0; // TODO: Halved why?	
+	js[0]->measured_effort_ = gap_force;	
 	
 	// Determines the states of the passive joints.
 	// we need to do this for each finger, in simulation, each finger has it's state filled out
 	
 	double joint_angle = (theta_closed_*M_PI/180.0) - theta;
 	double joint_vel = getThetaVelFromGapVel(gap_vel, gap_size);
-	ROS_INFO("PropagatePosition(): joint_angle %f", (joint_angle*180.0/M_PI) );
+	//ROS_INFO("PropagatePosition(): joint_angle %f", (joint_angle*180.0/M_PI) );
 	for (size_t i = 1; i < passive_joints_.size()+1; ++i) //
 	{
 		if(i == 1 || i == 2 || i == 4)
@@ -1244,7 +1243,7 @@ void LCGripperTransmission::propagatePositionBackwards(std::vector<JointState*>&
 		ROS_ASSERT(js.size() == 1 + passive_joints_.size());
 	}
 	
-	ROS_WARN("Read js[0]: %f, js[1]: %f, js[2]: %f, js[3] %f, js[4] %f", js[0]->position_, js[1]->position_*180/M_PI, js[2]->position_*180/M_PI, js[3]->position_*180/M_PI, js[4]->position_*180/M_PI);
+	//ROS_WARN("Read js[0]: %f, js[1]: %f, js[2]: %f, js[3] %f, js[4] %f", js[0]->position_, js[1]->position_*180/M_PI, js[2]->position_*180/M_PI, js[3]->position_*180/M_PI, js[4]->position_*180/M_PI);
 	
 	double theta1 			= -js[2]->position_ + theta_closed_*M_PI/180.0; // Proximal joint angle, radians 
 	double theta1_vel 		= js[2]->velocity_;
@@ -1254,7 +1253,7 @@ void LCGripperTransmission::propagatePositionBackwards(std::vector<JointState*>&
 	double tendon_length 	= getTendonLengthFromGap(gap_size);
 	double motor_pos 		= getMotorPosFromLength(tendon_length);
 	double enc_pos 			= getEncoderPosFromMotorPos(motor_pos) + 5762.49;
-	ROS_ERROR("PropagatePositionBackwards(): Theta1: %f, GAP SIZE: %f, TENDON LENGTH: %f, MOTOR POS: %f, ENC POS: %f", theta1, gap_size, tendon_length, motor_pos, enc_pos);
+	//ROS_ERROR("PropagatePositionBackwards(): Theta1: %f, GAP SIZE: %f, TENDON LENGTH: %f, MOTOR POS: %f, ENC POS: %f", theta1, gap_size, tendon_length, motor_pos, enc_pos);
 	
 	double gap_rate         = theta1_vel*cos(theta1);
 	double tendon_rate		= getTendonLengthVelFromGapVel(gap_rate, gap_size);
@@ -1313,15 +1312,15 @@ void LCGripperTransmission::propagateEffort(
 	
 	
 	double gap_effort       = js[0]->commanded_effort_; // Newtons
-	double gap_size 		= js[0]->position_; 			// Needed to calculate joint torques.
+	double gap_size 	= js[0]->position_; 			// Needed to calculate joint torques.
 	double tendon_force 	= getTendonForceFromGripperForce(gap_effort, gap_size);
 	double motor_torque 	= getMotorTorqueFromTendonForce(tendon_force);
 	double motor_effort 	= getMotorEffortFromTorque(motor_torque);
 	
-	ROS_INFO("PropagateEffort(): Gap Effort = %f ; Gap Pos = %f ; Motor Effort = %f", gap_effort, gap_size, motor_effort);
+//	ROS_INFO("PropagateEffort(): Gap Pos = %f ; Gap Effort = %f ; Tendon Force %f ; Motor Torque %f ; Motor Effort = %f", gap_size, gap_effort, tendon_force, motor_torque, motor_effort);
 	
 	as[0]->command_.enable_ = true;
-	as[0]->command_.effort_ = motor_effort;
+	as[0]->command_.effort_ = gap_effort;//motor_effort;
 }
 
 void LCGripperTransmission::propagateEffortBackwards(
@@ -1367,7 +1366,7 @@ void LCGripperTransmission::propagateEffortBackwards(
       // set screw joint effort if simulated
       js[passive_joints_.size()+1]->commanded_effort_  = gap_effort/simulated_reduction_;
       //js[0]->commanded_effort_                         = gap_effort/2.0;
-      ROS_INFO("propagateEffortBackwards(): js[0]->commanded_effort = %f", gap_effort/simulated_reduction_);
+      //ROS_INFO("propagateEffortBackwards(): js[0]->commanded_effort = %f", gap_effort/simulated_reduction_);
     }
     else
     {
@@ -1538,6 +1537,7 @@ double LCGripperTransmission::getTendonForceFromGripperForce(double gripper_forc
 	double effective_distance = getTendonEffectiveDistanceToJ0(gap_size);
 	
 	double tendon_force = torque / (effective_distance);
+	//ROS_WARN("getTendonForceFromGripperForce()
 	return tendon_force;
 }
 

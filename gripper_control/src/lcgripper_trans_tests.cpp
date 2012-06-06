@@ -148,6 +148,8 @@ int main()
 	// TODO: Tendon length to motor pos
 	
 	// TODO: Motor torque to tendon force
+	double mt_20 = lcg_trans.getMotorTorqueFromTendonForce(20.0);
+	cout << "MT_20: " << mt_20 << endl;
 	
 	// TODO: Tendon force to motor torque
 	
