@@ -9,8 +9,16 @@
   <depend package="actionlib"/>
   <depend package="pr2_controllers_msgs"/>
   <depend package="pr2_controller_interface"/>
+  <depend package="pr2_controller_manager"/>
   <depend package="pr2_mechanism_model"/>
   <depend package="pluginlib"/>
+  <depend package="control_toolbox" />
+  <depend package="realtime_tools" />
+  <depend package="message_filters" />
+  <depend package="control_msgs" />
+  <export>
+    <pr2_mechanism_model plugin="${prefix}/transmission_plugins.xml" />
+  </export>
 
 </package>
 
