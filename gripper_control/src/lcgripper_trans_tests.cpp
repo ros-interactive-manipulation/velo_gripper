@@ -90,7 +90,7 @@ int main()
 	cout << "Gripper force: " << gripper_force_closed << ", gap: " << GAP_CLOSED << " ---> tendon force: " << tendon_force_closed << endl; 
 	assert (tendon_force_closed > (TENDON_FORCE - FORCE_TOL) && tendon_force_closed < (TENDON_FORCE + FORCE_TOL) );
 	double tendon_force_mid = lcg_trans.getTendonForceFromGripperForce(gripper_force_mid, GAP_MID);
-	cout << "Gripper force: " << gripper_force_open << ", gap: " << GAP_MID << " ---> tendon force: " << tendon_force_mid << endl; 
+	cout << "Gripper force: " << gripper_force_mid << ", gap: " << GAP_MID << " ---> tendon force: " << tendon_force_mid << endl; 
 	assert (tendon_force_mid > (TENDON_FORCE - FORCE_TOL) && tendon_force_mid < (TENDON_FORCE + FORCE_TOL) );
 	double tendon_force_open = lcg_trans.getTendonForceFromGripperForce(gripper_force_open, GAP_OPEN);
 	cout << "Gripper force: " << gripper_force_open << ", gap: " << GAP_OPEN << " ---> tendon force: " << tendon_force_open << endl; 

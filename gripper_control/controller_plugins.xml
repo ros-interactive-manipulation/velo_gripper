@@ -1,0 +1,5 @@
+<library path="lib/libpr2_lcgripper_controller">
+  <class name="gripper_control/Pr2LCGripperController" 
+         type="controller::Pr2LCGripperController"           
+         base_class_type="pr2_controller_interface::Controller" />
+</library>

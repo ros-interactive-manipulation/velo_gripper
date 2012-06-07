@@ -18,6 +18,7 @@
   <depend package="control_msgs" />
   <export>
     <pr2_mechanism_model plugin="${prefix}/transmission_plugins.xml" />
+    <pr2_controller_interface plugin="${prefix}/controller_plugins.xml" />
   </export>
 
 </package>
