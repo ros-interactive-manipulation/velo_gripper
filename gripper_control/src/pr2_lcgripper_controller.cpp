@@ -114,9 +114,13 @@ void Pr2LCGripperController::update()
 
   // Computes the position error
   error = joint_state_->position_ - command->position;
+  
+  // TODO: FILTER VELOCITY HERE.  
+  double lambda = 0.1; // Basic 1st order low pass
+  filtered_velocity_ = (1.0-lambda)*filtered_velocity_ + lambda*joint_state_->velocity_;
 
   // Sets the effort (limited)
-  double effort = pid_.updatePid(error, joint_state_->velocity_, dt);
+  double effort = pid_.updatePid(error, filtered_velocity_, dt);
   if (command->max_effort >= 0.0)
   {
     effort = std::max(-command->max_effort, std::min(effort, command->max_effort));

@@ -418,7 +418,7 @@ if __name__ == "__main__":
 		gap = gripper.getGapWidth()
 		
 		effective_distance = gripper.getEffectiveDistance()
-		torque = gripper.getJ0Torque(1.0)
+		torque = gripper.getJ0Torque(150.0)
 		force = gripper.getGripperForce(torque) # 20 N applied tension
 		
 		print "LENGTH J0: %.02f J1: %.02f" % (l_j0, l_j1)

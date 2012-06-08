@@ -102,6 +102,7 @@ public:
 
 private:
   int loop_count_;
+  double filtered_velocity_;
   pr2_mechanism_model::RobotState *robot_;
   control_toolbox::Pid pid_;
   ros::Time last_time_;
