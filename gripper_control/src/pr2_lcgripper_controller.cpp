@@ -84,8 +84,12 @@ bool Pr2LCGripperController::init(pr2_mechanism_model::RobotState *robot, ros::N
     return false;
   }
 
-  if (!pid_.init(ros::NodeHandle(node_, "pid")))
+  if (!pid_.init(ros::NodeHandle(node_, "pid")))	  
     return false;
+  
+  ros::NodeHandle pid_node(node_, "pid");
+  pid_node.param("filter_coeff", lambda_, 0.0);
+  pid_node.param("v_thres", v_thres_, 0.0);
 
   controller_state_publisher_.reset(
     new realtime_tools::RealtimePublisher<pr2_controllers_msgs::JointControllerState>
@@ -116,8 +120,7 @@ void Pr2LCGripperController::update()
   error = joint_state_->position_ - command->position;
   
   // TODO: FILTER VELOCITY HERE.  
-  double lambda = 0.1; // Basic 1st order low pass
-  filtered_velocity_ = (1.0-lambda)*filtered_velocity_ + lambda*joint_state_->velocity_;
+  filtered_velocity_ = (1.0-lambda_)*filtered_velocity_ + lambda_*joint_state_->velocity_;
 
   // Sets the effort (limited)
   double effort = pid_.updatePid(error, filtered_velocity_, dt);

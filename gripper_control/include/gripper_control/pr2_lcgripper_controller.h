@@ -61,7 +61,7 @@
 #include <ros/node_handle.h>
 
 #include <pr2_controller_interface/controller.h>
-#include <control_toolbox/pid.h>
+#include <gripper_control/lcgripper_pid.h>
 #include <control_toolbox/pid_gains_setter.h>
 #include <boost/scoped_ptr.hpp>
 #include <boost/thread/condition.hpp>
@@ -102,9 +102,13 @@ public:
 
 private:
   int loop_count_;
+  
   double filtered_velocity_;
+  double lambda_;
+  double v_thres_;
+  
   pr2_mechanism_model::RobotState *robot_;
-  control_toolbox::Pid pid_;
+  lcg_controller::LCGPid pid_;
   ros::Time last_time_;
 
   ros::NodeHandle node_;

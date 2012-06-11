@@ -12,3 +12,5 @@ l_gripper_controller:
     i: 0.25
     d: 0.5
     i_clamp: 0.01
+    filter_coeff: 0.1
+    v_thres: 0.005
