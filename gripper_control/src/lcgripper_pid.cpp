@@ -39,14 +39,10 @@
 
 namespace lcg_controller {
 
-LCGPid::LCGPidPid(double P, double I, double D, double I1, double I2) :
-  p_gain_(P), i_gain_(I), d_gain_(D), i_max_(I1), i_min_(I2)
+LCGPid::LCGPid(double P, double I, double D, double I1, double I2)
 {
-  p_error_last_ = 0.0;
-  p_error_ = 0.0;
-  d_error_ = 0.0;
-  i_error_ = 0.0;
-  cmd_ = 0.0;
+  setGains(P, I, D, I1, I2);
+  reset();
 }
 
 LCGPid::~LCGPid()
@@ -56,29 +52,17 @@ LCGPid::~LCGPid()
 
 void LCGPid::reset()
 {
-  p_error_last_ = 0.0;
-  p_error_ = 0.0;
-  d_error_ = 0.0;
-  i_error_ = 0.0;
-  cmd_ = 0.0;
+  Pid::reset();
   v_thres_ = 0.0;
 }
 
 
 bool LCGPid::init(const ros::NodeHandle &node)
 {
+  Pid::init(node);
+  
   ros::NodeHandle n(node);
-  if (!n.getParam("p", p_gain_)) {
-    ROS_ERROR("No p gain specified for pid.  Namespace: %s", n.getNamespace().c_str());
-    return false;
-  }
-  n.param("i", i_gain_, 0.0);
-  n.param("d", d_gain_, 0.0);
-  n.param("i_clamp", i_max_, 0.0);
   n.param("v_thres", v_thres_, 0.0);
-  i_min_ = -i_max_;
-
-  reset();
   return true;
 }
 
@@ -126,25 +110,6 @@ double LCGPid::updatePid(double error, double error_dot, ros::Duration dt)
   cmd_ = -p_term - i_term - d_term;
 
   return cmd_;
-}
-
-
-
-void LCGPid::setCurrentCmd(double cmd)
-{
-  cmd_ = cmd;
-}
-
-double LCGPid::getCurrentCmd()
-{
-  return cmd_;
-}
-
-void LCGPid::getCurrentPIDErrors(double *pe, double *ie, double *de)
-{
-  *pe = p_error_;
-  *ie = i_error_;
-  *de = d_error_;
 }
 
 }

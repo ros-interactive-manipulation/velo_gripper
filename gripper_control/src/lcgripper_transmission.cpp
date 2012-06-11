@@ -28,7 +28,7 @@
  */
 
 /*
- * Author: Stuart Glaser
+ * Author: J Hawke
  */
 
 /*
