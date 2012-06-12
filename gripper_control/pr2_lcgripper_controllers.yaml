@@ -5,12 +5,12 @@ r_gripper_controller:
     p: 10000.0
     d: 1000.0
 l_gripper_controller:
-  type: pr2_mechanism_controllers/Pr2LCGripperController
+  type: gripper_control/Pr2LCGripperController
   joint: l_gripper_joint
   pid: &lcgripper_position_gains
-    p: 1.0
-    i: 0.25
-    d: 0.5
+    p: 2000.0
+    i: 0.0
+    d: 100.0
     i_clamp: 0.01
     filter_coeff: 0.1
     v_thres: 0.005

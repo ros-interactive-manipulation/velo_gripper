@@ -108,6 +108,7 @@ private:
   double v_thres_;
   
   pr2_mechanism_model::RobotState *robot_;
+//  control_toolbox::Pid pid_;
   lcg_controller::LCGPid pid_;
   ros::Time last_time_;
 
