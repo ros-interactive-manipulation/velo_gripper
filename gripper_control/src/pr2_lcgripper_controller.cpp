@@ -55,10 +55,11 @@ Pr2LCGripperController::~Pr2LCGripperController()
 
 bool Pr2LCGripperController::init(pr2_mechanism_model::RobotState *robot, ros::NodeHandle &n)
 {
+  ROS_WARN("Pr2LCGripperController::init");
   assert(robot);
   node_ = n;
   robot_ = robot;
-
+  ROS_WARN("LCGController Init!");
   std::string joint_name;
   if (!node_.getParam("joint", joint_name)) {
     ROS_ERROR("No joint given (namespace: %s)", node_.getNamespace().c_str());
@@ -83,7 +84,7 @@ bool Pr2LCGripperController::init(pr2_mechanism_model::RobotState *robot, ros::N
               joint_state_->joint_->name.c_str(), node_.getNamespace().c_str());
     return false;
   }
-
+  ROS_WARN("Before PID INIT");
   if (!pid_.init(ros::NodeHandle(node_, "pid")))	  
     return false;
   
@@ -97,7 +98,7 @@ bool Pr2LCGripperController::init(pr2_mechanism_model::RobotState *robot, ros::N
 
   sub_command_ = node_.subscribe<pr2_controllers_msgs::Pr2GripperCommand>(
     "command", 1, &Pr2LCGripperController::commandCB, this);
-
+  ROS_WARN("Initialised LCG Controller");
   return true;
 }
 

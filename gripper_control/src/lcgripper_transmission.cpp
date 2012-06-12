@@ -1171,7 +1171,6 @@ void LCGripperTransmission::propagatePosition(std::vector<Actuator*>& as, std::v
 	double tendon_length 	= getLengthFromMotorPos(motor_pos);
 	double tendon_vel		= getTendonLengthVelFromMotorVel(motor_vel);
 	double tendon_force 	= getTendonForceFromMotorTorque(motor_torque);
-	//ROS_ERROR("TENDON LENGTH = %f", tendon_length);
 	
 	double gap_size 		= fabs(getGapFromTendonLength(tendon_length) - gap_open_); // Gap size is in mm
 	gap_size 			= validateGapSize(gap_size); // Check bounds
@@ -1320,7 +1319,7 @@ void LCGripperTransmission::propagateEffort(
 //	ROS_INFO("PropagateEffort(): Gap Pos = %f ; Gap Effort = %f ; Tendon Force %f ; Motor Torque %f ; Motor Effort = %f", gap_size, gap_effort, tendon_force, motor_torque, motor_effort);
 	
 	as[0]->command_.enable_ = true;
-	as[0]->command_.effort_ = gap_effort;//motor_effort;
+	as[0]->command_.effort_ = motor_effort;
 }
 
 void LCGripperTransmission::propagateEffortBackwards(
@@ -1450,6 +1449,7 @@ double LCGripperTransmission::getGapVelFromTendonLengthVel(double length, double
 		dGap_dLength += (i+1) * (length_to_gap_coeffs_[i+1] * pow(length, i));
 	}
 	// Calculate dGap/dTime
+//	ROS_WARN("getGapVelFromTendonLengthVel: dGap_dLength: %f , length_vel %f", dGap_dLength, length);
 	gap_vel = dGap_dLength * length_vel;
 	
 	return gap_vel;
@@ -1475,18 +1475,9 @@ double LCGripperTransmission::getTendonLengthVelFromGapVel(double gap_vel, doubl
 
 double LCGripperTransmission::getThetaVelFromGapVel(double gap_vel, double gap_size)
 {
-	// dTheta/dTime = dTheta/dGap * dGap/dTime
-	// Theta = acos(gap/2.0 - abs(j0x_)/2.0 + thickness_)
-	// dTheta_dGap = - dInner / sqrt(1 - inner^2) - derivative w/ chain rule.
-	// 	where inner =   1/2 * gap - abs(j0x_)/2.0 + thickness_
-	// 	and	dInner = 1/2 (gap_vel)
-
-	double inner = (gap_size - abs(j0x_))/2.0 + thickness_;
-	double dInner = gap_vel/2.0;
-	
-	// Calculate dLength/dTime
-	double dTheta_dGap = -dInner / sqrt(1-pow(inner, 2)); 
-	double theta_vel = dTheta_dGap * gap_vel;
+	double v = gap_vel/2.0;
+	double theta = getThetaFromGap(gap_size);
+	double theta_vel = v * sin(theta) / l1_;
 	
 	return theta_vel;
 }
