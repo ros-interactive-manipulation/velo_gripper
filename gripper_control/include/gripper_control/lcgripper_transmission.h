@@ -45,9 +45,18 @@
 
 #include <vector>
 #include <tinyxml.h>
+#include <ros/ros.h>
+#include <boost/shared_ptr.hpp>
+#include <boost/thread/condition.hpp>
+
+#include <realtime_tools/realtime_box.h>
+#include <realtime_tools/realtime_publisher.h>
+
 #include "pr2_mechanism_model/transmission.h"
 #include "pr2_mechanism_model/robot.h"
 #include "pr2_mechanism_model/joint_calibration_simulator.h"
+
+#include "gripper_control/LCGTransmissionState.h"
 
 namespace pr2_mechanism_model {
 
@@ -126,6 +135,12 @@ public:
 	double getTendonForceFromTorqueJ1(double torque);
 
 	double validateGapSize(double gap_size);
+	
+	boost::shared_ptr<
+			realtime_tools::RealtimePublisher<
+				gripper_control::LCGTransmissionState> > lcg_state_publisher_ ;
+	
+	
 private:	
 	// Tendon routing definition. Not actually used - this is replaced by the fitted polynomials.
 	double p0x_;
@@ -174,6 +189,7 @@ private:
 	
 	bool use_simulated_gripper_joint;
 	
+	int loop_count_; // RT Publisher frequency (ie publish every X cycles).
 
 #define RAD2MR (1.0/(2.0*M_PI)) // convert radians to motor revolutions
 #define TOL 0.00001   // limit for denominators
@@ -182,6 +198,7 @@ private:
 	ros::Time simulated_actuator_start_time_;
 	
 	JointCalibrationSimulator joint_calibration_simulator_;
+	
 };
 
 } // namespace pr2_mechanism_model

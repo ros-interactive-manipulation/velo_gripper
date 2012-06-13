@@ -926,7 +926,15 @@ bool LCGripperTransmission::initParameters(TiXmlElement *j, Robot *robot)
 		}
 	}	
 	
+	int argc = 0;
+	char** argv;
 	
+	ros::init(argc, argv, gap_joint_);
+	ros::NodeHandle nh(gap_joint_);
+	
+	lcg_state_publisher_.reset(
+			new realtime_tools::RealtimePublisher<gripper_control::LCGTransmissionState>
+				(nh, "state", 1));
 	
 	return true;
 }
@@ -1173,7 +1181,7 @@ void LCGripperTransmission::propagatePosition(std::vector<Actuator*>& as, std::v
 	double tendon_force 	= getTendonForceFromMotorTorque(motor_torque);
 	
 	double gap_size 		= fabs(getGapFromTendonLength(tendon_length) - gap_open_); // Gap size is in mm
-	gap_size 			= validateGapSize(gap_size); // Check bounds
+	//gap_size 			= validateGapSize(gap_size); // Check bounds
 	double gap_vel			= getGapVelFromTendonLengthVel(tendon_length, tendon_vel);
 	double gap_force		= getGripperForceFromTendonForce(tendon_force, gap_size);
 	
@@ -1311,15 +1319,36 @@ void LCGripperTransmission::propagateEffort(
 	
 	
 	double gap_effort       = js[0]->commanded_effort_; // Newtons
-	double gap_size 	= js[0]->position_; 			// Needed to calculate joint torques.
+	double gap_size 		= js[0]->position_; 			// Needed to calculate joint torques.
+	
 	double tendon_force 	= getTendonForceFromGripperForce(gap_effort, gap_size);
 	double motor_torque 	= getMotorTorqueFromTendonForce(tendon_force);
-	double motor_effort 	= getMotorEffortFromTorque(motor_torque);
 	
-//	ROS_INFO("PropagateEffort(): Gap Pos = %f ; Gap Effort = %f ; Tendon Force %f ; Motor Torque %f ; Motor Effort = %f", gap_size, gap_effort, tendon_force, motor_torque, motor_effort);
+	double tendon_length 	= getTendonLengthFromGap(gap_size);
+	double motor_pos 		= getMotorPosFromLength(tendon_length);
+	
+//	ROS_INFO("PropagateEffort(): Gap Pos = %f ; Gap Effort = %f ; Tendon Force %f ; Motor Torque %f", gap_size, gap_effort, tendon_force, motor_torque);
 	
 	as[0]->command_.enable_ = true;
-	as[0]->command_.effort_ = motor_effort;
+	as[0]->command_.effort_ = motor_torque;
+	
+	if(loop_count_ % 10 == 0)
+	{
+		if(lcg_state_publisher_ && lcg_state_publisher_->trylock())
+		{
+			lcg_state_publisher_->msg_.header.stamp = ros::Time::now();
+			lcg_state_publisher_->msg_.gap_size = gap_size;
+			lcg_state_publisher_->msg_.tendon_position = tendon_length;
+			lcg_state_publisher_->msg_.motor_position = motor_pos;
+			lcg_state_publisher_->msg_.gap_force = gap_effort;
+			lcg_state_publisher_->msg_.tendon_force = tendon_force;
+			lcg_state_publisher_->msg_.motor_torque = motor_torque;
+		
+			lcg_state_publisher_->unlockAndPublish();
+		}
+	}
+	loop_count_++;
+	
 }
 
 void LCGripperTransmission::propagateEffortBackwards(
@@ -1372,7 +1401,7 @@ void LCGripperTransmission::propagateEffortBackwards(
       // an ugly hack to lessen instability due to gripper gains
       double eps=0.01;
       js[0]->commanded_effort_  = (1.0-eps)*js[0]->commanded_effort_ + eps*gap_effort/2.0; // skip slider joint effort
-    }
+    }    
 }
 
 double LCGripperTransmission::getMotorPosFromLength(double length)
