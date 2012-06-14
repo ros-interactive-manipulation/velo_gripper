@@ -14,6 +14,7 @@
   <depend package="pluginlib"/>
   <depend package="control_toolbox" />
   <depend package="realtime_tools" />
+  <depend package="robot_mechanism_controllers" />
   <depend package="message_filters" />
   <depend package="control_msgs" />
   <export>
