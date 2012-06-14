@@ -147,13 +147,13 @@ void CappedJointVelocityController::update()
 //  joint_state_->commanded_effort_ += command; // ?????!!!!!!
   if (command > max_effort_)
   {
+//    ROS_WARN("Velocity controller exceeding effort limit: effort=%f, max=%f", command, max_effort_);
     command = max_effort_;
-    ROS_WARN("Velocity controller exceeding effort limit");
   }
   if (command < -max_effort_)
   {
+//    ROS_WARN("Velocity controller exceeding effort limit: effort=%f, max=%f", command, max_effort_);
     command = -max_effort_;
-    ROS_WARN("Velocity controller exceeding effort limit");
   }
 
   joint_state_->commanded_effort_ = command;
