@@ -37,7 +37,7 @@
 
 
 #include "pr2_mechanism_model/robot.h"
-#include "robot_mechanism_controllers/joint_velocity_controller.h"
+#include "gripper_control/capped_joint_velocity_controller.h"
 #include "realtime_tools/realtime_publisher.h"
 #include "std_msgs/Empty.h"
 #include "pr2_controllers_msgs/QueryCalibrationState.h"
@@ -45,11 +45,11 @@
 namespace controller
 {
 
-class GripperCalibrationController : public pr2_controller_interface::Controller
+class LCGripperCalibrationController : public pr2_controller_interface::Controller
 {
 public:
-  GripperCalibrationController();
-  ~GripperCalibrationController();
+  LCGripperCalibrationController();
+  ~LCGripperCalibrationController();
 
   virtual bool init(pr2_mechanism_model::RobotState *robot, ros::NodeHandle &n);
   virtual void starting();
@@ -79,7 +79,7 @@ protected:
   double init_time;
   double stopped_velocity_tolerance_;
 
-  controller::JointVelocityController vc_; /** The joint velocity controller used to sweep the joint.*/
+  controller::CappedJointVelocityController vc_; /** The joint velocity controller used to sweep the joint.*/
 };
 
 

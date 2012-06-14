@@ -39,22 +39,22 @@
 using namespace std;
 using namespace controller;
 
-PLUGINLIB_DECLARE_CLASS(pr2_calibration_controllers, GripperCalibrationController,
-                        controller::GripperCalibrationController, pr2_controller_interface::Controller)
+PLUGINLIB_DECLARE_CLASS(gripper_control, LCGripperCalibrationController,
+                        controller::LCGripperCalibrationController, pr2_controller_interface::Controller)
 
 namespace controller
 {
 
-GripperCalibrationController::GripperCalibrationController()
+LCGripperCalibrationController::LCGripperCalibrationController()
   : last_publish_time_(0), joint_(NULL)
 {
 }
 
-GripperCalibrationController::~GripperCalibrationController()
+LCGripperCalibrationController::~LCGripperCalibrationController()
 {
 }
 
-bool GripperCalibrationController::init(pr2_mechanism_model::RobotState *robot,
+bool LCGripperCalibrationController::init(pr2_mechanism_model::RobotState *robot,
                                         ros::NodeHandle &n)
 {
   assert(robot);
@@ -139,7 +139,7 @@ bool GripperCalibrationController::init(pr2_mechanism_model::RobotState *robot,
     return false;
 
   // advertise service to check calibration
-  is_calibrated_srv_ = node_.advertiseService("is_calibrated", &GripperCalibrationController::isCalibrated, this);
+  is_calibrated_srv_ = node_.advertiseService("is_calibrated", &LCGripperCalibrationController::isCalibrated, this);
 
   // "Calibrated" topic
   pub_calibrated_.reset(new realtime_tools::RealtimePublisher<std_msgs::Empty>(node_, "calibrated", 1));
@@ -148,7 +148,7 @@ bool GripperCalibrationController::init(pr2_mechanism_model::RobotState *robot,
 }
 
 
-void GripperCalibrationController::starting()
+void LCGripperCalibrationController::starting()
 {
   state_ = INITIALIZED;
   actuator_->state_.zero_offset_ = 0.0;
@@ -156,7 +156,7 @@ void GripperCalibrationController::starting()
 }
 
 
-bool GripperCalibrationController::isCalibrated(pr2_controllers_msgs::QueryCalibrationState::Request& req,
+bool LCGripperCalibrationController::isCalibrated(pr2_controllers_msgs::QueryCalibrationState::Request& req,
 						pr2_controllers_msgs::QueryCalibrationState::Response& resp)
 {
   resp.is_calibrated = (state_ == CALIBRATED);
@@ -164,7 +164,7 @@ bool GripperCalibrationController::isCalibrated(pr2_controllers_msgs::QueryCalib
 }
 
 
-void GripperCalibrationController::update()
+void LCGripperCalibrationController::update()
 {
   assert(joint_);
   assert(actuator_);

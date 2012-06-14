@@ -2,4 +2,10 @@
   <class name="gripper_control/Pr2LCGripperController" 
          type="controller::Pr2LCGripperController"           
          base_class_type="pr2_controller_interface::Controller" />
+  <class name="gripper_control/LCGripperCalibrationController"
+         type="controller::LCGripperCalibrationController"
+         base_class_type="pr2_controller_interface::Controller" />
+  <class name="gripper_control/CappedJointVelocityController"
+         type="controller::CappedJointVelocityController"
+         base_class_type="pr2_controller_interface::Controller" />
 </library>
