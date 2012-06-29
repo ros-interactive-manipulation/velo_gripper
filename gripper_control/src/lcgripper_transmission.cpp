@@ -1528,7 +1528,7 @@ double LCGripperTransmission::getMotorVelFromTendonLengthVel(double length_vel)
 
 double LCGripperTransmission::getTendonForceFromMotorTorque(double motor_torque)
 {
-	double tendon_force = (motor_torque * 2.0 * M_PI * screw_efficiency_) / screw_lead_;
+	double tendon_force = (motor_torque * gear_reduction_ * 2.0 * M_PI * screw_efficiency_) / screw_lead_;
 	return tendon_force;
 }
 
@@ -1563,7 +1563,7 @@ double LCGripperTransmission::getTendonForceFromGripperForce(double gripper_forc
 
 double LCGripperTransmission::getMotorTorqueFromTendonForce(double tendon_force)
 {
-	double motor_torque = (tendon_force * screw_lead_) / (2.0*M_PI*screw_efficiency_);
+	double motor_torque = (tendon_force * screw_lead_) / (2.0*M_PI*screw_efficiency_) / gear_reduction_;
 	return motor_torque;
 }
 
