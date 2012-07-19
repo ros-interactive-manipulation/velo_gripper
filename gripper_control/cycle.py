@@ -62,12 +62,14 @@ def rosInfra():
     # DIDN'T FIND THE RIGHT SERVICES, SO LAUNCH cycle_controller
     p_launch = pexpect.spawn('roslaunch gripper_controller cycle.launch')
     msg = 'Started controllers: cycle_controller'
-    ans = 1
-    while ans == 1:
-        ans = p_launch.expect([msg,'[\r\n]+',r'[FATAL]',pexpect.TIMEOUT], timeout=30)
-        if ans == 0: print(p_launch.before + p_launch.after + '\n')
-        if ans == 1: print(p_launch.before)
-        if ans >= 2: 
+    ans = 2
+    while ans == 2:
+        ans = p_launch.expect([msg,r'[FATAL]','[\r\n]+',
+                               pexpect.TIMEOUT], timeout=30)
+        if   ans == 0: print(p_launch.before + p_launch.after + '\n')
+        elif ans == 2: print(p_launch.before)
+        else:
+            print(p_launch.before + p_launch.after + '\n')
             p_launch.kill(9)
             time.sleep(2)
             sys.exit(0)
