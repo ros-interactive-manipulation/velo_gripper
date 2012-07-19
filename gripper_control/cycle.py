@@ -35,25 +35,47 @@ CONTROLLER_NAME = "cycle_controller"
 import sys
 import time
 import random
+import re
+import pexpect
 
 import roslib
 roslib.load_manifest('robot_mechanism_controllers')
 import rospy
 
+from subprocess import Popen,PIPE,STDOUT
 from optparse import OptionParser
 
 from std_msgs.msg import *
 from pr2_controller_manager import pr2_controller_manager_interface
 
-prev_handler = None
+# GLOBAL BECAUSE THIS NEEDS TO EXIST OR roscore IS KILLED.
+p_launch = None
+
+def rosInfra():
+    global p_launch
+    p_ros = Popen(['rostopic','list'],stderr=STDOUT,stdout=PIPE)
+    time.sleep(2)
+    (pout,perr) = p_ros.communicate()
+    if re.search('/cycle_controller/command\n',pout):
+       return
+
+    # DIDN'T FIND THE RIGHT SERVICES, SO LAUNCH cycle_controller
+    p_launch = pexpect.spawn('roslaunch gripper_controller cycle.launch')
+    msg = 'Started controllers: cycle_controller'
+    ans = 1
+    while ans == 1:
+        ans = p_launch.expect([msg,'[\r\n]+',r'[FATAL]',pexpect.TIMEOUT], timeout=30)
+        if ans == 0: print(p_launch.before + p_launch.after + '\n')
+        if ans == 1: print(p_launch.before)
+        if ans >= 2: 
+            p_launch.kill(9)
+            time.sleep(2)
+            sys.exit(0)
+
 
 def main():
-    joint = "gripper_joint"
 
-    rospy.init_node('cycle', anonymous=True)
-
-    pub = rospy.Publisher("%s/command" % CONTROLLER_NAME, Float64)
-
+    # SOME BASIC CONSTANTS 
     gearSign  = -1     # -1 for no idler; +1 for idler in gear train.
     depth_min = 0.0018
     depth_max = 0.0135
@@ -62,8 +84,8 @@ def main():
     # 0.00325/14.5 = 0.000224 = 1 motor rev (with 14.5 & 3.25mm pitch)
     epsilon_mag = 0.000224/2
 
-    # TAKE NUMBER OF CYCLES AS INPUT ARG
-    
+    # PARSE INPUT!
+    # THEY MIGHT BE ASKING FOR -h HELP, SO DON'T START ROS YET.
     parser = OptionParser()
     parser.add_option("-n","--num_cycles", dest="num_cycles", metavar="num_cycles", 
                       type="int", default=1000,
@@ -75,10 +97,19 @@ def main():
                       type="float", default=6.0,
                       help="Time for one cycle" )
     (options, args) = parser.parse_args()
-
+    # STANDARDIZE INPUT sign AND TO SI UNITS
     depth_max = abs(options.depth)
-    if depth_max > 1.0:  depth_max /= 1000.0  # Force to mm
+    if depth_max > 1.0:  depth_max /= 1000.0
 
+    # CHECK FOR roscore AND cycle_controller
+    rosInfra()
+
+    # NOW SETUP ROS NODE
+    joint = "gripper_joint"
+    rospy.init_node('cycle', anonymous=True)
+    pub = rospy.Publisher("%s/command" % CONTROLLER_NAME, Float64)
+
+    # ECHO OPERATING PARAMETERS AFTER STARTING NODE
     print "num_cycles = %d" % options.num_cycles
     print "depth      = %5.3f m" % depth_max
     print "cycletime  = %3.1f sec" % options.cycletime
