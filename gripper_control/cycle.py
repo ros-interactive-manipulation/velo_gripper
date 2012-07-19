@@ -64,12 +64,18 @@ def rosInfra():
     msg = 'Started controllers: cycle_controller'
     ans = 2
     while ans == 2:
-        ans = p_launch.expect([msg,r'[FATAL]','[\r\n]+',
+        ans = p_launch.expect([msg,'\[FATAL\]','[\r\n]+',
                                pexpect.TIMEOUT], timeout=30)
         if   ans == 0: print(p_launch.before + p_launch.after + '\n')
         elif ans == 2: print(p_launch.before)
         else:
-            print(p_launch.before + p_launch.after + '\n')
+            buf = p_launch.before + p_launch.after
+            time.sleep(4)
+            try:
+                buf += p_launch.read_nonblocking(timeout=0)
+            except ExceptionPecpect.EOF:
+                pass
+            print(buf)
             p_launch.kill(9)
             time.sleep(2)
             sys.exit(0)
