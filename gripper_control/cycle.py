@@ -64,10 +64,16 @@ def rosInfra():
     msg = 'Started controllers: cycle_controller'
     ans = 2
     while ans == 2:
-        ans = p_launch.expect([msg,'\[FATAL\]','[\r\n]+',
+        ans = p_launch.expect([msg,'\[FATAL\].*','[\r\n]+',
                                pexpect.TIMEOUT], timeout=30)
         if   ans == 0: print(p_launch.before + p_launch.after + '\n')
         elif ans == 2: print(p_launch.before)
+        elif ans == 1:
+            mo = re.search(' pid: ([0-9]+)',p_launch.after)
+            if mo:
+                os.kill( int(mo.groups()[0]), signal.SIGKILL )
+            print("\nRestarting ROS...\n\n")
+            rosInfra()
         else:
             buf = p_launch.before + p_launch.after
             time.sleep(4)
@@ -78,6 +84,7 @@ def rosInfra():
             print(buf)
             p_launch.kill(9)
             time.sleep(2)
+            print("\nTIMEOUT occurred, check your setup and try again.\n")
             sys.exit(0)
 
 
@@ -95,19 +102,24 @@ def main():
     # PARSE INPUT!
     # THEY MIGHT BE ASKING FOR -h HELP, SO DON'T START ROS YET.
     parser = OptionParser()
-    parser.add_option("-n","--num_cycles", dest="num_cycles", metavar="num_cycles", 
+    parser.add_option("-n", dest="num_cycles", metavar="num_cycles", 
                       type="int", default=1000,
                       help="Number of cycles" )
-    parser.add_option("-d","--depth", dest="depth", metavar="depth",
+    parser.add_option("-a", dest="depth_min", metavar="min_depth",
+                      type="float", default=depth_min,
+                      help="Min depth for cycles. (default is %4.1f mm)"%(1000*depth_min) )
+    parser.add_option("-d", dest="depth_max", metavar="max_depth",
                       type="float", default=depth_max,
-                      help="Max depth for cycles. (default is %5.3f m)"%depth_max )
-    parser.add_option("-t","--cycletime", dest="cycletime", metavar="cycletime",
+                      help="Max depth for cycles. (default is %4.1f mm)"%(1000*depth_max) )
+    parser.add_option("-t", dest="cycletime", metavar="cycletime",
                       type="float", default=6.0,
                       help="Time for one cycle" )
     (options, args) = parser.parse_args()
-    # STANDARDIZE INPUT sign AND TO SI UNITS
-    depth_max = abs(options.depth)
-    if depth_max > 1.0:  depth_max /= 1000.0
+    # STANDARDIZE INPUT sign AND NORMALIZE TO SI UNITS
+    depth_min = max( abs(options.depth_min), 2*epsilon_mag )
+    if depth_min > 0.020:  depth_min /= 1000.0
+    depth_max = abs(options.depth_max)
+    if depth_max > 0.020:  depth_max /= 1000.0
 
     # CHECK FOR roscore AND cycle_controller
     rosInfra()
@@ -118,9 +130,11 @@ def main():
     pub = rospy.Publisher("%s/command" % CONTROLLER_NAME, Float64)
 
     # ECHO OPERATING PARAMETERS AFTER STARTING NODE
+    print("")
     print "num_cycles = %d" % options.num_cycles
-    print "depth      = %5.3f m" % depth_max
-    print "cycletime  = %3.1f sec" % options.cycletime
+    print "min_depth  = %4.1f mm" % (1000*depth_min)
+    print "max_depth  = %4.1f mm" % (1000*depth_max)
+    print "cycletime  = %4.1f sec" % options.cycletime
 
     goal = depth_min
     for n in range(2*options.num_cycles):
@@ -138,6 +152,7 @@ def main():
             break
 
     pub.publish(Float64(gearSign*abs(depth_min)))
+    print("\n")
 
 if __name__ == '__main__':
     main()
