@@ -32,7 +32,7 @@
 
 CONTROLLER_NAME = "cycle_controller"
 
-import sys
+import sys,os,signal
 import time
 import random
 import re
