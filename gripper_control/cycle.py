@@ -33,7 +33,6 @@
 CONTROLLER_NAME = "cycle_controller"
 
 import sys,os,signal
-import time
 import random
 import re
 import pexpect
@@ -45,8 +44,8 @@ import rospy
 from subprocess import Popen,PIPE,STDOUT
 from optparse import OptionParser
 
-from std_msgs.msg import *
-from pr2_controller_manager import pr2_controller_manager_interface
+import std_msgs.msg             as msg_std
+import pr2_controllers_msgs.msg as msg_ctrlr
 
 # GLOBAL BECAUSE THIS NEEDS TO EXIST OR roscore IS KILLED.
 p_launch = None
@@ -54,7 +53,7 @@ p_launch = None
 def rosInfra():
     global p_launch
     p_ros = Popen(['rostopic','list'],stderr=STDOUT,stdout=PIPE)
-    time.sleep(2)
+    rospy.sleep(2)
     (pout,perr) = p_ros.communicate()
     if re.search('/cycle_controller/command\n',pout):
        return
@@ -75,20 +74,33 @@ def rosInfra():
             print("\nRestarting ROS...\n\n")
             rosInfra()
         else:
-            buf = p_launch.before + p_launch.after
-            time.sleep(4)
+            buf = p_launch.before
+            if isinstance(p_launch.after,str): buf += p_launch.after
+            rospy.sleep(4)
             try:
                 buf += p_launch.read_nonblocking(timeout=0)
             except ExceptionPecpect.EOF:
                 pass
             print(buf)
             p_launch.kill(9)
-            time.sleep(2)
+            rospy.sleep(2)
             print("\nTIMEOUT occurred, check your setup and try again.\n")
             sys.exit(0)
 
+G_pv = 0
+
+def cb_pv(msg):
+    global G_pv
+    if   G_pv == 0: return
+    elif G_pv == 1: print("pv = %5.1f mm"%msg.process_value*1000)
+    elif G_pv == 2:
+        print(" pv = %6.1f mm, e = %6.1f mm"%(msg.process_value*1000,msg.error*1000))
+    G_pv = 0
+
 
 def main():
+
+    global G_pv
 
     # SOME BASIC CONSTANTS 
     gearSign  = -1     # -1 for no idler; +1 for idler in gear train.
@@ -96,8 +108,8 @@ def main():
     depth_max = 0.0135
     # Absolute magnitude of stopping point randomization 
     # so we don't stop on exactly the same tooth each time.
-    # 0.00325/14.5 = 0.000224 = 1 motor rev (with 14.5 & 3.25mm pitch)
-    epsilon_mag = 0.000224/2
+    # 0.00325/15 = 0.0002167 = 1 motor rev (with 15 & 3.25mm pitch)
+    epsilon_mag = 0.0002167/2
 
     # PARSE INPUT!
     # THEY MIGHT BE ASKING FOR -h HELP, SO DON'T START ROS YET.
@@ -127,7 +139,10 @@ def main():
     # NOW SETUP ROS NODE
     joint = "gripper_joint"
     rospy.init_node('cycle', anonymous=True)
-    pub = rospy.Publisher("%s/command" % CONTROLLER_NAME, Float64)
+    pub = rospy.Publisher("%s/command" % CONTROLLER_NAME, msg_std.Float64)
+    sub_pv = rospy.Subscriber('cycle_controller/state',
+                              msg_ctrlr.JointControllerState, cb_pv)
+    
 
     # ECHO OPERATING PARAMETERS AFTER STARTING NODE
     print("")
@@ -138,20 +153,25 @@ def main():
 
     goal = depth_min
     for n in range(2*options.num_cycles):
+        G_pv = 2 ; rospy.sleep(0.010) # ALLOW Callback TO PRINT
         epsilon = epsilon_mag * (2*random.random()-1)
-        pub.publish(Float64(gearSign*abs(goal+epsilon)))
+        #pub.publish(msg_std.Float64(gearSign*abs(goal+epsilon)))
+        pubGoal = gearSign*abs(goal)
+        pub.publish(msg_std.Float64(pubGoal))
         if goal != depth_min:
             goal = depth_min
-            sys.stdout.write("\rCycle # %4d   " % (n/2+1))
+            sys.stdout.write("\rCycle # %4d   goal= %7.4lf mm " % (n/2+1,pubGoal))
             sys.stdout.flush()
         else:
             goal = depth_max
-        time.sleep(options.cycletime/2.0)
+            sys.stdout.write("\rCycle # %4d   goal= %7.4lf mm " % (n/2+1,pubGoal))
+            sys.stdout.flush()
+        rospy.sleep(options.cycletime/2.0)
 
         if rospy.is_shutdown():
             break
 
-    pub.publish(Float64(gearSign*abs(depth_min)))
+    pub.publish(msg_std.Float64(gearSign*abs(depth_min)))
     print("\n")
 
 if __name__ == '__main__':
