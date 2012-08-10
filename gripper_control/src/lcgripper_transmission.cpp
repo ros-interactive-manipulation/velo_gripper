@@ -1626,8 +1626,8 @@ double LCGripperTransmission::getGripperForceFromTendonForce(double tendon_force
 	double Fe = getExtensorTendonForce(t1);		
 	double Ff = tendon_force/2.0; // Divided by 2 as the tendon force is split between the two fingers.
 	r_f0_ = getFlexorMomentArm(gap_size);
-	r_g0_ = l2_/2.0 + l1_*sin(t1); // Assume force applied to the middle of the distal link.
-	r_g1_ = l2_/2.0;
+	r_g0_ = (l2_/1000)/2.0 + (l1_/1000)*sin(t1); // Assume force applied to the middle of the distal link.
+	r_g1_ = (l2_/1000)/2.0;
 
 	double Fg = (Ff * (r_f1_ - (r_c1_/r_c0_)*r_f0_) - Fe*(r_e1_ - (r_c1_/r_c0_)*r_e0_)) / (r_g1_ - (r_c1_/r_c0_)*r_g0_); 
 	
@@ -1640,8 +1640,8 @@ double LCGripperTransmission::getTendonForceFromGripperForce(double gripper_forc
 	double Fe = getExtensorTendonForce(t1);		
 	double Fg = gripper_force; // Divided by 2 as the tendon force is split between the two fingers.
 	r_f0_ = getFlexorMomentArm(gap_size);
-	r_g0_ = l2_/2.0 + l1_*sin(t1); // Assume force applied to the middle of the distal link.
-	r_g1_ = l2_/2.0;
+	r_g0_ = (l2_/1000)/2.0 + (l1_/1000)*sin(t1); // Assume force applied to the middle of the distal link.
+	r_g1_ = (l2_/1000)/2.0;
 
 	double Ff = (Fg*(r_g1_ - (r_c1_/r_c0_)*r_g0_) + Fe*(r_e1_ - (r_c1_/r_c0_)*r_e0_)) / (r_f1_ - (r_c1_/r_c0_)*r_f0_); 
 	return Ff*2.0; // Double the result as the motor force is split between the two tendons
