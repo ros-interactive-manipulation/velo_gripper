@@ -118,9 +118,6 @@ public:
 	double getTendonForceFromGripperForce(double gripper_force, double gap_size);
 	double getMotorTorqueFromTendonForce(double tendon_force);
 	
-	double getMotorTorqueFromEffort(double motor_effort);
-	double getMotorEffortFromTorque(double motor_torque);
-	
 	double getMotorPosFromEncoderPos(double enc_pos);
 	double getEncoderPosFromMotorPos(double motor_pos);
 	double getMotorVelFromEncoderVel(double enc_vel);
@@ -128,12 +125,9 @@ public:
 	
 	double getThetaVelFromGapVel(double gap_vel, double gap);
 	
-	double getTendonEffectiveDistanceToJ0(double gap_size);
+	double getFlexorMomentArm(double gap_size);
+	double getExtensorTendonForce(double theta1);
 	
-	double getTorqueJ0FromTendonForce(double tendon_force, double gap_size);
-	double getTorqueJ1FromTendonForce(double tendon_force);
-	double getTendonForceFromTorqueJ1(double torque);
-
 	double validateGapSize(double gap_size);
 	
 	boost::shared_ptr<
@@ -142,7 +136,7 @@ public:
 	
 	
 private:	
-	// Tendon routing definition. Not actually used - this is replaced by the fitted polynomials.
+	// Tendon routing definition. Not actually used - this is replaced by the fitted polynomial coefficients (calculated by the gripper_kinematics script).
 	double p0x_;
 	double p0y_;
 	double p1x_;
@@ -163,21 +157,31 @@ private:
 	double l0_;
 	double l1_;
 	double l2_;
-	
-	double thickness_;
-	
-	double theta_open_;
-	double theta_closed_;
+
+	double thickness_; // distal joint thickness, including the rubber/foam pads added.
+
+	// 
+	double theta_open_; // proximal joint angle when gripper is fully open
+	double theta_closed_; // proximal joint angle when gripper is fully closed.
 	double gap_open_;
 	double gap_closed_;
-	double theta0_;
 	
+	// Flexor pulley radii
+	double r_c0_, r_c1_;
+	double r_e0_, r_e1_;
+	double r_f0_, r_f1_;
+	double r_g0_, r_g1_;
+	
+	double spring_k_; // Extensor tendon tension spring constant (N/mm)
+	double spring_x0_; // Extensor tendon tension spring extension with the gripper fully open (mm)
+	
+	// Encoder count
 	double enc_ticks_;
 	
 	// FITTED POLYNOMIALS:
 	std::vector<double> length_to_gap_coeffs_;
 	std::vector<double> gap_to_length_coeffs_;
-	std::vector<double> gap_to_effective_dist_coeffs_;
+	std::vector<double> gap_to_effective_dist_coeffs_; // effective distance is the length of the moment arm the flexor tendon creates on the proximal joint
 
 	// Drivetrain parameters
 	double encoder_ticks_per_rev_; // eg 1200 pulses per motor rev.

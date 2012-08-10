@@ -1174,7 +1174,7 @@ void LCGripperTransmission::propagatePosition(std::vector<Actuator*>& as, std::v
 	
 	double motor_pos 		= -as[0]->state_.position_;
 	double motor_vel 		= getMotorVelFromEncoderVel(as[0]->state_.velocity_); 
-	double motor_torque 	= getMotorTorqueFromEffort(as[0]->state_.last_measured_effort_); // Convert current -> Nm
+	double motor_torque 	= as[0]->state_.last_measured_effort_; // Convert current -> Nm
 	
 	double tendon_length 	= getLengthFromMotorPos(motor_pos);
 	double tendon_vel		= getTendonLengthVelFromMotorVel(motor_vel);
@@ -1232,7 +1232,7 @@ void LCGripperTransmission::propagatePosition(std::vector<Actuator*>& as, std::v
 }
 
 // this is needed for simulation, so we can recover encoder value given joint angles
-// Use joint positions to generate an actuator position.
+// Use the gap slider joint position to calculate actuator position.
 void LCGripperTransmission::propagatePositionBackwards(std::vector<JointState*>& js, std::vector<Actuator*>& as)
 {
 	ROS_ASSERT(as.size() == 1); // Only one actuator
@@ -1254,25 +1254,22 @@ void LCGripperTransmission::propagatePositionBackwards(std::vector<JointState*>&
 	
 	double theta1 			= -js[2]->position_ + theta_closed_*M_PI/180.0; // Proximal joint angle, radians 
 	double theta1_vel 		= js[2]->velocity_;
-	double torqueJ1 		= js[3]->commanded_effort_; // Joints 3/4 are the distal joints.
 	
-	double gap_size 		= getGapFromTheta(theta1);	
+	double gap_size 		= js[0]->position_; //getGapFromTheta(theta1);	
 	double tendon_length 	= getTendonLengthFromGap(gap_size);
 	double motor_pos 		= getMotorPosFromLength(tendon_length);
-	double enc_pos 			= getEncoderPosFromMotorPos(motor_pos) + 5762.49;
-	//ROS_ERROR("PropagatePositionBackwards(): Theta1: %f, GAP SIZE: %f, TENDON LENGTH: %f, MOTOR POS: %f, ENC POS: %f", theta1, gap_size, tendon_length, motor_pos, enc_pos);
 	
 	double gap_rate         = theta1_vel*cos(theta1);
 	double tendon_rate		= getTendonLengthVelFromGapVel(gap_rate, gap_size);
 	double motor_vel		= getMotorVelFromTendonLengthVel(tendon_rate);
 	
-	double tendon_force 	= getTendonForceFromTorqueJ1(torqueJ1);
+	double gap_force 		= js[0]->commanded_effort_;
+	double tendon_force 	= getTendonForceFromGripperForce(gap_force, gap_size);
 	double motor_torque		= getMotorTorqueFromTendonForce(tendon_force);
-	double motor_effort		= getMotorEffortFromTorque(motor_torque);
 
-	as[0]->state_.position_             = enc_pos;
+	as[0]->state_.position_             = motor_pos;
 	as[0]->state_.velocity_             = motor_vel;
-	as[0]->state_.last_measured_effort_ = motor_effort;
+	as[0]->state_.last_measured_effort_ = motor_torque;
 	
 	// Update the timing (making sure it's initialized).
 	if (! simulated_actuator_timestamp_initialized_)
@@ -1299,8 +1296,7 @@ void LCGripperTransmission::propagatePositionBackwards(std::vector<JointState*>&
 	this->joint_calibration_simulator_.simulateJointCalibration(js[0],as[0]);
 }
 
-void LCGripperTransmission::propagateEffort(
-		std::vector<JointState*>& js, std::vector<Actuator*>& as)
+void LCGripperTransmission::propagateEffort(std::vector<JointState*>& js, std::vector<Actuator*>& as)
 {
 	ROS_ASSERT(as.size() == 1); // Only one actuator
 	// js has passive joints and 1 gap joint and 1 screw joint
@@ -1332,7 +1328,7 @@ void LCGripperTransmission::propagateEffort(
 	as[0]->command_.enable_ = true;
 	as[0]->command_.effort_ = motor_torque;
 	
-	if(loop_count_ % 10 == 0)
+	if(loop_count_ % 10 == 0) // reduce the update rate to something more manageable. 
 	{
 		if(lcg_state_publisher_ && lcg_state_publisher_->trylock())
 		{
@@ -1351,6 +1347,7 @@ void LCGripperTransmission::propagateEffort(
 	
 }
 
+//From a motor torque,
 void LCGripperTransmission::propagateEffortBackwards(
   std::vector<Actuator*>& as, std::vector<JointState*>& js)
 {
@@ -1368,37 +1365,25 @@ void LCGripperTransmission::propagateEffortBackwards(
 	{
 		ROS_ASSERT(js.size() == 1 + passive_joints_.size());
 	}
-	//ROS_ASSERT(simulated_reduction_>0.0);
-	
-	double motor_effort 	= as[0]->command_.effort_;
+	ROS_ASSERT(simulated_reduction_>0.0);
 	
 	// gap_size is required to compute the effective distance from the tendon to the J0 joint
 	double motor_pos 		= getMotorPosFromEncoderPos(as[0]->state_.position_);			  
 	double tendon_length 	= getLengthFromMotorPos(motor_pos);
 	double gap_size 		= getGapFromTendonLength(tendon_length);
 		  
-	double motor_torque 	= getMotorTorqueFromEffort(motor_effort);
+	double motor_torque 	= as[0]->command_.effort_;
 	double tendon_force 	= getTendonForceFromMotorTorque(motor_torque);
-	//ROS_WARN("Tendon force: %f", tendon_force);
 	double gap_effort 		= getGripperForceFromTendonForce(tendon_force, gap_size);
 	
-	double Tj0 				= 1000.0*getTorqueJ0FromTendonForce(tendon_force, gap_size);
-	double Tj1 				= 1000.0*getTorqueJ1FromTendonForce(tendon_force);
-	
-	//ROS_WARN("PropagateEffort(): Tj0 = %f", Tj0);
-	
-    // propagate fictitious joint effort backwards
-    // ROS_ERROR("prop eff back eff=%f",js[0]->commanded_effort_);
     if (use_simulated_actuated_joint_)
     {
       // set screw joint effort if simulated
-      js[passive_joints_.size()+1]->commanded_effort_  = gap_effort/simulated_reduction_;
-      //js[0]->commanded_effort_                         = gap_effort/2.0;
-      //ROS_INFO("propagateEffortBackwards(): js[0]->commanded_effort = %f", gap_effort/simulated_reduction_);
+      js[passive_joints_.size()+1]->commanded_effort_  = gap_effort/simulated_reduction_; // TODO: Simulated Reduction is simply an arbitrary coefficient currently. This should be set properly based on the screw joint parameters.
     }
     else
     {
-      // an ugly hack to lessen instability due to gripper gains
+      // an ugly hack to lessen instability due to gripper gains. This is simply a low pass filter on the effort.
       double eps=0.01;
       js[0]->commanded_effort_  = (1.0-eps)*js[0]->commanded_effort_ + eps*gap_effort/2.0; // skip slider joint effort
     }    
@@ -1533,32 +1518,30 @@ double LCGripperTransmission::getTendonForceFromMotorTorque(double motor_torque)
 }
 
 double LCGripperTransmission::getGripperForceFromTendonForce(double tendon_force, double gap_size)
-{
-	double effective_distance = getTendonEffectiveDistanceToJ0(gap_size);
-	double torque = tendon_force * (effective_distance); // Nm
-	double force_j1 = torque / (l1_/1000.0); // l1_ is in mm.
-	//ROS_ERROR("ED: %f \ttorque: %f \tforce_j1: %f", effective_distance, torque, force_j1);
-	double theta1 = getThetaFromGap(gap_size);
-	double theta2 = M_PI/2.0 - theta1; // theta2 is 90-theta1.
-	double gripper_force = force_j1*cos(theta2);
+{		
+	double t1 = getThetaFromGap(gap_size);	
+	double Fe = getExtensorTendonForce(t1);		
+	double Ff = tendon_force/2.0; // Divided by 2 as the tendon force is split between the two fingers.
+	r_f0_ = getFlexorMomentArm(gap_size);
+	r_g0_ = l2_/2.0 + l1_*sin(t1); // Assume force applied to the middle of the distal link.
+	r_g1_ = l2_/2.0;
+
+	double Fg = (Ff * (r_f1_ - (r_c1_/r_c0_)*r_f0_) - Fe*(r_e1_ - (r_c1_/r_c0_)*r_e0_)) / (r_g1_ - (r_c1_/r_c0_)*r_g0_); 
 	
-	return gripper_force;
+	return Fg;
 }
 
 double LCGripperTransmission::getTendonForceFromGripperForce(double gripper_force, double gap_size)
 {
-	// Convert tendon force to gripper force. 	
-	double theta1 = getThetaFromGap(gap_size);
-	double theta2 = M_PI/2.0 - theta1; // theta2 is 90-theta1.
-	double force_j1 = gripper_force / (cos(theta2));
-	
-	double torque = force_j1 * (l1_ / 1000.0); // l1 is in mm
-	
-	double effective_distance = getTendonEffectiveDistanceToJ0(gap_size);
-	
-	double tendon_force = torque / (effective_distance);
-	//ROS_WARN("getTendonForceFromGripperForce()
-	return tendon_force;
+	double t1 = getThetaFromGap(gap_size);	
+	double Fe = getExtensorTendonForce(t1);		
+	double Fg = gripper_force; // Divided by 2 as the tendon force is split between the two fingers.
+	r_f0_ = getFlexorMomentArm(gap_size);
+	r_g0_ = l2_/2.0 + l1_*sin(t1); // Assume force applied to the middle of the distal link.
+	r_g1_ = l2_/2.0;
+
+	double Ff = (Fg*(r_g1_ - (r_c1_/r_c0_)*r_g0_) + Fe*(r_e1_ - (r_c1_/r_c0_)*r_e0_)) / (r_f1_ - (r_c1_/r_c0_)*r_f0_); 
+	return Ff*2.0; // Double the result as the motor force is split between the two tendons
 }
 
 double LCGripperTransmission::getMotorTorqueFromTendonForce(double tendon_force)
@@ -1567,25 +1550,10 @@ double LCGripperTransmission::getMotorTorqueFromTendonForce(double tendon_force)
 	return motor_torque;
 }
 
-double LCGripperTransmission::getMotorTorqueFromEffort(double motor_effort)
-{
-	// Convert from motor effort reading to actual torque. 
-	// TODO: Check this - this may be handled by the controller anyway.
-	double motor_torque = motor_effort;// * MAGICAL CONSTANT.
-	return motor_torque;
-}
-
-double LCGripperTransmission::getMotorEffortFromTorque(double motor_torque)
-{
-	// Convert from actual motor torque to an "effort" value. 
-	// TODO: Check this - this may be handled by the controller anyway.
-	double motor_effort = motor_torque; //  * MAGICAL CONSTANT
-	return motor_effort;
-}
 
 void LCGripperTransmission::initPolynomialCoefficients()
 {
-	// TODO: Move these magic numbers out to an xml config.
+	// TODO: Move these magic numbers out to an xml config/parameter server/anything less nasty than this.
 	double l2g_coeffs[] = { 1.35959902e-01, 1.10396557e+01, -7.24526160e+02, -7.95557419e+04,-2.57497099e+06  };
 	double g2l_coeffs[] = { -0.01057876, 0.08412417, -0.04850085, -0.87391894, 6.51653529 };
 	double g2ed_coeffs[] = { 1.33852307e-02, -1.50212267e-02, -4.00341247e-01, 4.45724019e+00, -2.30064782e+01 };
@@ -1601,7 +1569,7 @@ void LCGripperTransmission::initPolynomialCoefficients()
 	gap_to_effective_dist_coeffs_.assign(g2ed_coeffs, g2ed_coeffs+5);
 }
 
-double LCGripperTransmission::getTendonEffectiveDistanceToJ0(double gap_size)
+double LCGripperTransmission::getFlexorMomentArm(double gap_size)
 {
 	double effective_distance = 0.0;
 	for (int i = 0; i <= (int)gap_to_effective_dist_coeffs_.size(); i++)
@@ -1635,25 +1603,13 @@ double LCGripperTransmission::getEncoderVelFromMotorVel(double motor_vel)
 	return enc_vel;
 }
 
-double LCGripperTransmission::getTorqueJ0FromTendonForce(double tendon_force, double gap_size)
+double LCGripperTransmission::getExtensorTendonForce(double theta1)
 {
-	double effective_distance = getTendonEffectiveDistanceToJ0(gap_size);
-	double Tj0 = effective_distance * tendon_force;
-	return Tj0;
+		double delta_theta = theta1 - theta_open_; // change in angle from the start pose, ie angle at fully open.
+		double spring_x = fabs(delta_theta) * (r_e0_ - r_e1_) + spring_x0_; // spring extension, nominal.
+		double ext_force = spring_k_ * spring_x; // extensor tendon force at the current pose.
+		return ext_force;
 }
-
-double LCGripperTransmission::getTorqueJ1FromTendonForce(double tendon_force)
-{
-	double Tj1 = j1_radius_/1000.0 * tendon_force;
-	return Tj1; // Nm
-}
-
-double LCGripperTransmission::getTendonForceFromTorqueJ1(double torque)
-{
-	double tendon_force = torque*1000.0/j1_radius_;
-	return tendon_force;
-}
-
 
 double LCGripperTransmission::validateGapSize(double gap_size)
 {

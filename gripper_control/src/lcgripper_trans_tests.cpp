@@ -64,13 +64,13 @@ int main()
 	// Gap -> Effective distance mapping
 	double effective_dist = 0.0;
 	cout << "GAP -> EFFECTIVE DISTANCE" << endl;
-	effective_dist = lcg_trans.getTendonEffectiveDistanceToJ0(GAP_CLOSED);
+	effective_dist = lcg_trans.getFlexorMomentArm(GAP_CLOSED);
 	cout << "Gap size: " << GAP_CLOSED << " ---> effective_dist " << effective_dist << endl;
 	assert(effective_dist > (ED_CLOSED - ED_TOL) && effective_dist < (ED_CLOSED + ED_TOL));
-	effective_dist = lcg_trans.getTendonEffectiveDistanceToJ0(GAP_MID);
+	effective_dist = lcg_trans.getFlexorMomentArm(GAP_MID);
 	cout << "Gap size: " << GAP_MID << " ---> effective_dist " << effective_dist << endl;
 	assert(effective_dist > (ED_MID - ED_TOL) && effective_dist < (ED_MID + ED_TOL));
-	effective_dist = lcg_trans.getTendonEffectiveDistanceToJ0(GAP_OPEN);
+	effective_dist = lcg_trans.getFlexorMomentArm(GAP_OPEN);
 	cout << "Gap size: " << GAP_OPEN << " ---> effective_dist " << effective_dist << endl;
 	assert(effective_dist > (ED_OPEN - ED_TOL) && effective_dist < (ED_OPEN + ED_TOL));		
 			
