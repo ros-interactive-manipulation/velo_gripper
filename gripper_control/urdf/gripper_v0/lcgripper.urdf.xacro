@@ -222,6 +222,7 @@
     <link name="${side}_gripper_l_finger_tip_frame"/>
 
     <link name="${side}_gripper_tool_frame">
+      <!--
       <visual>
         <geometry>
           <sphere radius="0.003"/>
@@ -231,6 +232,7 @@
           <color rgba="0.796078 0.823529 0.937255 1"/>
         </material>
       </visual>
+      -->
       <inertial>
         <mass value="0.1"/>
         <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
@@ -253,7 +255,7 @@
                   iyy="0.001" iyz="0.0"
                   izz="0.001" />
       </inertial>
-      <!-- for debugging only -->
+      <!-- for debugging only 
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
@@ -266,6 +268,7 @@
           <box size="0.05 0.01 0.05" />
         </geometry>
       </collision>
+      -->
       
     </link>
     
@@ -289,7 +292,7 @@
                   iyy="0.0001" iyz="0.0"
                   izz="0.0001" />
       </inertial>
-      <!-- for debugging only -->
+      <!-- for debugging only
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
@@ -302,6 +305,7 @@
           <box size="0.05 0.01 0.05" />
         </geometry>
       </collision>
+      -->
       
     </link>
 
