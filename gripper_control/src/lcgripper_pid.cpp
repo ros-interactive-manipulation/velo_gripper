@@ -32,7 +32,6 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-// Original version: Melonee Wise <mwise@willowgarage.com>
 
 #include "gripper_control/lcgripper_pid.h"
 #include <tinyxml.h>
@@ -69,47 +68,54 @@ bool LCGPid::init(const ros::NodeHandle &node)
 
 double LCGPid::updatePid(double error, double error_dot, ros::Duration dt)
 {
-  double p_term, d_term, i_term;
-  p_error_ = error; //this is pError = pState-pTarget
-  d_error_ = error_dot;
 
-  if (dt == ros::Duration(0.0) || isnan(error) || isinf(error) || isnan(error_dot) || isinf(error_dot))
-    return 0.0;
-
-
-  // Calculate proportional contribution to command
-  p_term = p_gain_ * p_error_;
-
-  // Calculate the integral error
-  if (fabs(error_dot) > v_thres_)
-  {
-	i_error_ = 0.0;  
-  } 
-  else // If the gripper is stationary (below a certain threshold) and not yet at the destination, allow the integral error to build up
-  {
-	  i_error_ = i_error_ + dt.toSec() * p_error_;
-  }
-
-  //Calculate integral contribution to command
-  i_term = i_gain_ * i_error_;
-
-  // Limit i_term so that the limit is meaningful in the output
-  if (i_term > i_max_)
-  {
-    i_term = i_max_;
-    i_error_=i_term/i_gain_;
-  }
-  else if (i_term < i_min_)
-  {
-    i_term = i_min_;
-    i_error_=i_term/i_gain_;
-  }
-
-  // Calculate derivative contribution to command
-  d_term = d_gain_ * d_error_;
-  cmd_ = -p_term - i_term - d_term;
-
-  return cmd_;
+	double p_gain, i_gain, d_gain, i_min, i_max; 
+	double cmd;
+	getGains(p_gain, i_gain, d_gain, i_max, i_min);
+			
+	double p_term, d_term, i_term;
+	proportional_error_ = error; //this is pError = pState-pTarget
+	derivative_error_ = error_dot;
+	
+	
+	
+	if (dt == ros::Duration(0.0) || isnan(error) || isinf(error) || isnan(error_dot) || isinf(error_dot))
+	return 0.0;
+	
+	
+	// Calculate proportional contribution to command
+	p_term = p_gain * proportional_error_;
+	
+	// Calculate the integral error
+	if (fabs(error_dot) > v_thres_)
+	{
+	integral_error_ = 0.0;  
+	} 
+	else // If the gripper is stationary (below a certain threshold) and not yet at the destination, allow the integral error to build up
+	{
+	  integral_error_ = integral_error_ + dt.toSec() * proportional_error_;
+	}
+	
+	//Calculate integral contribution to command
+	i_term = i_gain * integral_error_;
+	
+	// Limit i_term so that the limit is meaningful in the output
+	if (i_term > i_max)
+	{
+	i_term = i_max;
+	integral_error_=i_term/i_gain;
+	}
+	else if (i_term < i_min)
+	{
+	i_term = i_min;
+	integral_error_=i_term/i_gain;
+	}
+	
+	// Calculate derivative contribution to command
+	d_term = d_gain * derivative_error_;
+	cmd = -p_term - i_term - d_term;
+	
+	return cmd;
 }
 
 }

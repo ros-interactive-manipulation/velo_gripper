@@ -56,6 +56,9 @@ public:
 
 private:
   double v_thres_; /**< Derivative threshold above which the integral component is zeroed */
+  double proportional_error_; // These are a clone of the *_error_ terms in the base PID class - which has no way of setting them (private).
+  double integral_error_;
+  double derivative_error_; 
   
 };
 
