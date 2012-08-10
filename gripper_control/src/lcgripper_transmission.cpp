@@ -924,7 +924,110 @@ bool LCGripperTransmission::initParameters(TiXmlElement *j, Robot *robot)
 			ROS_ERROR("enc_ticks (%s) is not a float", enc_ticks_str);
 			return false;
 		}
-	}	
+	}
+	
+	// Constrain tendon proximal pulley radius
+	const char *r_c0_str = j->Attribute("r_c0");
+	if (r_c0_str == NULL)
+	{
+		r_c0_ = 0.005; // 5mm radius
+		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: r_c0, using default for LCG v1.46.", joint_name);
+	}
+	else
+	{
+		try
+		{
+			r_c0_ = boost::lexical_cast<double>(r_c0_str);
+		}
+		catch (boost::bad_lexical_cast &e)
+		{
+			ROS_ERROR("r_c0 (%s) is not a float", r_c0_str);
+			return false;
+		}
+	}
+	
+	// Constrain tendon distal pulley radius
+	const char *r_c1_str = j->Attribute("r_c1");
+	if (r_c1_str == NULL)
+	{
+		r_c1_ = 0.005; // 5mm radius
+		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: r_c1, using default for LCG v1.46.", joint_name);
+	}
+	else
+	{
+		try
+		{
+			r_c1_ = boost::lexical_cast<double>(r_c1_str);
+		}
+		catch (boost::bad_lexical_cast &e)
+		{
+			ROS_ERROR("r_c1 (%s) is not a float", r_c1_str);
+			return false;
+		}
+	}
+	
+	// Extensor tendon proximal pulley radius
+	const char *r_e0_str = j->Attribute("r_e0");
+	if (r_e0_str == NULL)
+	{
+		r_e0_ = 0.0054; // 5.4mm radius
+		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: r_e0, using default for LCG v1.46.", joint_name);
+	}
+	else
+	{
+		try
+		{
+			r_e0_ = boost::lexical_cast<double>(r_e0_str);
+		}
+		catch (boost::bad_lexical_cast &e)
+		{
+			ROS_ERROR("r_e0 (%s) is not a float", r_e0_str);
+			return false;
+		}
+	}
+	
+	// Extensor tendon distal pulley radius
+	const char *r_e1_str = j->Attribute("r_e1");
+	if (r_e1_str == NULL)
+	{
+		r_e1_ = 0.0032; // 3.2mm radius
+		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: r_e1, using default for LCG v1.46.", joint_name);
+	}
+	else
+	{
+		try
+		{
+			r_e1_ = boost::lexical_cast<double>(r_e1_str);
+		}
+		catch (boost::bad_lexical_cast &e)
+		{
+			ROS_ERROR("r_e1 (%s) is not a float", r_e1_str);
+			return false;
+		}
+	}
+		
+	// Flexor tendon distal pulley radius
+	const char *r_f1_str = j->Attribute("r_f1");
+	if (r_f1_str == NULL)
+	{
+		r_f1_ = 0.0032; // 3.2mm radius
+		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: r_f1, using default for LCG v1.46.", joint_name);
+	}
+	else
+	{
+		try
+		{
+			r_f1_ = boost::lexical_cast<double>(r_f1_str);
+		}
+		catch (boost::bad_lexical_cast &e)
+		{
+			ROS_ERROR("r_f1 (%s) is not a float", r_f1_str);
+			return false;
+		}
+	}
+	
+	
+	
 	
 	int argc = 0;
 	char** argv;
