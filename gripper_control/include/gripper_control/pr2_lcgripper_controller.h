@@ -107,6 +107,15 @@ private:
   double lambda_;
   double v_thres_;
   
+  // Parameters for the holding torque applied to the motor once 
+  double position_threshold_;
+  double last_position_;
+  double holding_torque_;
+  double stall_counter_;
+  double stall_timeout_;
+  double last_setpoint_;
+  double last_max_effort_;
+  
   pr2_mechanism_model::RobotState *robot_;
 //  control_toolbox::Pid pid_;
   lcg_controller::LCGPid pid_;

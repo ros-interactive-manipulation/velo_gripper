@@ -46,6 +46,11 @@ Pr2LCGripperController::Pr2LCGripperController()
 : joint_state_(NULL),
   loop_count_(0), robot_(NULL), last_time_(0)
 {
+	stall_timeout_ = 3000; // 3000 iterations of update, ie, 3 seconds.
+	position_threshold_ = 0.001; // 1mm threshold.
+	last_setpoint_ = 0.0;
+	last_max_effort_ = 0.0;
+	stall_counter_ = 0.0;
 }
 
 Pr2LCGripperController::~Pr2LCGripperController()
@@ -120,17 +125,39 @@ void Pr2LCGripperController::update()
   // Computes the position error
   error = joint_state_->position_ - command->position;
   
+  
   // TODO: FILTER VELOCITY HERE.  
   filtered_velocity_ = (1.0-lambda_)*filtered_velocity_ + lambda_*joint_state_->velocity_;
+  
+  // Sets the effort 
+   double effort = pid_.updatePid(error, filtered_velocity_, dt);
+  
+  // If the position has not changed since the last iteration, add to a counter.
+   double delta_position = joint_state_->position_ - last_position_; 
+  if ( fabs(delta_position) < position_threshold_ && command->position == last_setpoint_ && command->max_effort == last_max_effort_)
+  {
+	  stall_counter_++;
+  }
+  else
+  {
+	  stall_counter_ = 0;
+  }
+  
+  // If the stall counter is over a timeout parameter, limit the control output to the holding torque.
+  if (stall_counter_ > stall_timeout_)
+  {
+	  effort = holding_torque_;
+  }
 
-  // Sets the effort (limited)
-  double effort = pid_.updatePid(error, filtered_velocity_, dt);
+  // Limit the effort to the specified bounds.
   if (command->max_effort >= 0.0)
   {
     effort = std::max(-command->max_effort, std::min(effort, command->max_effort));
   }
   joint_state_->commanded_effort_ = effort;
 
+  
+  // Real time publisher
   if(loop_count_ % 10 == 0)
   {
     if(controller_state_publisher_ && controller_state_publisher_->trylock())
@@ -155,6 +182,9 @@ void Pr2LCGripperController::update()
   loop_count_++;
 
   last_time_ = time;
+  last_position_ = joint_state_->position_;
+  last_setpoint_ = command->position;
+  last_max_effort_ = command->max_effort;
 }
 
 void Pr2LCGripperController::commandCB(const pr2_controllers_msgs::Pr2GripperCommandConstPtr& msg)
