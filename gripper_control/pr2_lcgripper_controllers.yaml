@@ -14,3 +14,8 @@ l_gripper_controller:
     i_clamp: 0.01
     filter_coeff: 0.1
     v_thres: 0.005
+		position_holding:
+			stall_timeout: 3 # seconds
+			stall_threshold: 0.001 # metres
+			holding_torque: 0.002 # Nm
+
