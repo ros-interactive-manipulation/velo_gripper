@@ -108,17 +108,24 @@ private:
   double v_thres_;
   
   // Parameters for the holding torque applied to the motor once 
-  double position_threshold_;
-  double last_position_;
-  double holding_torque_;
-  double stall_counter_;
+  double stall_threshold_;
   double stall_timeout_;
+  double stall_counter_;
+  ros::Time stall_start_time_;
+  double stall_start_position_;
+  double holding_torque_;
+  double last_position_;
   double last_setpoint_;
   double last_max_effort_;
   
+  // Velocity control parameters
+  double v_limit_;
+  
+  double torque_limit_;
+  
   pr2_mechanism_model::RobotState *robot_;
-//  control_toolbox::Pid pid_;
-  lcg_controller::LCGPid pid_;
+  control_toolbox::Pid position_pid_;
+  control_toolbox::Pid velocity_pid_;
   ros::Time last_time_;
 
   ros::NodeHandle node_;

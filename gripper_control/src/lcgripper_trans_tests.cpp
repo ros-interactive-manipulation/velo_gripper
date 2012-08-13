@@ -52,7 +52,7 @@ int main()
 	actuator->SetAttribute("name", "test_actuator");
 	
 	TiXmlElement* gap_joint = new TiXmlElement("gap_joint");
-	gap_joint->SetAttribute("name", "lcgripper_gap");
+	gap_joint->SetAttribute("name", "l_gripper_joint");
 	
 	config->LinkEndChild(actuator);
 	config->LinkEndChild(gap_joint);
@@ -73,28 +73,6 @@ int main()
 	effective_dist = lcg_trans.getFlexorMomentArm(GAP_OPEN);
 	cout << "Gap size: " << GAP_OPEN << " ---> effective_dist " << effective_dist << endl;
 	assert(effective_dist > (ED_OPEN - ED_TOL) && effective_dist < (ED_OPEN + ED_TOL));		
-			
-	// Tendon -> Gripper force mapping
-	double gripper_force_closed = lcg_trans.getGripperForceFromTendonForce(TENDON_FORCE, GAP_CLOSED);
-	cout << "Tendon force: " << TENDON_FORCE << " , gap size: " << GAP_CLOSED << " ---> gripper force: " << gripper_force_closed << endl;
-	assert (gripper_force_closed > (GF_CLOSED - FORCE_TOL) && gripper_force_closed < (GF_CLOSED + FORCE_TOL));
-	double gripper_force_mid = lcg_trans.getGripperForceFromTendonForce(TENDON_FORCE, GAP_MID);
-	cout << "Tendon force: " << TENDON_FORCE << " , gap size: " << GAP_MID << " ---> gripper force: " << gripper_force_mid << endl;
-	assert (gripper_force_mid > (GF_MID - FORCE_TOL) && gripper_force_mid < (GF_MID + FORCE_TOL));
-	double gripper_force_open = lcg_trans.getGripperForceFromTendonForce(TENDON_FORCE, GAP_OPEN);
-	cout << "Tendon force: " << TENDON_FORCE << " , gap size: " << GAP_OPEN << " ---> gripper force: " << gripper_force_open << endl;
-	assert (gripper_force_open > (GF_OPEN - FORCE_TOL) && gripper_force_open < (GF_OPEN + FORCE_TOL));
-	
-	// Gripper force -> Tendon force mapping
-	double tendon_force_closed = lcg_trans.getTendonForceFromGripperForce(gripper_force_closed, GAP_CLOSED);
-	cout << "Gripper force: " << gripper_force_closed << ", gap: " << GAP_CLOSED << " ---> tendon force: " << tendon_force_closed << endl; 
-	assert (tendon_force_closed > (TENDON_FORCE - FORCE_TOL) && tendon_force_closed < (TENDON_FORCE + FORCE_TOL) );
-	double tendon_force_mid = lcg_trans.getTendonForceFromGripperForce(gripper_force_mid, GAP_MID);
-	cout << "Gripper force: " << gripper_force_mid << ", gap: " << GAP_MID << " ---> tendon force: " << tendon_force_mid << endl; 
-	assert (tendon_force_mid > (TENDON_FORCE - FORCE_TOL) && tendon_force_mid < (TENDON_FORCE + FORCE_TOL) );
-	double tendon_force_open = lcg_trans.getTendonForceFromGripperForce(gripper_force_open, GAP_OPEN);
-	cout << "Gripper force: " << gripper_force_open << ", gap: " << GAP_OPEN << " ---> tendon force: " << tendon_force_open << endl; 
-	assert (tendon_force_open > (TENDON_FORCE - FORCE_TOL) && tendon_force_open < (TENDON_FORCE + FORCE_TOL) );
 	
 	// Gap ---> theta
 	double theta_closed = lcg_trans.getThetaFromGap(GAP_CLOSED);
@@ -142,9 +120,8 @@ int main()
 	
 	// TODO: Motor pos to tendon length
 	double motor_open = lcg_trans.getMotorPosFromLength(LENGTH_CLOSED);
-	double enc_open = lcg_trans.getEncoderPosFromMotorPos(motor_open);
 	
-	cout << "Motor_open: " << motor_open << ", enc_open: " << enc_open << endl;
+	cout << "Motor_open: " << motor_open << endl;
 	// TODO: Tendon length to motor pos
 	
 	// TODO: Motor torque to tendon force

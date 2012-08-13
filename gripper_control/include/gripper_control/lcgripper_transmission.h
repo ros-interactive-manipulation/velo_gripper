@@ -67,8 +67,9 @@ public:
 	{
 		use_simulated_actuated_joint_=false;
 		has_simulated_passive_actuated_joint_=false;
+		
 	};
-	virtual ~LCGripperTransmission() {/*myfile.close();*/}
+	virtual ~LCGripperTransmission() {}
 	
 	bool initXml(TiXmlElement *config, Robot *robot);
 	bool initXml(TiXmlElement *config);
@@ -97,7 +98,9 @@ public:
 
 
 	void initPolynomialCoefficients();
-	bool initParameters(TiXmlElement *j, Robot *robot);
+	bool initParametersFromServer(TiXmlElement *j);
+	bool initParametersFromURDF(TiXmlElement *j, Robot *robot);
+	bool initParametersFromServer();
 
 	// Mapping motor states to tendon states and to gripper states (and backwards).
 	double getGapFromTendonLength(double length);
@@ -117,11 +120,6 @@ public:
 	double getGripperForceFromTendonForce(double tendon_force, double gap_size);
 	double getTendonForceFromGripperForce(double gripper_force, double gap_size);
 	double getMotorTorqueFromTendonForce(double tendon_force);
-	
-	double getMotorPosFromEncoderPos(double enc_pos);
-	double getEncoderPosFromMotorPos(double motor_pos);
-	double getMotorVelFromEncoderVel(double enc_vel);
-	double getEncoderVelFromMotorVel(double motor_vel);
 	
 	double getThetaVelFromGapVel(double gap_vel, double gap);
 	
@@ -145,14 +143,13 @@ private:
 	double p2y_;
 	double p3x_;
 	double p3y_;
+	
 	// Joint positions - required for gap/theta conversions.
 	double j0x_;
 	double j0y_;
 	double j1x_;
 	double j1y_;
-	
-	double j1_radius_;
-	double p0_radius_;
+
 	// Link lengths. L0 is palm, L1 is proximal, L2 is distal.
 	double l0_;
 	double l1_;
@@ -160,36 +157,32 @@ private:
 
 	double thickness_; // distal joint thickness, including the rubber/foam pads added.
 
-	// 
+	// Limits
 	double theta_open_; // proximal joint angle when gripper is fully open
 	double theta_closed_; // proximal joint angle when gripper is fully closed.
 	double gap_open_;
 	double gap_closed_;
+	double max_torque_;
 	
-	// Flexor pulley radii
+	// Tendon pulley radii
 	double r_c0_, r_c1_;
 	double r_e0_, r_e1_;
 	double r_f0_, r_f1_;
 	double r_g0_, r_g1_;
 	
+	// Spring
 	double spring_k_; // Extensor tendon tension spring constant (N/mm)
 	double spring_x0_; // Extensor tendon tension spring extension with the gripper fully open (mm)
 	
-	// Encoder count
-	double enc_ticks_;
-	
-	// FITTED POLYNOMIALS:
+	// Fitted Polynomials
 	std::vector<double> length_to_gap_coeffs_;
 	std::vector<double> gap_to_length_coeffs_;
 	std::vector<double> gap_to_effective_dist_coeffs_; // effective distance is the length of the moment arm the flexor tendon creates on the proximal joint
 
 	// Drivetrain parameters
-	double encoder_ticks_per_rev_; // eg 1200 pulses per motor rev.
 	double gear_reduction_; // gear reduction from motor to ball screw shaft: MotorSpeed/GearReduction -> BallScrewSpeed
-	double gear_efficiency_;
-	double screw_reduction_;  // ball screw reduction: BallScrewSpeed/ScrewReduction -> metres of travel.
-	double screw_efficiency_;
-	double screw_lead_;
+	double screw_lead_; // screw lead in mm, eg 0.00325m
+	double gripper_efficiency_; // Overall efficiency coefficient
 	
 	bool use_simulated_gripper_joint;
 	

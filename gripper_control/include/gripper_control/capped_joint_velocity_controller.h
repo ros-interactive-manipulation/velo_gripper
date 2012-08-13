@@ -36,8 +36,7 @@
 #define JOINT_VELOCITY_CONTROLLER_H
 
 /**
-   @class pr2_controller_interface::JointVelocityController
-   @author Stuart Glaser
+   @class pr2_controller_interface::CappedJointVelocityController
    @brief Joint Velocity Controller
 
    This controller controls velocity using a pid loop.
