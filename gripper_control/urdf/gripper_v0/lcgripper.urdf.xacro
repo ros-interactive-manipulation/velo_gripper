@@ -28,7 +28,7 @@
     <link name="${side}_gripper_base_link">
       <visual>
         <geometry>
-          <mesh filename="package://gripper_control/meshes/gripper_actuator.stl"/>
+          <mesh filename="package://gripper_control/meshes/lcg_actuator_mesh_vF.STL"/>
         </geometry>
         <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
         <material name="${side}_base-11_color">
@@ -37,9 +37,9 @@
       </visual>
       <collision>
         <geometry>
-          <mesh filename="package://gripper_control/meshes/gripper_actuator.stl"/>
+          <mesh filename="package://gripper_control/meshes/lcg_actuator_mesh_vF.STL"/>
         </geometry>
-        <origin rpy="0 0 0" xyz="0.0 0 0"/>
+        <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
       </collision>
       <inertial>
         <mass value="0.1"/>
@@ -52,24 +52,24 @@
       <parent link="${parent}"/>
       <child link="${side}_gripper_base_link"/>
       <!--<insert_block name="origin"/>-->
-      <origin xyz="0.03 0.0 0.0" rpy="${M_PI/2.0} 0.0 ${M_PI/2.0}"/>
+      <origin xyz="0.03 0.0 0.0" rpy="0.0 0.0 0.0"/>
     </joint>
 
     <link name="${side}_gripper_palm_link">
       <visual>
         <geometry>
-          <mesh filename="package://gripper_control/meshes/palm.stl"/>
+          <mesh filename="package://gripper_control/meshes/lcg_palm_mesh_v1-55.STL"/>
         </geometry>
-        <origin rpy="0 0 0" xyz="0.00 0.0 0.00"/>
+        <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
         <material name="${side}_palm-11_color">
           <color rgba="0.796078 0.823529 0.937255 1"/>
         </material>
       </visual>
       <collision>
         <geometry>
-          <mesh filename="package://gripper_control/meshes/palm.stl"/>
+          <mesh filename="package://gripper_control/meshes/lcg_palm_mesh_v1-55.STL"/>
         </geometry>
-        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
       </collision>
       <inertial>
         <mass value="0.1"/>
@@ -81,13 +81,13 @@
     <joint name="${side}_gripper_palm_joint" type="fixed">
       <parent link="${side}_gripper_base_link"/>
       <child link="${side}_gripper_palm_link"/>
-      <origin xyz="0.0 0.0 0.052" rpy="0 0 0"/>
+      <origin xyz="0.105 0.0 0.0" rpy="0 0 0"/>
     </joint>
 
     <link name="${side}_gripper_l_finger_link">
       <visual>
         <geometry>
-          <mesh filename="package://gripper_control/meshes/proximal.stl"/>
+          <mesh filename="package://gripper_control/meshes/lcg_proximal_mesh_v1-55.STL"/>
         </geometry>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <material name="${side}_l_finger-11_color">
@@ -96,7 +96,7 @@
       </visual>
       <collision>
         <geometry>
-          <mesh filename="package://gripper_control/meshes/proximal.stl"/>
+          <mesh filename="package://gripper_control/meshes/lcg_proximal_mesh_v1-55.STL"/>
         </geometry>
         <origin rpy="0 0 0" xyz="0 0 0"/>
       </collision>
@@ -110,17 +110,17 @@
     <joint name="${side}_gripper_l_finger_joint" type="revolute">
       <parent link="${side}_gripper_palm_link"/>
       <child link="${side}_gripper_l_finger_link"/>
-      <origin rpy="0 1.4224433403753787 0" xyz="-0.01750 0.0 0.053"/>
+      <origin rpy="0 0 -${M_PI/2.0}" xyz="0 -0.01750 0.0"/>
      <limit effort="300.0" velocity = "10000" lower = "0" upper = "${gripper_max_angle}"/>
       <safety_controller k_position="100" k_velocity="1" soft_lower_limit = "0" soft_upper_limit = "1.4224433403753787"/>
-      <axis xyz="0 1 0"/>
+      <axis xyz="0 0 1"/>
       <dynamics damping="0.01"/>
     </joint>
 
     <link name="${side}_gripper_l_finger_tip_link">
       <visual>
         <geometry>
-          <mesh filename="package://gripper_control/meshes/distal.stl"/>
+          <mesh filename="package://gripper_control/meshes/lcg_distal_mesh_v1-55.STL"/>
         </geometry>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <material name="${side}_l_finger_tip-11_color">
@@ -129,7 +129,7 @@
       </visual>
       <collision>
         <geometry>
-          <mesh filename="package://gripper_control/meshes/distal.stl"/>
+          <mesh filename="package://gripper_control/meshes/lcg_distal_mesh_v1-55.STL"/>
         </geometry>
         <origin rpy="0 0 0" xyz="0 0 0"/>
       </collision>
@@ -144,28 +144,28 @@
       <parent link="${side}_gripper_l_finger_link"/>
       <child link="${side}_gripper_l_finger_tip_link"/>
       <mimic joint="${side}_gripper_l_finger_joint" multiplier="-1" offset="0"/>
-      <origin rpy="0 -1.4224433403753787 0" xyz="-0.05638 0.0 0.02052"/>
+      <origin rpy="0 0 ${M_PI/2.0}" xyz="0.060 0 0"/>
       <limit effort="300.0" velocity = "10000" lower = "${-gripper_max_angle}" upper = "${gripper_max_angle}"/>
       <safety_controller k_position="100" k_velocity="1" soft_lower_limit = "0" soft_upper_limit = "1.4224433403753787"/>
-      <axis xyz="0 -1 0"/>
+      <axis xyz="0 0 -1"/>
       <dynamics damping="0.01"/>
     </joint>
 
     <link name="${side}_gripper_r_finger_link">
       <visual>
         <geometry>
-          <mesh filename="package://gripper_control/meshes/proximal.stl"/>
+          <mesh filename="package://gripper_control/meshes/lcg_proximal_mesh_v1-55.STL"/>
         </geometry>
-        <origin rpy="0 0 3.14159" xyz="0 0 0"/>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
         <material name="${side}_gripper_r_finger-11_color">
           <color rgba="1.0 0.0 0.0 1"/>
         </material>
       </visual>
       <collision>
         <geometry>
-          <mesh filename="package://gripper_control/meshes/proximal.stl"/>
+          <mesh filename="package://gripper_control/meshes/lcg_proximal_mesh_v1-55.STL"/>
         </geometry>
-        <origin rpy="0 0 3.14159" xyz="0 0 0"/>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
       </collision>
       <inertial>
         <mass value="0.1"/>
@@ -178,28 +178,28 @@
       <parent link="${side}_gripper_palm_link"/>
       <child link="${side}_gripper_r_finger_link"/>
       <mimic joint="${side}_gripper_l_finger_joint" multiplier="1" offset="0"/>
-      <origin rpy="0 -1.4224433403753787 0" xyz="0.01750 0.0 0.053"/>
+      <origin rpy="0 ${M_PI} -${M_PI/2.0}" xyz="0 0.0175 0"/>
      <limit effort="300.0" velocity = "10000" lower = "${-gripper_max_angle}" upper = "${gripper_max_angle}"/>
       <safety_controller k_position="100" k_velocity="1" soft_lower_limit = "0" soft_upper_limit = "1.4224433403753787"/>
-      <axis xyz="0 1 0"/>
+      <axis xyz="0 0 1"/>
       <dynamics damping="0.01"/>
     </joint>
 
     <link name="${side}_gripper_r_finger_tip_link">
       <visual>
         <geometry>
-          <mesh filename="package://gripper_control/meshes/distal.stl"/>
+          <mesh filename="package://gripper_control/meshes/lcg_distal_mesh_v1-55.STL"/>
         </geometry>
-        <origin rpy="0 0 3.14159" xyz="0 0 0"/>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
         <material name="${side}_r_finger_tip-11_color">
           <color rgba="0.796078 0.823529 0.937255 1"/>
         </material>
       </visual>
       <collision>
         <geometry>
-          <mesh filename="package://gripper_control/meshes/distal.stl"/>
+          <mesh filename="package://gripper_control/meshes/lcg_distal_mesh_v1-55.STL"/>
         </geometry>
-        <origin rpy="0 0 3.14159" xyz="0 0 0"/>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
       </collision>
       <inertial>
         <mass value="0.1"/>
@@ -212,18 +212,17 @@
       <parent link="${side}_gripper_r_finger_link"/>
       <child link="${side}_gripper_r_finger_tip_link"/>
       <mimic joint="${side}_gripper_l_finger_joint" multiplier="-1" offset="0"/>
-      <origin rpy="0 1.4224433403753787 0" xyz="0.05638 0.0 0.02052"/>
+      <origin rpy="0 0 ${M_PI/2.0}" xyz="0.060 0 0"/>
       <limit effort="300.0" velocity = "10000" lower = "${-gripper_max_angle}" upper = "${gripper_max_angle}"/>
       <safety_controller k_position="100" k_velocity="1" soft_lower_limit = "0" soft_upper_limit = "1.4224433403753787"/>
-      <axis xyz="0 -1 0"/>
+      <axis xyz="0 0 -1"/>
       <dynamics damping="0.01"/>
     </joint>
 
     <link name="${side}_gripper_l_finger_tip_frame"/>
 
     <link name="${side}_gripper_tool_frame">
-      <!--
-      <visual>
+      <!--<visual>
         <geometry>
           <sphere radius="0.003"/>
         </geometry>
@@ -231,8 +230,7 @@
         <material name="${side}_tool_frame-11_color">
           <color rgba="0.796078 0.823529 0.937255 1"/>
         </material>
-      </visual>
-      -->
+      </visual>-->
       <inertial>
         <mass value="0.1"/>
         <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
@@ -255,8 +253,8 @@
                   iyy="0.001" iyz="0.0"
                   izz="0.001" />
       </inertial>
-      <!-- for debugging only 
-      <visual>
+      <!-- for debugging only -->
+      <!--<visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
           <box size="0.05 0.01 0.05" />
@@ -267,8 +265,7 @@
         <geometry>
           <box size="0.05 0.01 0.05" />
         </geometry>
-      </collision>
-      -->
+      </collision>-->
       
     </link>
     
@@ -292,8 +289,8 @@
                   iyy="0.0001" iyz="0.0"
                   izz="0.0001" />
       </inertial>
-      <!-- for debugging only
-      <visual>
+      <!-- for debugging only -->
+<!--      <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
           <box size="0.05 0.01 0.05" />
@@ -304,8 +301,7 @@
         <geometry>
           <box size="0.05 0.01 0.05" />
         </geometry>
-      </collision>
-      -->
+      </collision> -->
       
     </link>
 
@@ -342,27 +338,27 @@
       screw_efficiency="${1.0}"
       screw_lead="${0.00325}"
 
-      j0x="${-35.0}"
+      j0x="${-0.0350}"
       j0y="${0.0}"
-      j1x="${-60.0}"
+      j1x="${-0.060}"
       j1y="${0.0}"
 
-      p0x="${-25.0}"
-      p0y="${2.0}"
-      p1x="${-45.0}"
-      p1y="${4.0}"
-      p2x="${-8.4}"
-      p2y="${2.3}"
-      p3x="${-44.0}"
-      p3y="${-5.0}"
+      p0x="${-0.025}"
+      p0y="${0.002}"
+      p1x="${-0.045}"
+      p1y="${0.004}"
+      p2x="${-0.0084}"
+      p2y="${0.0023}"
+      p3x="${-0.044}"
+      p3y="${-0.005}"
 
-      l0="${35.0}"
-      l1="${60.0}"
-      l2="${50.0}"
+      l0="${0.035}"
+      l1="${0.060}"
+      l2="${0.050}"
 
-      p0_radius="${4.0}"
-      j1_radius="${3.2}"
-      thickness="${6.0}"
+      p0_radius="${0.004}"
+      j1_radius="${0.0032}"
+      thickness="${0.006}"
       theta_open="${20.0}"
       theta_closed="${101.5}"
 

@@ -8,22 +8,13 @@ l_gripper_controller:
   type: gripper_control/Pr2LCGripperController
   joint: l_gripper_joint
   pid: &lcgripper_position_gains
-    position:
-      p: 100.0
-      i: 0.0
-      d: 10.0
-      i_clamp: 0.01
-      filter_coeff: 0.1
-    velocity:
-      p: 100.0
-      i: 10.0
-      d: 0.0
-      i_clamp: 0.0
-      v_limit: 0.01 # m/s, ie, 10mm/s
+    p: 2000.0
+    i: 0.0
+    d: 100.0
+    i_clamp: 0.01
+    filter_coeff: 0.1
+    v_thres: 0.005
     position_holding:
-			stall_timeout: 3 # seconds
-			stall_threshold: 0.001 # metres
-			holding_torque: 0.002 # Nm
-
-    torque_limit: 0.01
-
+      stall_timeout: 5.0 # seconds
+      stall_threshold: 0.001 # metres of gap travel
+      holding_torque: 1.0 # Newtons of gap force

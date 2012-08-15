@@ -66,8 +66,6 @@ PLUGINLIB_DECLARE_CLASS(gripper_control, LCGripperTransmission,
                          pr2_mechanism_model::LCGripperTransmission,
                          pr2_mechanism_model::Transmission)
 
-// Attempt to load relevant parameters from the parameter server, if they exist. This will update the default URDF values with whatever is in the parameter server cfg.
-
 bool LCGripperTransmission::initParametersFromServer(TiXmlElement *j)
 {
 	const char *joint_name = j->Attribute("name");
@@ -299,13 +297,14 @@ bool LCGripperTransmission::initParametersFromServer(TiXmlElement *j)
 	return true;
 }
 
-// Sets up the initial parameters used to calculated gripper position/forces. NB: Must be run before trying to load parameters from the parameter server.
+
 bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot)
 {
 	length_to_gap_coeffs_.reserve(5);
 	gap_to_length_coeffs_.reserve(5);
 	gap_to_effective_dist_coeffs_.reserve(5);
 	
+	std::cout << "Init Parameters" << std::endl;
 	const char *joint_name = j->Attribute("name");
 	if (!joint_name)
 	{
@@ -346,10 +345,31 @@ bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot
 		}
 	}
 	
+	
+	
+	const char *gripper_efficiency_str = j->Attribute("gripper_efficiency");
+	if (gripper_efficiency_str == NULL)
+	{
+		gripper_efficiency_ = 1.0; // Overall efficiency coefficient
+		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: gripper_efficiency, using default for LCG v1.46.", joint_name);
+	}
+	else
+	{
+		try
+		{
+			gripper_efficiency_ = boost::lexical_cast<double>(gripper_efficiency_str);
+		}
+		catch (boost::bad_lexical_cast &e)
+		{
+			ROS_ERROR("gripper_efficiency (%s) is not a float", gripper_efficiency_str);
+			return false;
+		}
+	}
+	
 	const char *screw_lead_str = j->Attribute("screw_lead");
 	if (screw_lead_str == NULL)
 	{
-		screw_lead_ = 3.25/1000.0; // turns per m of travel. (Gear ratio of the ball screw, ie motor -> tendon movement)
+		screw_lead_ = 3.25/1000.0; // travel per turn (in metres)
 		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: screw_lead, using default for LCG v1.46.", joint_name);
 	}
 	else
@@ -371,7 +391,7 @@ bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot
 	const char *j0x_str = j->Attribute("j0x");
 	if (j0x_str == NULL)
 	{
-		j0x_ = -0.035; // m
+		j0x_ = -0.035; // mm
 		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: j0x, using default for LCG v1.46.", joint_name);
 	}
 	else
@@ -390,7 +410,7 @@ bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot
 	const char *j0y_str = j->Attribute("j0y");
 	if (j0y_str == NULL)
 	{
-		j0y_ = 0.0; // m
+		j0y_ = 0.0;
 		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: j0y, using default for LCG v1.46.", joint_name);
 	}
 	else
@@ -409,7 +429,7 @@ bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot
 	const char *j1x_str = j->Attribute("j1x");
 	if (j1x_str == NULL)
 	{
-		j1x_ = -0.060; // m
+		j1x_ = -0.060;
 		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: j1x, using default for LCG v1.46.", joint_name);
 	}
 	else
@@ -428,7 +448,7 @@ bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot
 	const char *j1y_str = j->Attribute("j1y");
 	if (j1y_str == NULL)
 	{
-		j1y_ = 0.0; // m
+		j1y_ = 0.0;
 		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: j1y, using default for LCG v1.46.", joint_name);
 	}
 	else
@@ -447,7 +467,7 @@ bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot
 	const char *p0x_str = j->Attribute("p0x");
 	if (p0x_str == NULL)
 	{
-		p0x_ = -0.025; // m
+		p0x_ = -0.025;
 		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: p0x, using default for LCG v1.46.", joint_name);
 	}
 	else
@@ -466,7 +486,7 @@ bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot
 	const char *p0y_str = j->Attribute("p0y");
 	if (p0y_str == NULL)
 	{
-		p0y_ = 0.002; // m
+		p0y_ = 0.002;
 		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: p0y, using default for LCG v1.46.", joint_name);
 	}
 	else
@@ -484,7 +504,7 @@ bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot
 	const char *p1x_str = j->Attribute("p1x");
 	if (p1x_str == NULL)
 	{
-		p1x_ = -0.045; // m
+		p1x_ = -0.045;
 		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: p1x, using default for LCG v1.46.", joint_name);
 	}
 	else
@@ -504,7 +524,7 @@ bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot
 	const char *p1y_str = j->Attribute("p1y");
 	if (p1y_str == NULL)
 	{
-		p1y_ = -0.0; // m
+		p1y_ = -0.0;
 		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: p1y, using default for LCG v1.46.", joint_name);
 	}
 	else
@@ -523,7 +543,7 @@ bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot
 	const char *p2x_str = j->Attribute("p2x");
 	if (p2x_str == NULL)
 	{
-		p2x_ = -0.0084; // m
+		p2x_ = -0.0084;
 		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: p2x, using default for LCG v1.46.", joint_name);
 	}
 	else
@@ -543,7 +563,7 @@ bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot
 	const char *p2y_str = j->Attribute("p2y");
 	if (p2y_str == NULL)
 	{
-		p2y_ = 0.0023; // m
+		p2y_ = 0.0023;
 		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: p2y, using default for LCG v1.46.", joint_name);
 	}
 	else
@@ -562,7 +582,7 @@ bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot
 	const char *p3x_str = j->Attribute("p3x");
 	if (p3x_str == NULL)
 	{
-		p3x_ = -0.044; // m
+		p3x_ = -0.044;
 		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: p3x, using default for LCG v1.46.", joint_name);
 	}
 	else
@@ -582,7 +602,7 @@ bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot
 	const char *p3y_str = j->Attribute("p3y");
 	if (p3y_str == NULL)
 	{
-		p3y_ = -0.005; // m
+		p3y_ = -0.005;
 		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: p3y, using default for LCG v1.46.", joint_name);
 	}
 	else
@@ -601,7 +621,7 @@ bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot
 	const char *l0_str = j->Attribute("l0");
 	if (l0_str == NULL)
 	{
-		l0_ = 0.035; // m
+		l0_ = 0.035;
 		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: l0, using default for LCG v1.46.", joint_name);
 	}
 	else
@@ -621,7 +641,7 @@ bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot
 	const char *l1_str = j->Attribute("l1");
 	if (l1_str == NULL)
 	{
-		l1_ = 0.060; // m
+		l1_ = 0.060;
 		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: l1, using default for LCG v1.46.", joint_name);
 	}
 	else
@@ -641,7 +661,7 @@ bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot
 	const char *l2_str = j->Attribute("l2");
 	if (l2_str == NULL)
 	{
-		l2_ = 0.050; // m
+		l2_ = 0.050;
 		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: l2, using default for LCG v1.46.", joint_name);
 	}
 	else
@@ -657,11 +677,50 @@ bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot
 		}
 	}
 	
+	// get the P0 radius coefficient
+	const char *p0_radius_str = j->Attribute("p0_radius");
+	if (p0_radius_str == NULL)
+	{
+		p0_radius_ = 0.004; // mm
+		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: p0_radius, using default for LCG v1.46.", joint_name);
+	}
+	else
+	{
+		try
+		{
+			p0_radius_ = boost::lexical_cast<double>(p0_radius_str);
+		}
+		catch (boost::bad_lexical_cast &e)
+		{
+			ROS_ERROR("p0_radius (%s) is not a float",p0_radius_str);
+			return false;
+		}
+	}
+	
+	// get the J1 radius coefficient
+	const char *j1_radius_str = j->Attribute("j1_radius");
+	if (j1_radius_str == NULL)
+	{
+		j1_radius_ = 0.0032; // mm
+		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: j1_radius, using default for LCG v1.46.", joint_name);
+	}
+	else
+	{
+		try
+		{
+			j1_radius_ = boost::lexical_cast<double>(j1_radius_str);
+		}
+		catch (boost::bad_lexical_cast &e)
+		{
+			ROS_ERROR("j1_radius (%s) is not a float",j1_radius_str);
+			return false;
+		}
+	}
 	// get the distal thickness coefficient (mm)
 	const char *thickness_str = j->Attribute("thickness");
 	if (thickness_str == NULL)
 	{
-		thickness_ = 0.006; // m
+		thickness_ = 0.006; // mm
 		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: thickness, using default for LCG v1.46.", joint_name);
 	}
 	else
@@ -700,7 +759,7 @@ bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot
 	const char *theta_closed_str = j->Attribute("theta_closed");
 	if (theta_closed_str == NULL)
 	{
-		theta_closed_ = 101.5; // degrees
+		theta_closed_ = 101.5; //degrees
 		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: theta_closed, using default for LCG v1.46.", joint_name);
 	}
 	else
@@ -719,7 +778,7 @@ bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot
 	const char *gap_open_str = j->Attribute("gap_open");
 	if (gap_open_str == NULL)
 	{
-		gap_open_ = 0.135763; // m
+		gap_open_ = 0.135763; //m
 		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: gap_open, using default for LCG v1.46.", joint_name);
 	}
 	else
@@ -738,7 +797,7 @@ bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot
 	const char *gap_closed_str = j->Attribute("gap_closed");
 	if (gap_closed_str == NULL)
 	{
-		gap_closed_ = 0.0; // m
+		gap_closed_ = 0.0;
 		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: gap_closed, using default for LCG v1.46.", joint_name);
 	}
 	else
@@ -1043,116 +1102,32 @@ bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot
 			return false;
 		}
 	}		
-	
-	// Constrain tendon proximal pulley radius
-	const char *r_c0_str = j->Attribute("r_c0");
-	if (r_c0_str == NULL)
+
+	const char *enc_ticks_str = j->Attribute("enc_ticks");
+	if (enc_ticks_str == NULL)
 	{
-		r_c0_ = 0.005; // 5mm radius
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: r_c0, using default for LCG v1.46.", joint_name);
+		enc_ticks_ = 120.0; // 120 pulses per rev
+		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: enc_ticks, using default for LCG v1.46.", joint_name);
 	}
 	else
 	{
 		try
 		{
-			r_c0_ = boost::lexical_cast<double>(r_c0_str);
+			enc_ticks_ = boost::lexical_cast<double>(enc_ticks_str);
 		}
 		catch (boost::bad_lexical_cast &e)
 		{
-			ROS_ERROR("r_c0 (%s) is not a float", r_c0_str);
+			ROS_ERROR("enc_ticks (%s) is not a float", enc_ticks_str);
 			return false;
 		}
-	}
-	
-	// Constrain tendon distal pulley radius
-	const char *r_c1_str = j->Attribute("r_c1");
-	if (r_c1_str == NULL)
-	{
-		r_c1_ = 0.005; // 5mm radius
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: r_c1, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			r_c1_ = boost::lexical_cast<double>(r_c1_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("r_c1 (%s) is not a float", r_c1_str);
-			return false;
-		}
-	}
-	
-	// Extensor tendon proximal pulley radius
-	const char *r_e0_str = j->Attribute("r_e0");
-	if (r_e0_str == NULL)
-	{
-		r_e0_ = 0.0054; // 5.4mm radius
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: r_e0, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			r_e0_ = boost::lexical_cast<double>(r_e0_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("r_e0 (%s) is not a float", r_e0_str);
-			return false;
-		}
-	}
-	
-	// Extensor tendon distal pulley radius
-	const char *r_e1_str = j->Attribute("r_e1");
-	if (r_e1_str == NULL)
-	{
-		r_e1_ = 0.0032; // 3.2mm radius
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: r_e1, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			r_e1_ = boost::lexical_cast<double>(r_e1_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("r_e1 (%s) is not a float", r_e1_str);
-			return false;
-		}
-	}
-		
-	// Flexor tendon distal pulley radius
-	const char *r_f1_str = j->Attribute("r_f1");
-	if (r_f1_str == NULL)
-	{
-		r_f1_ = 0.0032; // 3.2mm radius
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: r_f1, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			r_f1_ = boost::lexical_cast<double>(r_f1_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("r_f1 (%s) is not a float", r_f1_str);
-			return false;
-		}
-	}
-	
-	
-	
+	}	
 	
 	int argc = 0;
 	char** argv;
-	// Init once we know the name of the gap_joint, loaded from the URDF.
-	ros::init(argc, argv, gap_joint_);
 	
+	ros::init(argc, argv, gap_joint_);
 	ros::NodeHandle nh(gap_joint_);
+	
 	lcg_state_publisher_.reset(
 			new realtime_tools::RealtimePublisher<gripper_control::LCGTransmissionState>
 				(nh, "state", 1));
@@ -1166,6 +1141,7 @@ bool LCGripperTransmission::initXml(TiXmlElement *config, Robot *robot)
 	
 	const char *name = config->Attribute("name");
 	name_ = name ? name : "";
+	//myfile.open("transmission_data.txt");
 	TiXmlElement *ael = config->FirstChildElement("actuator");
 	const char *actuator_name = ael ? ael->Attribute("name") : NULL;
 	if (!actuator_name || !robot->getActuator(actuator_name))
@@ -1178,42 +1154,43 @@ bool LCGripperTransmission::initXml(TiXmlElement *config, Robot *robot)
 	
 	for (TiXmlElement *j = config->FirstChildElement("gap_joint"); j; j = j->NextSiblingElement("gap_joint"))
 	{
-		initParametersFromURDF(j, robot);
-		initParametersFromServer(j); // Attempt to update the parameters from the param server
+		initParametersFromURDF(j, robot);		
+		initParametersFromServer(j);
 	}
 		
-	// Get passive joint informations
-	for (TiXmlElement *j = config->FirstChildElement("passive_joint"); j; j = j->NextSiblingElement("passive_joint"))
-	{
-		const char *joint_name = j->Attribute("name");
-		if (!joint_name)
-		{
-		  ROS_ERROR("PR2GripperTransmission did not specify joint name");
-		  return false;
-		}
-		const boost::shared_ptr<const urdf::Joint> joint = robot->robot_model_.getJoint(joint_name);
-		
-		if (!joint)
-		{
-			ROS_ERROR("PR2GripperTransmission could not find joint named \"%s\"", joint_name);
-			return false;
-		}
-		
-		// add joint name to list
-		joint_names_.push_back(joint_name);  // Adds the passive joints after the gap joint
-		passive_joints_.push_back(joint_name);
-		}
-		
-		// Get screw joint informations
-		for (TiXmlElement *j = config->FirstChildElement("simulated_actuated_joint"); j; j = j->NextSiblingElement("simulated_actuated_joint"))
-		{
-		const char *joint_name = j->Attribute("name");
-		if (!joint_name)
-		{
-		  ROS_ERROR("PR2GripperTransmission simulated_actuated_joint did snot specify joint name");
-		  use_simulated_actuated_joint_=false;
-		}
-	else
+	
+	  // Get passive joint informations
+	  for (TiXmlElement *j = config->FirstChildElement("passive_joint"); j; j = j->NextSiblingElement("passive_joint"))
+	  {
+	    const char *joint_name = j->Attribute("name");
+	    if (!joint_name)
+	    {
+	      ROS_ERROR("PR2GripperTransmission did not specify joint name");
+	      return false;
+	    }
+	    const boost::shared_ptr<const urdf::Joint> joint = robot->robot_model_.getJoint(joint_name);
+
+	    if (!joint)
+	    {
+	      ROS_ERROR("PR2GripperTransmission could not find joint named \"%s\"", joint_name);
+	      return false;
+	    }
+
+	    // add joint name to list
+	    joint_names_.push_back(joint_name);  // Adds the passive joints after the gap joint
+	    passive_joints_.push_back(joint_name);
+	  }
+
+	  // Get screw joint informations
+	  for (TiXmlElement *j = config->FirstChildElement("simulated_actuated_joint"); j; j = j->NextSiblingElement("simulated_actuated_joint"))
+	  {
+	    const char *joint_name = j->Attribute("name");
+	    if (!joint_name)
+	    {
+	      ROS_ERROR("PR2GripperTransmission simulated_actuated_joint did snot specify joint name");
+	      use_simulated_actuated_joint_=false;
+	    }
+	    else
 	    {
 	      const boost::shared_ptr<const urdf::Joint> joint = robot->robot_model_.getJoint(joint_name);
 	      if (!joint)
@@ -1272,6 +1249,7 @@ bool LCGripperTransmission::initXml(TiXmlElement *config, Robot *robot)
 bool LCGripperTransmission::initXml(TiXmlElement *config)
 {
 	initPolynomialCoefficients();
+	
 	const char *name = config->Attribute("name");
 	name_ = name ? name : "";
 
@@ -1298,6 +1276,10 @@ bool LCGripperTransmission::initXml(TiXmlElement *config)
 		}
 	}
 		
+	// Print all coefficients
+	ROS_DEBUG("LCGripper transmission parameters for %s: j0x=%f, j0y=%f, j1x=%f, j1y=%f, p0x=%f, p0y=%f, p1x=%f, p1y=%f, p2x=%f, p2y=%f, p3x=%f, p3y=%f, l0=%f, l1=%f, l2=%f, p0_radius=%f, j1_radius=%f, thickness=%f, theta_open=%f, theta_closed=%f, gear_reduction=%f",
+	name_.c_str(), j0x_, j0y_, j1x_, j1y_, p0x_, p0y_, p1x_, p1y_, p2x_, p2y_, p3x_, p3y_, l0_, l1_, l2_, p0_radius_, j1_radius_, thickness_, theta_open_, theta_closed_, gear_reduction_);
+	
 	// Get passive joint informations
 	for (TiXmlElement *j = config->FirstChildElement("passive_joint"); j; j = j->NextSiblingElement("passive_joint"))
 	{
@@ -1389,8 +1371,8 @@ void LCGripperTransmission::propagatePosition(std::vector<Actuator*>& as, std::v
 	}
 	
 	double motor_pos 		= -as[0]->state_.position_;
-	double motor_vel 		= as[0]->state_.velocity_; 
-	double motor_torque 	= as[0]->state_.last_measured_effort_; // Convert current -> Nm
+	double motor_vel 		= getMotorVelFromEncoderVel(as[0]->state_.velocity_); 
+	double motor_torque 	= getMotorTorqueFromEffort(as[0]->state_.last_measured_effort_); // Convert current -> Nm
 	
 	double tendon_length 	= getLengthFromMotorPos(motor_pos);
 	double tendon_vel		= getTendonLengthVelFromMotorVel(motor_vel);
@@ -1413,13 +1395,13 @@ void LCGripperTransmission::propagatePosition(std::vector<Actuator*>& as, std::v
 	// Determines the states of the passive joints.
 	// we need to do this for each finger, in simulation, each finger has it's state filled out
 	
-	double joint_angle = (theta_closed_*M_PI/180.0) - theta;
+	double joint_angle = theta;
 	double joint_vel = getThetaVelFromGapVel(gap_vel, gap_size);
 	//ROS_INFO("PropagatePosition(): joint_angle %f", (joint_angle*180.0/M_PI) );
 	for (size_t i = 1; i < passive_joints_.size()+1; ++i) //
 	{
-		if(i == 1 || i == 2 || i == 4)
-			joint_angle = -joint_angle;
+//		if(i == 1 || i == 2 || i == 4)
+//			joint_angle = -joint_angle;
 	
 		//ROS_INFO("Joint %s, position %f", js[i]->joint_->name.c_str(), joint_angle*180.0/M_PI );
 		js[i]->position_           = joint_angle; 
@@ -1448,7 +1430,7 @@ void LCGripperTransmission::propagatePosition(std::vector<Actuator*>& as, std::v
 }
 
 // this is needed for simulation, so we can recover encoder value given joint angles
-// Use the gap slider joint position to calculate actuator position.
+// Use joint positions to generate an actuator position.
 void LCGripperTransmission::propagatePositionBackwards(std::vector<JointState*>& js, std::vector<Actuator*>& as)
 {
 	ROS_ASSERT(as.size() == 1); // Only one actuator
@@ -1470,22 +1452,25 @@ void LCGripperTransmission::propagatePositionBackwards(std::vector<JointState*>&
 	
 	double theta1 			= -js[2]->position_ + theta_closed_*M_PI/180.0; // Proximal joint angle, radians 
 	double theta1_vel 		= js[2]->velocity_;
+	double torqueJ1 		= js[3]->commanded_effort_; // Joints 3/4 are the distal joints.
 	
-	double gap_size 		= js[0]->position_; //getGapFromTheta(theta1);	
+	double gap_size 		= getGapFromTheta(theta1);	
 	double tendon_length 	= getTendonLengthFromGap(gap_size);
 	double motor_pos 		= getMotorPosFromLength(tendon_length);
+	double enc_pos 			= getEncoderPosFromMotorPos(motor_pos) + 5762.49;
+	//ROS_ERROR("PropagatePositionBackwards(): Theta1: %f, GAP SIZE: %f, TENDON LENGTH: %f, MOTOR POS: %f, ENC POS: %f", theta1, gap_size, tendon_length, motor_pos, enc_pos);
 	
 	double gap_rate         = theta1_vel*cos(theta1);
 	double tendon_rate		= getTendonLengthVelFromGapVel(gap_rate, gap_size);
 	double motor_vel		= getMotorVelFromTendonLengthVel(tendon_rate);
 	
-	double gap_force 		= js[0]->commanded_effort_;
-	double tendon_force 	= getTendonForceFromGripperForce(gap_force, gap_size);
+	double tendon_force 	= getTendonForceFromTorqueJ1(torqueJ1);
 	double motor_torque		= getMotorTorqueFromTendonForce(tendon_force);
+	double motor_effort		= getMotorEffortFromTorque(motor_torque);
 
-	as[0]->state_.position_             = motor_pos;
+	as[0]->state_.position_             = enc_pos;
 	as[0]->state_.velocity_             = motor_vel;
-	as[0]->state_.last_measured_effort_ = motor_torque;
+	as[0]->state_.last_measured_effort_ = motor_effort;
 	
 	// Update the timing (making sure it's initialized).
 	if (! simulated_actuator_timestamp_initialized_)
@@ -1512,7 +1497,8 @@ void LCGripperTransmission::propagatePositionBackwards(std::vector<JointState*>&
 	this->joint_calibration_simulator_.simulateJointCalibration(js[0],as[0]);
 }
 
-void LCGripperTransmission::propagateEffort(std::vector<JointState*>& js, std::vector<Actuator*>& as)
+void LCGripperTransmission::propagateEffort(
+		std::vector<JointState*>& js, std::vector<Actuator*>& as)
 {
 	ROS_ASSERT(as.size() == 1); // Only one actuator
 	// js has passive joints and 1 gap joint and 1 screw joint
@@ -1544,7 +1530,7 @@ void LCGripperTransmission::propagateEffort(std::vector<JointState*>& js, std::v
 	as[0]->command_.enable_ = true;
 	as[0]->command_.effort_ = motor_torque;
 	
-	if(loop_count_ % 10 == 0) // reduce the update rate to something more manageable. 
+	if(loop_count_ % 10 == 0)
 	{
 		if(lcg_state_publisher_ && lcg_state_publisher_->trylock())
 		{
@@ -1563,7 +1549,6 @@ void LCGripperTransmission::propagateEffort(std::vector<JointState*>& js, std::v
 	
 }
 
-//From a motor torque,
 void LCGripperTransmission::propagateEffortBackwards(
   std::vector<Actuator*>& as, std::vector<JointState*>& js)
 {
@@ -1581,25 +1566,32 @@ void LCGripperTransmission::propagateEffortBackwards(
 	{
 		ROS_ASSERT(js.size() == 1 + passive_joints_.size());
 	}
-	ROS_ASSERT(simulated_reduction_>0.0);
+	//ROS_ASSERT(simulated_reduction_>0.0);
+	
+	double motor_effort 	= as[0]->command_.effort_;
 	
 	// gap_size is required to compute the effective distance from the tendon to the J0 joint
-	double motor_pos 		= as[0]->state_.position_;			  
+	double motor_pos 		= getMotorPosFromEncoderPos(as[0]->state_.position_);			  
 	double tendon_length 	= getLengthFromMotorPos(motor_pos);
 	double gap_size 		= getGapFromTendonLength(tendon_length);
 		  
-	double motor_torque 	= as[0]->command_.effort_;
+	double motor_torque 	= getMotorTorqueFromEffort(motor_effort);
 	double tendon_force 	= getTendonForceFromMotorTorque(motor_torque);
+	//ROS_WARN("Tendon force: %f", tendon_force);
 	double gap_effort 		= getGripperForceFromTendonForce(tendon_force, gap_size);
 	
+    // propagate fictitious joint effort backwards
+    // ROS_ERROR("prop eff back eff=%f",js[0]->commanded_effort_);
     if (use_simulated_actuated_joint_)
     {
       // set screw joint effort if simulated
-      js[passive_joints_.size()+1]->commanded_effort_  = gap_effort/simulated_reduction_; // TODO: Simulated Reduction is simply an arbitrary coefficient currently. This should be set properly based on the screw joint parameters.
+      js[passive_joints_.size()+1]->commanded_effort_  = gap_effort/simulated_reduction_;
+      //js[0]->commanded_effort_                         = gap_effort/2.0;
+      //ROS_INFO("propagateEffortBackwards(): js[0]->commanded_effort = %f", gap_effort/simulated_reduction_);
     }
     else
     {
-      // an ugly hack to lessen instability due to gripper gains. This is simply a low pass filter on the effort.
+      // an ugly hack to lessen instability due to gripper gains
       double eps=0.01;
       js[0]->commanded_effort_  = (1.0-eps)*js[0]->commanded_effort_ + eps*gap_effort/2.0; // skip slider joint effort
     }    
@@ -1607,7 +1599,7 @@ void LCGripperTransmission::propagateEffortBackwards(
 
 double LCGripperTransmission::getMotorPosFromLength(double length)
 {
-	double drivetrain_pos = length/screw_lead_; // Convert current length into a gearset position
+	double drivetrain_pos = length / screw_lead_; // Convert current length into a gearset position
 	double motor_pos = 2.0*M_PI*drivetrain_pos * gear_reduction_; // Convert current gearset position (turns) into a motor position (radians).
 	return motor_pos; // radians
 }
@@ -1630,7 +1622,7 @@ double LCGripperTransmission::getGapFromTheta(double theta)
 double LCGripperTransmission::getThetaFromGap(double gap)
 {
 	// The inverse of getGapFromTheta.
-	double inner_part = ((gap)/2.0 - fabs(j0x_)/2.0 + thickness_)/l1_;
+	double inner_part = (gap/2.0 - fabs(j0x_)/2.0 + thickness_)/l1_;
 	if (inner_part > 1.0) 
 	{
 		ROS_ERROR("GetThetaFromGap invalid - trying to get acos of %f", inner_part);
@@ -1716,8 +1708,8 @@ double LCGripperTransmission::getTendonLengthVelFromMotorVel(double motor_vel)
 {
 	// dLength/dTime = dLength/dMotorPos * dMotorPos/dTime
 	// where Length = MotorPos / (GearRatio * ScrewReduction)
-	// therefore LengthVel =  MotorVel / (GearRatio * ScrewReduction). NB: Screw Reduction is the inverse of the screw lead.
-	double length_vel = motor_vel*screw_lead_/gear_reduction_;
+	// therefore LengthVel =  MotorVel / (GearRatio * ScrewReduction)
+	double length_vel = motor_vel * screw_lead_ /( gear_reduction_);
 	return length_vel;
 }
 
@@ -1729,47 +1721,72 @@ double LCGripperTransmission::getMotorVelFromTendonLengthVel(double length_vel)
 
 double LCGripperTransmission::getTendonForceFromMotorTorque(double motor_torque)
 {
-	double tendon_force = (motor_torque * gear_reduction_ * 2.0 * M_PI * gripper_efficiency_) / screw_lead_;
+	double tendon_force = (motor_torque * gear_reduction_ * 2.0 * M_PI) / screw_lead_;
 	return tendon_force;
 }
 
 double LCGripperTransmission::getGripperForceFromTendonForce(double tendon_force, double gap_size)
-{		
-	double t1 = getThetaFromGap(gap_size);	
-	double Fe = getExtensorTendonForce(t1);		
-	double Ff = tendon_force/2.0; // Divided by 2 as the tendon force is split between the two fingers.
-	r_f0_ = getFlexorMomentArm(gap_size);
-	r_g0_ = l2_/2.0 + l1_*sin(t1); // Assume force applied to the middle of the distal link.
-	r_g1_ = l2_/2.0;
-
-	double Fg = (Ff * (r_f1_ - (r_c1_/r_c0_)*r_f0_) - Fe*(r_e1_ - (r_c1_/r_c0_)*r_e0_)) / (r_g1_ - (r_c1_/r_c0_)*r_g0_); 
+{
+	double effective_distance = getTendonEffectiveDistanceToJ0(gap_size);
+	double torque = tendon_force * (effective_distance); // Nm
+	double force_j1 = torque / l1_; // l1_ is in mm.
+	//ROS_ERROR("ED: %f \ttorque: %f \tforce_j1: %f", effective_distance, torque, force_j1);
+	double theta1 = getThetaFromGap(gap_size);
+	double theta2 = M_PI/2.0 - theta1; // theta2 is 90-theta1.
+	double gripper_force = force_j1*cos(theta2);
 	
-	return Fg;
+	return gripper_force;
 }
 
 double LCGripperTransmission::getTendonForceFromGripperForce(double gripper_force, double gap_size)
 {
-	double t1 = getThetaFromGap(gap_size);	
-	double Fe = getExtensorTendonForce(t1);		
-	double Fg = gripper_force; // Divided by 2 as the tendon force is split between the two fingers.
-	r_f0_ = getFlexorMomentArm(gap_size);
-	r_g0_ = l2_/2.0 + l1_*sin(t1); // Assume force applied to the middle of the distal link.
-	r_g1_ = l2_/2.0;
+	// Convert tendon force to gripper force. 	
+	double theta1 = getThetaFromGap(gap_size);
+	double theta2 = M_PI/2.0 - theta1; // theta2 is 90-theta1.
+	double force_j1 = gripper_force / (cos(theta2));
 
-	double Ff = (Fg*(r_g1_ - (r_c1_/r_c0_)*r_g0_) + Fe*(r_e1_ - (r_c1_/r_c0_)*r_e0_)) / (r_f1_ - (r_c1_/r_c0_)*r_f0_); 
-	return Ff*2.0; // Double the result as the motor force is split between the two tendons
+	double torque = force_j1 * l1_; // l1 is in mm
+	
+	double effective_distance = getTendonEffectiveDistanceToJ0(gap_size);
+	
+	double tendon_force = torque / (effective_distance);
+	//ROS_WARN("getTendonForceFromGripperForce()
+	return tendon_force;
+}
+
+double LCGripperTransmission::getExtensorTendonForce(double theta1)
+{
+		double delta_theta = theta1 - (theta_open_*M_PI/180.0); // change in angle from the start pose, ie angle at fully open.
+		double spring_x = fabs(delta_theta) * (r_e0_ - r_e1_) + spring_x0_; // spring extension, nominal.
+		double ext_force = spring_k_ * spring_x; // extensor tendon force at the current pose.
+		return ext_force;
 }
 
 double LCGripperTransmission::getMotorTorqueFromTendonForce(double tendon_force)
 {
-	double motor_torque = (tendon_force * screw_lead_) / (2.0*M_PI*gripper_efficiency_) / gear_reduction_;
+	double motor_torque = (tendon_force * screw_lead_) / (2.0*M_PI) / gear_reduction_;
 	return motor_torque;
 }
 
+double LCGripperTransmission::getMotorTorqueFromEffort(double motor_effort)
+{
+	// Convert from motor effort reading to actual torque. 
+	// TODO: Check this - this may be handled by the controller anyway.
+	double motor_torque = motor_effort;// * MAGICAL CONSTANT.
+	return motor_torque;
+}
+
+double LCGripperTransmission::getMotorEffortFromTorque(double motor_torque)
+{
+	// Convert from actual motor torque to an "effort" value. 
+	// TODO: Check this - this may be handled by the controller anyway.
+	double motor_effort = motor_torque; //  * MAGICAL CONSTANT
+	return motor_effort;
+}
 
 void LCGripperTransmission::initPolynomialCoefficients()
 {
-	// TODO: Move these magic numbers out to an xml config/parameter server/anything less nasty than this.
+	// TODO: Move these magic numbers out to an xml config.
 	double l2g_coeffs[] = { 1.35959902e-01, 1.10396557e+01, -7.24526160e+02, -7.95557419e+04,-2.57497099e+06  };
 	double g2l_coeffs[] = { -0.01057876, 0.08412417, -0.04850085, -0.87391894, 6.51653529 };
 	double g2ed_coeffs[] = { 1.33852307e-02, -1.50212267e-02, -4.00341247e-01, 4.45724019e+00, -2.30064782e+01 };
@@ -1785,9 +1802,7 @@ void LCGripperTransmission::initPolynomialCoefficients()
 	gap_to_effective_dist_coeffs_.assign(g2ed_coeffs, g2ed_coeffs+5);
 }
 
-
-// Return the moment arm length that the tendon force vector has relative to the proximal joint.
-double LCGripperTransmission::getFlexorMomentArm(double gap_size)
+double LCGripperTransmission::getTendonEffectiveDistanceToJ0(double gap_size)
 {
 	double effective_distance = 0.0;
 	for (int i = 0; i <= (int)gap_to_effective_dist_coeffs_.size(); i++)
@@ -1797,13 +1812,49 @@ double LCGripperTransmission::getFlexorMomentArm(double gap_size)
 	return effective_distance;
 }
 
-double LCGripperTransmission::getExtensorTendonForce(double theta1)
+double LCGripperTransmission::getMotorPosFromEncoderPos(double enc_pos)
 {
-		double delta_theta = theta1 - theta_open_; // change in angle from the start pose, ie angle at fully open.
-		double spring_x = fabs(delta_theta) * (r_e0_ - r_e1_) + spring_x0_; // spring extension, nominal.
-		double ext_force = spring_k_ * spring_x; // extensor tendon force at the current pose.
-		return ext_force;
+	double motor_pos = (enc_pos/enc_ticks_)*2.0*M_PI; 
+	return motor_pos; // Radians
 }
+
+double LCGripperTransmission::getEncoderPosFromMotorPos(double motor_pos)
+{
+	double enc_pos = motor_pos/(2.0*M_PI)*enc_ticks_;
+	return enc_pos; // Encoder pulses
+}
+
+double LCGripperTransmission::getMotorVelFromEncoderVel(double enc_vel)
+{
+	double motor_vel = (enc_vel/enc_ticks_)*2.0*M_PI;
+	return motor_vel;
+}
+
+double LCGripperTransmission::getEncoderVelFromMotorVel(double motor_vel)
+{
+	double enc_vel = motor_vel/(2.0*M_PI)*enc_ticks_;
+	return enc_vel;
+}
+
+double LCGripperTransmission::getTorqueJ0FromTendonForce(double tendon_force, double gap_size)
+{
+	double effective_distance = getTendonEffectiveDistanceToJ0(gap_size);
+	double Tj0 = effective_distance * tendon_force;
+	return Tj0;
+}
+
+double LCGripperTransmission::getTorqueJ1FromTendonForce(double tendon_force)
+{
+	double Tj1 = j1_radius_ * tendon_force;
+	return Tj1; // Nm
+}
+
+double LCGripperTransmission::getTendonForceFromTorqueJ1(double torque)
+{
+	double tendon_force = torque/j1_radius_;
+	return tendon_force;
+}
+
 
 double LCGripperTransmission::validateGapSize(double gap_size)
 {

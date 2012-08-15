@@ -103,11 +103,12 @@ public:
 private:
   int loop_count_;
   
+  // Velocity filter parameters
   double filtered_velocity_;
   double lambda_;
   double v_thres_;
-  
-  // Parameters for the holding torque applied to the motor once 
+
+  // Parameters for the holding torque applied to the motor once stalled
   double stall_threshold_;
   double stall_timeout_;
   double stall_counter_;
@@ -118,14 +119,8 @@ private:
   double last_setpoint_;
   double last_max_effort_;
   
-  // Velocity control parameters
-  double v_limit_;
-  
-  double torque_limit_;
-  
   pr2_mechanism_model::RobotState *robot_;
-  control_toolbox::Pid position_pid_;
-  control_toolbox::Pid velocity_pid_;
+  control_toolbox::Pid pid_;
   ros::Time last_time_;
 
   ros::NodeHandle node_;

@@ -175,12 +175,12 @@ cal_l_gripper:
     - l_gripper_r_finger_joint
     - l_gripper_r_finger_tip_joint
   velocity: -0.01
-  max_effort: 5.0
+  max_effort: 20.0
   pid:
     p: 10000
     d: 0
     i: 10000.0
-    i_clamp: 15.0
+    i_clamp: 100.0
 
 
 
