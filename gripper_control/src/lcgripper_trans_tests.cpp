@@ -129,6 +129,11 @@ int main()
 	cout << "MT_20: " << mt_20 << endl;
 	
 	// TODO: Tendon force to motor torque
+
+	double Ff = lcg_trans.getTendonForceFromGripperForce(10.0, 0.06);
+	cout << "Ff @ 10N: " << Ff << endl;
+	double Mt = lcg_trans.getMotorTorqueFromTendonForce(Ff);
+	cout << "Mt @ 10N: " << Mt << endl;
 	
 	cout << "Done" << endl;
 	

@@ -129,12 +129,12 @@ public:
 	
 	double getThetaVelFromGapVel(double gap_vel, double gap);
 	
-	double getTendonEffectiveDistanceToJ0(double gap_size);
+	double getFlexorMomentArm(double gap_size);
 	
 // DEPRECATED
-	double getTorqueJ0FromTendonForce(double tendon_force, double gap_size);
+/*	double getTorqueJ0FromTendonForce(double tendon_force, double gap_size);
 	double getTorqueJ1FromTendonForce(double tendon_force);
-	double getTendonForceFromTorqueJ1(double torque);
+	double getTendonForceFromTorqueJ1(double torque);*/
 
 	double getExtensorTendonForce(double theta1);
 

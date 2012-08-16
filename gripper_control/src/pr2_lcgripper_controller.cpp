@@ -144,7 +144,7 @@ void Pr2LCGripperController::update()
 		double direction = 1.0;
 		if (effort < 0) // Simple sign check.
 			direction = -1.0;
-		 effort = direction*holding_torque_;
+		//effort = direction*holding_torque_;
 	  }
   }
   else // if we're not stalled, update the stored copy of the current position + time parameters.
