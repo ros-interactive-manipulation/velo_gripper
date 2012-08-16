@@ -144,19 +144,18 @@ void CappedJointVelocityController::update()
   double error = joint_state_->velocity_ - command_;
   dt_ = time - last_time_;
   double command = pid_controller_.updatePid(error, dt_);
-//  joint_state_->commanded_effort_ += command; // ?????!!!!!!
-  if (command > max_effort_)
+  joint_state_->commanded_effort_ += command; // ?????!!!!!!
+ 
+ if (joint_state_->commanded_effort_ > max_effort_)
   {
 //    ROS_WARN("Velocity controller exceeding effort limit: effort=%f, max=%f", command, max_effort_);
-    command = max_effort_;
+    joint_state_->commanded_effort_ = max_effort_;
   }
-  if (command < -max_effort_)
+  if (joint_state_->commanded_effort_ < -max_effort_)
   {
 //    ROS_WARN("Velocity controller exceeding effort limit: effort=%f, max=%f", command, max_effort_);
-    command = -max_effort_;
+    joint_state_->commanded_effort_ = -max_effort_;
   }
-
-  joint_state_->commanded_effort_ = command;
 
 
   if(loop_count_ % 10 == 0)

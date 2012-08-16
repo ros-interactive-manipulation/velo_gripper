@@ -1371,7 +1371,7 @@ void LCGripperTransmission::propagatePosition(std::vector<Actuator*>& as, std::v
 	}
 	
 	double motor_pos 		= -as[0]->state_.position_;
-	double motor_vel 		= getMotorVelFromEncoderVel(as[0]->state_.velocity_); 
+	double motor_vel 		= getMotorVelFromEncoderVel(-as[0]->state_.velocity_); 
 	double motor_torque 	= getMotorTorqueFromEffort(as[0]->state_.last_measured_effort_); // Convert current -> Nm
 	
 	double tendon_length 	= getLengthFromMotorPos(motor_pos);

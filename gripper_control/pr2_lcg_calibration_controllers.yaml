@@ -177,10 +177,10 @@ cal_l_gripper:
   velocity: -0.01
   max_effort: 20.0
   pid:
-    p: 10000
+    p: 100
     d: 0
-    i: 10000.0
-    i_clamp: 100.0
+    i: 100.0
+    i_clamp: 20.0
 
 
 

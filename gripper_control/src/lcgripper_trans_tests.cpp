@@ -62,7 +62,7 @@ int main()
 	// Check kinematic mapping functions
 	
 	// Gap -> Effective distance mapping
-	double effective_dist = 0.0;
+/*	double effective_dist = 0.0;
 	cout << "GAP -> EFFECTIVE DISTANCE" << endl;
 	effective_dist = lcg_trans.getFlexorMomentArm(GAP_CLOSED);
 	cout << "Gap size: " << GAP_CLOSED << " ---> effective_dist " << effective_dist << endl;
@@ -72,7 +72,7 @@ int main()
 	assert(effective_dist > (ED_MID - ED_TOL) && effective_dist < (ED_MID + ED_TOL));
 	effective_dist = lcg_trans.getFlexorMomentArm(GAP_OPEN);
 	cout << "Gap size: " << GAP_OPEN << " ---> effective_dist " << effective_dist << endl;
-	assert(effective_dist > (ED_OPEN - ED_TOL) && effective_dist < (ED_OPEN + ED_TOL));		
+	assert(effective_dist > (ED_OPEN - ED_TOL) && effective_dist < (ED_OPEN + ED_TOL));		*/
 	
 	// Gap ---> theta
 	double theta_closed = lcg_trans.getThetaFromGap(GAP_CLOSED);
