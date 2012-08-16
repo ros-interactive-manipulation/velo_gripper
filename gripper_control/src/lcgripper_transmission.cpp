@@ -1756,7 +1756,7 @@ double LCGripperTransmission::getGripperForceFromTendonForce(double tendon_force
 	r_g1_ = l2_/2.0;
 
 	double Fg = (Ff * (r_f1_ - (r_c1_/r_c0_)*r_f0_) - Fe*(r_e1_ - (r_c1_/r_c0_)*r_e0_)) / (r_g1_ - (r_c1_/r_c0_)*r_g0_); 
-	ROS_INFO("getFGfromFF: input Ft: %f, Gap %f, t1 %f;  Fe: %f, Fg %f", tendon_force, gap_size, t1, Fe, Fg);
+//	ROS_INFO("getFGfromFF: input Ft: %f, Gap %f, t1 %f;  Fe: %f, Fg %f", tendon_force, gap_size, t1, Fe, Fg);
 	return Fg;
 
 }
@@ -1787,7 +1787,7 @@ double LCGripperTransmission::getTendonForceFromGripperForce(double gripper_forc
 	r_g1_ = l2_/2.0;
 
 	double Ff = 2.0* (Fg*(r_g1_ - (r_c1_/r_c0_)*r_g0_) + Fe*(r_e1_ - (r_c1_/r_c0_)*r_e0_)) / (r_f1_ - (r_c1_/r_c0_)*r_f0_); 
-	ROS_INFO("getFFfromFG: Fg: %f, gap %f, t1 %f;    Fe %f, Ff %f   tendon_force %f", Fg, gap_size, t1, Fe, Ff, tendon_force);
+//	ROS_INFO("getFFfromFG: Fg: %f, gap %f, t1 %f;    Fe %f, Ff %f   tendon_force %f", Fg, gap_size, t1, Fe, Ff, tendon_force);
 	return Ff; // Double the result as the motor force is split between the two tendons
 }
 

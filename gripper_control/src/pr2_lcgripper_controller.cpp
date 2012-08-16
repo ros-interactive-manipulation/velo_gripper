@@ -128,9 +128,8 @@ void Pr2LCGripperController::update()
   {
     effort = std::max(-command->max_effort, std::min(effort, command->max_effort));
   }
-  joint_state_->commanded_effort_ = effort;
 
-	// Check for stall. If the gripper position hasn't moved by less than a threshold for at greater than some timeout, limit the output to a holding torque.
+  // Check for stall. If the gripper position hasn't moved by less than a threshold for at greater than some timeout, limit the output to a holding torque.
   double delta_position = joint_state_->position_ - stall_start_position_; 
   //ROS_INFO("LCGCtrl: delta_pos = %f", delta_position);
   if ( fabs(delta_position) < stall_threshold_ && command->position == last_setpoint_ && command->max_effort == last_max_effort_)
@@ -144,7 +143,8 @@ void Pr2LCGripperController::update()
 		double direction = 1.0;
 		if (effort < 0) // Simple sign check.
 			direction = -1.0;
-		//effort = direction*holding_torque_;
+		effort = direction*holding_torque_;
+
 	  }
   }
   else // if we're not stalled, update the stored copy of the current position + time parameters.
@@ -156,7 +156,9 @@ void Pr2LCGripperController::update()
   }
 
 
-	// Publish controller state info
+  joint_state_->commanded_effort_ = effort;
+
+  // Publish controller state info
   if(loop_count_ % 10 == 0)
   {
     if(controller_state_publisher_ && controller_state_publisher_->trylock())
