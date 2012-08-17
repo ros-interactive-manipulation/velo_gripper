@@ -1401,11 +1401,11 @@ void LCGripperTransmission::propagatePosition(std::vector<Actuator*>& as, std::v
 	//ROS_INFO("PropagatePosition(): joint_angle %f", (joint_angle*180.0/M_PI) );
 	for (size_t i = 1; i < passive_joints_.size()+1; ++i) //
 	{
-//		if(i == 1 || i == 2 || i == 4)
-//			joint_angle = -joint_angle;
-	
-		//ROS_INFO("Joint %s, position %f", js[i]->joint_->name.c_str(), joint_angle*180.0/M_PI );
+//		ROS_INFO("Joint %s, i %d, position %f", js[i]->joint_->name.c_str(), i, joint_angle*180.0/M_PI );
 		js[i]->position_           = joint_angle; 
+		if(i == 3 || i == 4) // Positive theta indicates gripper closing - distal links open during closing.
+                        js[i]->position_ = -joint_angle; 
+
 		js[i]->velocity_           = joint_vel;
 		js[i]->measured_effort_    = 1.0;// TODO: Old.MT / dtheta_dMR / RAD2MR;
 	}
