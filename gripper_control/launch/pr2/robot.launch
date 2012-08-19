@@ -1,6 +1,6 @@
 <launch>
 
- i   <!-- Robot Description --> <param name="robot_description" command="$(find xacro)/xacro.py '$(find gripper_control)/urdf/pr2_1.7.3.urdf.xacro'" />
+ i   <!-- Robot Description --> <param name="robot_description" command="$(find xacro)/xacro.py '$(find gripper_control)/urdf/pr2.urdf.xacro'" />
 
     <!-- Robot Analyzer --> <rosparam command="load" file="$(find pr2_bringup)/config/pr2_analyzers.yaml" ns="diag_agg" />
 
