@@ -17,4 +17,4 @@ l_gripper_controller:
     position_holding:
       stall_timeout: 1.0 # seconds
       stall_threshold: 0.001 # metres of gap travel
-      holding_torque: 0.75 # Newtons of gap force
+      holding_torque: 5.0 # Newtons of gap force
