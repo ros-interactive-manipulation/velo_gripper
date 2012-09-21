@@ -1,63 +1,62 @@
-l_gripper_joint:
-  gripper_version: 1.58 # Version number of the gripper this data is based on.
-  joints:
-    j0x:  -0.035  # m
-    j0y:  0.0 # m
-    j1x:  -0.060  # m
-    j1y:  0.0 # m
-  tendon_routing:
-    p0x:  -0.025  # m
-    p0y:  0.002 # m
-    p1x:  -0.045  # m
-    p1y:  0.0 # m
-    p2x:  -0.0084 # m
-    p2y:  0.0023  # m
-    p3x:  -0.044  # m
-    p3y:  -0.005  # m
-  links:
-    l0:   0.035 # m
-    l1:   0.060 # m
-    l2:   0.050 # m
-    thickness:  0.006 # m
-  radii:
-    r_c0: 0.005 # m
-    r_c1: 0.005 # m
-    r_e0: 0.0054  # m
-    r_e1: 0.0032  # m
-    r_f1: 0.0032  # m
-  spring:
-    k:  1050  # N/m
-    x0: 0.015   # m
-  limits:
-    theta_open:   20  # degrees, proximal joint angle when fully open
-    theta_closed: 101.5 # degrees, proximal joint angle when fully closed
-    max_torque: 0.02 # Maximum motor torque output from the transmission to the MCB
-    gap_open: 0.135763  # Gap size when the gripper is fully open
-    gap_closed: 0.0   # Gap size when gripper is fully closed
+gripper_version: 1.58 # Version number of the gripper this data is based on.
+joints:
+  j0x:  -0.035  # m
+  j0y:  0.0 # m
+  j1x:  -0.060  # m
+  j1y:  0.0 # m
+tendon_routing:
+  p0x:  -0.025  # m
+  p0y:  0.002 # m
+  p1x:  -0.045  # m
+  p1y:  0.0 # m
+  p2x:  -0.0084 # m
+  p2y:  0.0023  # m
+  p3x:  -0.044  # m
+  p3y:  -0.005  # m
+links:
+  l0:   0.035 # m
+  l1:   0.060 # m
+  l2:   0.050 # m
+  thickness:  0.006 # m
+radii:
+  r_c0: 0.005 # m
+  r_c1: 0.005 # m
+  r_e0: 0.0054  # m
+  r_e1: 0.0032  # m
+  r_f1: 0.0032  # m
+spring:
+  k:  1050  # N/m
+  x0: 0.015   # m
+limits:
+  theta_open:   20  # degrees, proximal joint angle when fully open
+  theta_closed: 101.5 # degrees, proximal joint angle when fully closed
+  max_torque: 0.02 # Maximum motor torque output from the transmission to the MCB
+  gap_open: 0.135763  # Gap size when the gripper is fully open
+  gap_closed: 0.0   # Gap size when gripper is fully closed
 #  position_holding:
 #    stall_timeout: 3.0 # seconds
 #    stall_threshold: 0.001 # metres
 #    holding_torque: 0.002 # Nm
-  actuator:
-    screw_lead: 0.00325 # m
-    gear_reduction: 15.0  # 15:1 reduction
-    efficiency: 0.4 # Overall efficiency coefficient (including gripper + actuator)
-  polynomials:
-    l2g_0:  1.35959902e-01
-    l2g_1:  1.10396557e+01
-    l2g_2:  -7.24526160e+02
-    l2g_3:  -7.95557419e+04
-    l2g_4:  -2.57497099e+06
+actuator:
+  screw_lead: 0.00325 # m
+  gear_reduction: 15.0  # 15:1 reduction
+  efficiency: 0.4 # Overall efficiency coefficient (including gripper + actuator)
+polynomials:
+  l2g_0:  1.35959902e-01
+  l2g_1:  1.10396557e+01
+  l2g_2:  -7.24526160e+02
+  l2g_3:  -7.95557419e+04
+  l2g_4:  -2.57497099e+06
 
-    g2l_0:  -0.01057876
-    g2l_1:  0.08412417
-    g2l_2:  -0.04850085
-    g2l_3:  -0.87391894
-    g2l_4:  6.51653529
+  g2l_0:  -0.01057876
+  g2l_1:  0.08412417
+  g2l_2:  -0.04850085
+  g2l_3:  -0.87391894
+  g2l_4:  6.51653529
 
-    g2ed_0: 1.33852307e-02
-    g2ed_1: -1.50212267e-02
-    g2ed_2: -4.00341247e-01
-    g2ed_3: 4.45724019e+00
-    g2ed_4: -2.30064782e+01
+  g2ed_0: 1.33852307e-02
+  g2ed_1: -1.50212267e-02
+  g2ed_2: -4.00341247e-01
+  g2ed_3: 4.45724019e+00
+  g2ed_4: -2.30064782e+01
   
