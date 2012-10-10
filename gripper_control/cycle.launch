@@ -1,10 +1,10 @@
 <launch>
   <node name="controller_manager" launch-prefix="pr2-grant" 
         pkg="pr2_etherCAT" type="pr2_etherCAT"
-        args="-i eth1 -x $(find gripper_controller)/low_cost_gripper.xml" 
+        args="-i eth1 -x $(find gripper_control)/low_cost_gripper.xml" 
         output="screen"/>
 
-  <rosparam file="$(find gripper_controller)/joint_position_controller.yaml" command="load" />
+  <rosparam file="$(find gripper_control)/joint_position_controller.yaml" command="load" />
 
   <node name="calibration_controller"
         pkg="pr2_controller_manager" type="spawner"
@@ -12,7 +12,7 @@
         respawn="false" output="screen" />
 
   <node name="glueEmpty2Bool"
-        pkg="gripper_controller" type="glueEmpty2Bool.py"
+        pkg="gripper_control" type="glueEmpty2Bool.py"
         respawn="false" output="screen" />
 
   <node name="cycle_controller"
