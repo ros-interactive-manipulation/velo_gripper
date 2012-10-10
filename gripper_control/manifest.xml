@@ -3,7 +3,7 @@
   <author>Matei Ciocarlie</author>
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
-  <url>http://ros.org/wiki/gripper_controller</url>
+  <url>https://kforge.ros.org/gripperdesign/svn</url>
   <depend package="roscpp"/>
   <depend package="rospy"/>
   <depend package="actionlib"/>
