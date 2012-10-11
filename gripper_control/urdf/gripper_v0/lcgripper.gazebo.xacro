@@ -22,18 +22,18 @@
   <property name="finger_tip_mu"              value="500.0" />
   <property name="finger_mu"                  value="500.0" />
 
-  <property name="lcg_parallel_link_x_offset"     value="-0.05" /> <!--"-0.018" /> -->
-  <property name="lcg_parallel_link_y_offset"     value="0.0" /> <!-- "0.021" /> -->
+  <property name="lcg_parallel_link_x_offset" value="-0.05" /> <!--"-0.018" /> -->
+  <property name="lcg_parallel_link_y_offset" value="0.0" /> <!-- "0.021" /> -->
 
-  <property name="lcg_j0x"												value="0.0175" />
-	<property name="lcg_j0y"												value="0.053" />  
-	<property name="lcg_wrist_to_palm_y"						value="0.082" />
+  <property name="lcg_j0x"                    value="0.0175" />
+  <property name="lcg_j0y"                    value="0.053" />  
+  <property name="lcg_wrist_to_palm_y"        value="0.082" />
 
-	<property name="lcg_palm_to_finger_x"						value="0.0587955" />
-	<property name="lcg_palm_to_finger_y"						value="0.09137" />
+  <property name="lcg_palm_to_finger_x"       value="0.0587955" />
+  <property name="lcg_palm_to_finger_y"       value="0.09137" />
 
-  <property name="l1"													value="0.060"/>
-  <property name="thickness"									value="0.006"/>
+  <property name="l1"                         value="0.060"/>
+  <property name="thickness"                  value="0.006"/>
 
   <xacro:macro name="pr2_lcgripper_finger_gazebo_v0" params="prefix reflect">
 
@@ -169,9 +169,9 @@
           <rpy>0 -0 0</rpy>
           <turnGravityOff>true</turnGravityOff>
           <selfCollide>false</selfCollide>
-					<size>0.2 0.1 0.05</size>
-					<mesh>default</mesh>
-					<material>Gazebo/BumpyMetal</material>
+          <size>0.2 0.1 0.05</size>
+          <mesh>default</mesh>
+          <material>Gazebo/BumpyMetal</material>
       </body:box>
       <body:box name="${prefix}_r_parallel_link">
           <massMatrix>true</massMatrix>
@@ -186,7 +186,7 @@
           <cy>-0.01736</cy>
           <cz>-0.00095</cz>
           <!--<xyz>0.82991 ${0.188*reflect-0.031} 0.790675</xyz>-->
-					<xyz>0.906 ${0.2055 - lcg_parallel_link_x_offset} 0.790675</xyz>
+          <xyz>0.906 ${0.2055 - lcg_parallel_link_x_offset} 0.790675</xyz>
           <rpy>0 -0 0</rpy>
           <turnGravityOff>true</turnGravityOff>
           <selfCollide>false</selfCollide>
@@ -245,7 +245,7 @@
       </joint:hinge>
       
 
-			<joint:slider name="${prefix}_joint">
+      <joint:slider name="${prefix}_joint">
           <body1>${prefix}_gripper_l_finger_tip_link</body1>
           <body2>${prefix}_gripper_r_finger_tip_link</body2>
           <anchor>${prefix}_gripper_r_finger_tip_link</anchor>
@@ -253,7 +253,7 @@
       </joint:slider>
     </gazebo>
   
-	</xacro:macro>
+  </xacro:macro>
 
 
 
