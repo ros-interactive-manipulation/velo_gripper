@@ -305,9 +305,9 @@
     <xacro:pr2_lcgripper_transmission_v0 side="${side}"
       gear_reduction="${15.0}"
       gear_efficiency="${1.0}"
-      screw_reduction="${307.692}"
       screw_efficiency="${1.0}"
       screw_lead="${0.00325}"
+      screw_reduction="${1/0.00325}"
 
       j0x="${-0.0350}"
       j0y="${0.0}"
