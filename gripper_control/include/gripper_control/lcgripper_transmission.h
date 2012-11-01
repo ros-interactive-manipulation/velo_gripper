@@ -58,16 +58,19 @@
 
 #include "gripper_control/LCGTransmissionState.h"
 
+#define REV2RAD (2.0*M_PI)    // convert revolutions to radians
+#define RAD2REV (1.0/REV2RAD) // convert radians to revolutions
+#define RAD2DEG (180.0/M_PI)  // convert radians to degrees
+#define DEG2RAD (1.0/RAD2DEG) // convert degrees to radians
+
+
 namespace pr2_mechanism_model {
 
 class LCGripperTransmission : public Transmission
 {
 public:
-	LCGripperTransmission() 
-	{
-		use_simulated_actuated_joint_=false;
-		has_simulated_passive_actuated_joint_=false;
-	};
+	LCGripperTransmission(): use_simulated_actuated_joint_(false),
+				 has_simulated_passive_actuated_joint_(false) {};
 	virtual ~LCGripperTransmission() {/*myfile.close();*/}
 	
 	bool initXml(TiXmlElement *config, Robot *robot);
@@ -82,7 +85,7 @@ public:
 	void propagateEffortBackwards(std::vector<pr2_hardware_interface::Actuator*>&,
 								std::vector<pr2_mechanism_model::JointState*>&);
 	std::string gap_joint_;
-	
+
 	// if a screw_joint is specified, apply torque based on simulated_reduction_
 	double      simulated_reduction_;
 	bool        use_simulated_actuated_joint_;
@@ -95,6 +98,13 @@ public:
 	// store name for passive joints.  This matches elements 1 to N of joint_names_.
 	std::vector<std::string> passive_joints_;
 
+	boost::shared_ptr<
+			realtime_tools::RealtimePublisher<
+				gripper_control::LCGTransmissionState> > lcg_state_publisher_ ;
+
+	friend class LCGripperTransmissionTest;
+
+private:
 
 	void initPolynomialCoefficients();
 	bool initParametersFromURDF(TiXmlElement *j, Robot *robot);
@@ -139,13 +149,14 @@ public:
 	double getExtensorTendonForce(double theta1);
 
 	double validateGapSize(double gap_size);
-	
-	boost::shared_ptr<
-			realtime_tools::RealtimePublisher<
-				gripper_control::LCGTransmissionState> > lcg_state_publisher_ ;
-	
-	
-private:	
+
+	// GET PARAMS FROM PARAMETER SERVER OR URDF
+	class ParamServer;
+
+	bool getItems(ParamServer *itemServer);
+
+	ParamServer *itemServer_;
+
 	// Tendon routing definition. Not actually used - this is replaced by the fitted polynomials.
 	double p0x_;
 	double p0y_;
@@ -207,9 +218,6 @@ private:
 	
 	int loop_count_; // RT Publisher frequency (ie publish every X cycles).
 
-#define RAD2MR (1.0/(2.0*M_PI)) // convert radians to motor revolutions
-#define TOL 0.00001   // limit for denominators
-	
 	int simulated_actuator_timestamp_initialized_;
 	ros::Time simulated_actuator_start_time_;
 	

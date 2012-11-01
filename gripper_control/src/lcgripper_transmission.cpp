@@ -44,7 +44,7 @@
  *
  * propagatePositionBackwards (from js to as)
  *   as position and velocity transfers 1to1 to joint_angle (1-sided)
- *   as last_measured_effort_ should be 1to1 gap_effort of non-passive js->commanded_effort
+ *   as last_measured_effort_ should be 1to1 gap_effort of non-passive js[i]->commanded_effort
  * propagateEffortBackwards
  *   non-passive js->commanded_effort_ is 1to1 with MT
  *   passive js->commanded_effort_ is 1/2?? of MT converted to joint torques
@@ -66,1072 +66,238 @@ PLUGINLIB_DECLARE_CLASS(gripper_control, LCGripperTransmission,
                          pr2_mechanism_model::LCGripperTransmission,
                          pr2_mechanism_model::Transmission)
 
-bool LCGripperTransmission::initParametersFromServer(TiXmlElement *j)
+
+
+class LCGripperTransmission::ParamServer
 {
-	const char *joint_name = j->Attribute("name");
-	ros::NodeHandle nh(gap_joint_);
-	
-	if (!nh.ok())
+public:
+	// CONSTRUCTOR
+	ParamServer(const TiXmlElement *j, std::string &gap_joint)
 	{
-		ROS_ERROR("LCG Transmission: Attempted to load parameters from server, but node handle didn't exist/is shutdown");
-		return false;
+		error_count_=0;
+		j_ = j;
+		setJointName();
+
+		ros::NodeHandle nh(gap_joint);
+
+		if (!nh.ok())
+		{
+			error_count_++;
+			ROS_ERROR("LCG Transmission: Attempted to load parameters from server, but node handle didn't exist/is shutdown");
+			return;
+		}
 	}
-	// Load all parameters from server
-	// Tendon routing. NB: Not actually used in any calcs... just for completeness (if needed).
-	if (!nh.getParam("tendon_routing/p0x", p0x_))
+
+	// CONSTRUCTOR
+	ParamServer(const TiXmlElement *j, Robot *robot)
 	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter p0x from parameter server, joint %s.", joint_name);
+		error_count_=0;
+		j_ = j;
+		setJointName();
+		if (robot)
+		{
+			const boost::shared_ptr<const urdf::Joint> joint = robot->robot_model_.getJoint(joint_name_);
+			if (!joint)
+			{
+				error_count_++;
+				ROS_ERROR("LCGripperTransmission could not find joint named \"%s\"", joint_name_);
+				return;
+			}
+		}
 	}
-	if (!nh.getParam("tendon_routing/p0y", p0y_))
+
+	// DESTRUCTOR
+	~ParamServer();
+
+	// API to retrieve joint_name
+	void getJointName(const char *joint_name)
 	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter p0y from parameter server, joint %s.", joint_name);
+		joint_name = joint_name_;
 	}
-	if (!nh.getParam("tendon_routing/p1x", p1x_))
+
+
+	// ERROR-CHECKING PARAM GETTER WITH CUSTOM MESSAGE.
+	bool getParam(const char *key, double &value)
 	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter p1x from parameter server, joint %s.", joint_name);
+		if ( nh_!=NULL ) // GET INFO FROM PARAMETER SERVER
+		{
+			if ( nh_->getParam(key,value) )
+			{
+				return true;
+			}
+			else
+			{
+				error_count_++;
+				ROS_WARN("LCG Transmission: Couldn't load \"%s\" from parameter server, joint %s.", key, joint_name_);
+				return false;
+			}
+		}
+		else            // GET INFO FROM URDF
+		{
+			const char *attrib = j_->Attribute(key);
+			if ( attrib==NULL )
+			{
+				error_count_++;
+				ROS_WARN("LCGripperTransmission joint \"%s\" has no attribute: %s.", joint_name_, key);
+			}
+			else
+			{
+				try
+				{
+					value = boost::lexical_cast<double>(attrib);
+					// RETURN successfully
+					return true;
+				}
+				catch(boost::bad_lexical_cast &e)
+				{
+					error_count_++;
+					ROS_ERROR("%s:(%s) is not a float", key, attrib);
+				}
+			}
+			return false;
+		}
 	}
-	if (!nh.getParam("tendon_routing/p1y", p1y_))
+
+	// ERROR-CHECKING PARAM GETTER WITH CUSTOM MESSAGE.
+	// Version that sets a default value if param is not defined
+	bool getParam(const char *key, double &value, double defaultValue)
 	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter p1y from parameter server, joint %s.", joint_name);
-	}	
-	if (!nh.getParam("tendon_routing/p2x", p2x_))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter p2x from parameter server, joint %s.", joint_name);
+		if ( !getParam(key,value) )
+		{
+			ROS_WARN("LCGripperTransmission joint \"%s\", attribute \"%s\" using default value: %f.", joint_name_, key, defaultValue);
+			value = defaultValue;
+			return false;
+		}
+		else
+		{
+			return true;
+		}
 	}
-	if (!nh.getParam("tendon_routing/p2y", p2y_))
+
+	int error_count_;
+
+private:
+
+	const TiXmlElement *j_;
+	const char *joint_name_;  //Will always point to a string that was set in an object somewhere else.
+	ros::NodeHandle *nh_;
+
+	// SET THE NAME OF THIS joint. USED WITHIN ALL OTHER METHODS.
+	bool setJointName()
 	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter p2y from parameter server, joint %s.", joint_name);
+		joint_name_ = j_->Attribute("name");
+		if (joint_name_)
+		{
+			return true;
+		}
+		else
+		{
+			ROS_ERROR("LCGripperTransmission did not specify joint name");
+			return false;
+		}
 	}
-	if (!nh.getParam("tendon_routing/p3x", p3x_))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter p3x from parameter server, joint %s.", joint_name);
-	}
-	if (!nh.getParam("tendon_routing/p3y", p3y_))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter p3y from parameter server, joint %s.", joint_name);
-	}
-	
+
+};
+
+
+bool LCGripperTransmission::getItems(ParamServer *itemServer)
+{
+	// Load parameters from server that is initialized at instantiation of "itemServer" object.
 	// Joints
-	if (!nh.getParam("joints/j0x", j0x_))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter j0x from parameter server, joint %s.", joint_name);
-	}
-	if (!nh.getParam("joints/j0y", j0y_))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter j0y from parameter server, joint %s.", joint_name);
-	}
-	if (!nh.getParam("joints/j1x", j1x_))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter j1x from parameter server, joint %s.", joint_name);
-	}
-	if (!nh.getParam("joints/j1y", j1y_))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter j1x from parameter server, joint %s.", joint_name);
-	}	
+	itemServer->getParam("joints/j0x", j0x_);
+	itemServer->getParam("joints/j0y", j0y_);
+	itemServer->getParam("joints/j1x", j1x_);
+	itemServer->getParam("joints/j1y", j1y_);
+
 	// Links
-	if (!nh.getParam("links/l0", l0_))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter l0 from parameter server, joint %s.", joint_name);
-	}
-	if (!nh.getParam("links/l1", l1_))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter l1 from parameter server, joint %s.", joint_name);
-	}
-	if (!nh.getParam("links/l2", l2_))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter l2 from parameter server, joint %s.", joint_name);
-	}	
+	itemServer->getParam("links/l0", l0_);
+	itemServer->getParam("links/l1", l1_);
+	itemServer->getParam("links/l2", l2_);
+
 	// Radii
-	if (!nh.getParam("radii/r_c0", r_c0_))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter r_c0 from parameter server, joint %s.", joint_name);
-	}	
-	if (!nh.getParam("radii/r_c1", r_c1_))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter r_c1 from parameter server, joint %s.", joint_name);
-	}	
-	if (!nh.getParam("radii/r_e0", r_e0_))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter r_e0 from parameter server, joint %s.", joint_name);
-	}	
-	if (!nh.getParam("radii/r_e1", r_e1_))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter r_e1 from parameter server, joint %s.", joint_name);
-	}
-	if (!nh.getParam("radii/r_f1", r_f1_))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter r_f1 from parameter server, joint %s.", joint_name);
-	}	
+	itemServer->getParam("radii/r_c0", r_c0_);
+	itemServer->getParam("radii/r_c1", r_c1_);
+	itemServer->getParam("radii/r_e0", r_e0_);
+	itemServer->getParam("radii/r_e1", r_e1_);
+	itemServer->getParam("radii/r_f1", r_f1_);
+
+	itemServer->getParam("p0_radius", p0_radius_);
+	itemServer->getParam("j1_radius", j1_radius_);
+	itemServer->getParam("thickness", thickness_);
+
 	// Spring
-	if (!nh.getParam("spring/k", spring_k_))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter spring/k from parameter server, joint %s.", joint_name);
-	}
-	if (!nh.getParam("spring/x0", spring_x0_))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter spring/x0 from parameter server, joint %s.", joint_name);
-	}
+	itemServer->getParam("spring/k",	spring_k_);
+	itemServer->getParam("spring/x0",	spring_x0_);
+
 	// Limits
-	if (!nh.getParam("limits/theta_open", theta_open_))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter theta_open from parameter server, joint %s.", joint_name);
-	}
-	if (!nh.getParam("limits/theta_closed", theta_closed_))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter theta_closed from parameter server, joint %s.", joint_name);
-	}
-	if (!nh.getParam("limits/gap_open", gap_open_))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter gap_open from parameter server, joint %s.", joint_name);
-	}
-	if (!nh.getParam("limits/gap_closed", gap_closed_))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter gap_closed from parameter server, joint %s.", joint_name);
-	}
-	if (!nh.getParam("limits/max_torque", max_torque_))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter max_torque from parameter server, joint %s.", joint_name);
-	}
+	itemServer->getParam("limits/theta_open", 	theta_open_);
+	itemServer->getParam("limits/theta_closed",	theta_closed_);
+	itemServer->getParam("limits/gap_open",	gap_open_);
+	itemServer->getParam("limits/gap_closed",	gap_closed_);
+	itemServer->getParam("limits/max_torque",	max_torque_);
+
 	// Actuator
-	if (!nh.getParam("actuator/screw_lead", screw_lead_))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter screw_lead from parameter server, joint %s.", joint_name);
-	}
-	if (!nh.getParam("actuator/gear_reduction", gear_reduction_))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter gear_reduction from parameter server, joint %s.", joint_name);
-	}
-	if (!nh.getParam("actuator/efficiency", gripper_efficiency_))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter efficiency from parameter server, joint %s.", joint_name);
-	}
+	itemServer->getParam("actuator/screw_lead",		screw_lead_);
+	itemServer->getParam("actuator/gear_reduction", 	gear_reduction_);
+	itemServer->getParam("actuator/efficiency",		gripper_efficiency_);
+
 	// Polynomial coefficients
-	// Length to Gap
-	double l2g_0, l2g_1, l2g_2, l2g_3, l2g_4;
-	double g2l_0, g2l_1, g2l_2, g2l_3, g2l_4;
-	double g2ed_0, g2ed_1, g2ed_2, g2ed_3, g2ed_4;
+	// USE tmp BECAUSE single element of vector<double> does not pass by reference.
+	double tmp;
 	length_to_gap_coeffs_.reserve(5);
+	itemServer->getParam("polynomials/l2g_0", tmp);	length_to_gap_coeffs_[0] = tmp;
+	itemServer->getParam("polynomials/l2g_1", tmp);	length_to_gap_coeffs_[1] = tmp;
+	itemServer->getParam("polynomials/l2g_2", tmp);	length_to_gap_coeffs_[2] = tmp;
+	itemServer->getParam("polynomials/l2g_3", tmp);	length_to_gap_coeffs_[3] = tmp;
+	itemServer->getParam("polynomials/l2g_4", tmp);	length_to_gap_coeffs_[4] = tmp;
+
 	gap_to_length_coeffs_.reserve(5);
+	itemServer->getParam("polynomials/g2l_0", tmp);	gap_to_length_coeffs_[0] = tmp;
+	itemServer->getParam("polynomials/g2l_1", tmp);	gap_to_length_coeffs_[1] = tmp;
+	itemServer->getParam("polynomials/g2l_2", tmp);	gap_to_length_coeffs_[2] = tmp;
+	itemServer->getParam("polynomials/g2l_3", tmp);	gap_to_length_coeffs_[3] = tmp;
+	itemServer->getParam("polynomials/g2l_4", tmp);	gap_to_length_coeffs_[4] = tmp;
+
 	gap_to_effective_dist_coeffs_.reserve(5);
-	
-	if (!nh.getParam("polynomials/l2g_0", l2g_0))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter l2g_0 from parameter server, joint %s.", joint_name);
-	}	
-	if (!nh.getParam("polynomials/l2g_1", l2g_1))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter l2g_1 from parameter server, joint %s.", joint_name);
-	}
-	if (!nh.getParam("polynomials/l2g_2", l2g_2))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter l2g_2 from parameter server, joint %s.", joint_name);
-	}
-	if (!nh.getParam("polynomials/l2g_3", l2g_3))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter l2g_3 from parameter server, joint %s.", joint_name);
-	}
-	if (!nh.getParam("polynomials/l2g_4", l2g_4))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter l2g_4 from parameter server, joint %s.", joint_name);
-	}
-	length_to_gap_coeffs_[0] = l2g_0;
-	length_to_gap_coeffs_[1] = l2g_1;
-	length_to_gap_coeffs_[2] = l2g_2;
-	length_to_gap_coeffs_[3] = l2g_3;
-	length_to_gap_coeffs_[4] = l2g_4;
-	
-	if (!nh.getParam("polynomials/g2l_0", g2l_0))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter g2l_0 from parameter server, joint %s.", joint_name);
-	}	
-	if (!nh.getParam("polynomials/g2l_1", g2l_1))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter g2l_1 from parameter server, joint %s.", joint_name);
-	}
-	if (!nh.getParam("polynomials/g2l_2", g2l_2))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter g2l_2 from parameter server, joint %s.", joint_name);
-	}
-	if (!nh.getParam("polynomials/g2l_3", g2l_3))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter g2l_3 from parameter server, joint %s.", joint_name);
-	}
-	if (!nh.getParam("polynomials/g2l_4", g2l_4))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter g2l_4 from parameter server, joint %s.", joint_name);
-	}
-	gap_to_length_coeffs_[0] = g2l_0;
-	gap_to_length_coeffs_[1] = g2l_1;
-	gap_to_length_coeffs_[2] = g2l_2;
-	gap_to_length_coeffs_[3] = g2l_3;
-	gap_to_length_coeffs_[4] = g2l_4;
-	
-	if (!nh.getParam("polynomials/g2ed_0", g2ed_0))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter g2ed_0 from parameter server, joint %s.", joint_name);
-	}	
-	if (!nh.getParam("polynomials/g2ed_1", g2ed_1))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter g2ed_1 from parameter server, joint %s.", joint_name);
-	}
-	if (!nh.getParam("polynomials/g2ed_2", g2ed_2))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter g2ed_2 from parameter server, joint %s.", joint_name);
-	}
-	if (!nh.getParam("polynomials/g2ed_3", g2ed_3))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter g2ed_3 from parameter server, joint %s.", joint_name);
-	}
-	if (!nh.getParam("polynomials/g2ed_4", g2ed_4))
-	{
-		ROS_WARN("LCG Transmission: Couldn't load parameter g2ed_4 from parameter server, joint %s.", joint_name);
-	}
-	gap_to_effective_dist_coeffs_[0] = g2ed_0;
-	gap_to_effective_dist_coeffs_[1] = g2ed_1;
-	gap_to_effective_dist_coeffs_[2] = g2ed_2;
-	gap_to_effective_dist_coeffs_[3] = g2ed_3;
-	gap_to_effective_dist_coeffs_[4] = g2ed_4;
-	
-	
-	
-	return true;
+	itemServer->getParam("polynomials/g2ed_0", tmp);	gap_to_effective_dist_coeffs_[0] = tmp;
+	itemServer->getParam("polynomials/g2ed_1", tmp);	gap_to_effective_dist_coeffs_[1] = tmp;
+	itemServer->getParam("polynomials/g2ed_2", tmp);	gap_to_effective_dist_coeffs_[2] = tmp;
+	itemServer->getParam("polynomials/g2ed_3", tmp);	gap_to_effective_dist_coeffs_[3] = tmp;
+	itemServer->getParam("polynomials/g2ed_4", tmp);	gap_to_effective_dist_coeffs_[4] = tmp;
+
+	return !((bool) itemServer->error_count_);
 }
 
 
+bool LCGripperTransmission::initParametersFromServer(TiXmlElement *j)
+{
+	itemServer_ = new ParamServer(j,gap_joint_);
+	getItems(itemServer_);
+
+	return true;
+}
+
 bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot)
 {
-	length_to_gap_coeffs_.reserve(5);
-	gap_to_length_coeffs_.reserve(5);
-	gap_to_effective_dist_coeffs_.reserve(5);
-	
 	std::cout << "Init Parameters" << std::endl;
-	const char *joint_name = j->Attribute("name");
-	if (!joint_name)
-	{
-		ROS_ERROR("LCGripperTransmission did not specify joint name");
-		return false;
-	}
-	
-	if (robot)
-	{
-		const boost::shared_ptr<const urdf::Joint> joint = robot->robot_model_.getJoint(joint_name);
-		if (!joint)
-		{
-			ROS_ERROR("LCGripperTransmission could not find joint named \"%s\"", joint_name);
-			return false;
-		}
-	}
-	
+
+	itemServer_ = new ParamServer(j,robot);
+	getItems(itemServer_);
+
+	const char *joint_name;
+	itemServer_->getJointName(joint_name);
 	gap_joint_ = std::string(joint_name);
 	joint_names_.push_back(joint_name);  // The first joint is the gap joint
-	
-	// get the gear_ratio
-	const char *gear_reduction_str = j->Attribute("gear_reduction");
-	if (gear_reduction_str == NULL)
-	{
-		gear_reduction_ = 15.0; // Gear ratio of the motor to ball screw shaft. ie, MotorSpeed/GearRatio -> ballscrew speed.
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: gear_ratio, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			gear_reduction_ = boost::lexical_cast<double>(gear_reduction_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("gear_reduction (%s) is not a float",gear_reduction_str);
-			return false;
-		}
-	}
-	
-	
-	
-	const char *gripper_efficiency_str = j->Attribute("gripper_efficiency");
-	if (gripper_efficiency_str == NULL)
-	{
-		gripper_efficiency_ = 1.0; // Overall efficiency coefficient
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: gripper_efficiency, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			gripper_efficiency_ = boost::lexical_cast<double>(gripper_efficiency_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("gripper_efficiency (%s) is not a float", gripper_efficiency_str);
-			return false;
-		}
-	}
-	
-	const char *screw_lead_str = j->Attribute("screw_lead");
-	if (screw_lead_str == NULL)
-	{
-		screw_lead_ = 3.25/1000.0; // travel per turn (in metres)
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: screw_lead, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			screw_lead_ = boost::lexical_cast<double>(screw_lead_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("screw_lead (%s) is not a float", screw_lead_str);
-			return false;
-		}
-	}
-	
-	
-	// Get Joint parameters
-	// get the Joint 0 x coordinate
-	const char *j0x_str = j->Attribute("j0x");
-	if (j0x_str == NULL)
-	{
-		j0x_ = -0.035; // mm
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: j0x, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			j0x_ = boost::lexical_cast<double>(j0x_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("J0x (%s) is not a float", j0x_str);
-			return false;
-		}
-	}
-	// get the Joint 0 y coordinate
-	const char *j0y_str = j->Attribute("j0y");
-	if (j0y_str == NULL)
-	{
-		j0y_ = 0.0;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: j0y, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			j0y_ = boost::lexical_cast<double>(j0y_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("phi0 (%s) is not a float",j0y_str);
-			return false;
-		}
-	}
-	// get the Joint 1 x coordinate
-	const char *j1x_str = j->Attribute("j1x");
-	if (j1x_str == NULL)
-	{
-		j1x_ = -0.060;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: j1x, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			j1x_ = boost::lexical_cast<double>(j1x_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("j1x (%s) is not a float",j1x_str);
-			return false;
-		}
-	}
-	// get the Joint 1 y coordinate
-	const char *j1y_str = j->Attribute("j1y");
-	if (j1y_str == NULL)
-	{
-		j1y_ = 0.0;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: j1y, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			j1y_ = boost::lexical_cast<double>(j1y_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("j1y (%s) is not a float",j1y_str);
-			return false;
-		}
-	}
-	// get the P0 x coordinate
-	const char *p0x_str = j->Attribute("p0x");
-	if (p0x_str == NULL)
-	{
-		p0x_ = -0.025;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: p0x, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			p0x_ = boost::lexical_cast<double>(p0x_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("p0x (%s) is not a float",p0x_str);
-			return false;
-		}
-	}
-	// get the P0 y coordinate
-	const char *p0y_str = j->Attribute("p0y");
-	if (p0y_str == NULL)
-	{
-		p0y_ = 0.002;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: p0y, using default for LCG v1.46.", joint_name);
-	}
-	else
-	try
-	{
-		p0y_ = boost::lexical_cast<double>(p0y_str);
-	}
-	catch (boost::bad_lexical_cast &e)
-	{
-		ROS_ERROR("p0y (%s) is not a float",p0y_str);
-		return false;
-	}
-	
-	// get the P1 x coordinate
-	const char *p1x_str = j->Attribute("p1x");
-	if (p1x_str == NULL)
-	{
-		p1x_ = -0.045;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: p1x, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			p1x_ = boost::lexical_cast<double>(p1x_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("p1x (%s) is not a float",p1x_str);
-			return false;
-		}
-	}
-	
-	// get the P1 y coordinate
-	const char *p1y_str = j->Attribute("p1y");
-	if (p1y_str == NULL)
-	{
-		p1y_ = -0.0;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: p1y, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			p1y_ = boost::lexical_cast<double>(p1y_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("p1y (%s) is not a float",p1y_str);
-			return false;
-		}
-	}
-	// get the P2 x coordinate
-	const char *p2x_str = j->Attribute("p2x");
-	if (p2x_str == NULL)
-	{
-		p2x_ = -0.0084;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: p2x, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			p2x_ = boost::lexical_cast<double>(p2x_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("p2x (%s) is not a float",p2x_str);
-			return false;
-		}
-	}
-	
-	// get the P2 y coordinate
-	const char *p2y_str = j->Attribute("p2y");
-	if (p2y_str == NULL)
-	{
-		p2y_ = 0.0023;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: p2y, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			p2y_ = boost::lexical_cast<double>(p2y_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("p2y (%s) is not a float",p2y_str);
-			return false;
-		}
-	}
-	// get the P3 x coordinate
-	const char *p3x_str = j->Attribute("p3x");
-	if (p3x_str == NULL)
-	{
-		p3x_ = -0.044;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: p3x, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			p3x_ = boost::lexical_cast<double>(p3x_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("p3x (%s) is not a float",p3x_str);
-			return false;
-		}
-	}
-	
-	// get the P3 y coordinate
-	const char *p3y_str = j->Attribute("p3y");
-	if (p3y_str == NULL)
-	{
-		p3y_ = -0.005;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: p3y, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			p3y_ = boost::lexical_cast<double>(p3y_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("p3y (%s) is not a float",p3y_str);
-			return false;
-		}
-	}
-	// get the L0 length coefficient (palm)
-	const char *l0_str = j->Attribute("l0");
-	if (l0_str == NULL)
-	{
-		l0_ = 0.035;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: l0, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			l0_ = boost::lexical_cast<double>(l0_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("l0 (%s) is not a float",l0_str);
-			return false;
-		}
-	}
-	
-	// get the L1 length coefficient (proximal link)
-	const char *l1_str = j->Attribute("l1");
-	if (l1_str == NULL)
-	{
-		l1_ = 0.060;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: l1, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			l1_ = boost::lexical_cast<double>(l1_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("l1 (%s) is not a float",l1_str);
-			return false;
-		}
-	}
-	
-	// get the L2 length coefficient (distal link)
-	const char *l2_str = j->Attribute("l2");
-	if (l2_str == NULL)
-	{
-		l2_ = 0.050;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: l2, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			l2_ = boost::lexical_cast<double>(l2_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("l2 (%s) is not a float",l2_str);
-			return false;
-		}
-	}
-	
-	// get the P0 radius coefficient
-	const char *p0_radius_str = j->Attribute("p0_radius");
-	if (p0_radius_str == NULL)
-	{
-		p0_radius_ = 0.004; // mm
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: p0_radius, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			p0_radius_ = boost::lexical_cast<double>(p0_radius_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("p0_radius (%s) is not a float",p0_radius_str);
-			return false;
-		}
-	}
-	
-	// get the J1 radius coefficient
-	const char *j1_radius_str = j->Attribute("j1_radius");
-	if (j1_radius_str == NULL)
-	{
-		j1_radius_ = 0.0032; // mm
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: j1_radius, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			j1_radius_ = boost::lexical_cast<double>(j1_radius_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("j1_radius (%s) is not a float",j1_radius_str);
-			return false;
-		}
-	}
-	// get the distal thickness coefficient (mm)
-	const char *thickness_str = j->Attribute("thickness");
-	if (thickness_str == NULL)
-	{
-		thickness_ = 0.006; // mm
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: thickness, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			thickness_ = boost::lexical_cast<double>(thickness_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("thickness (%s) is not a float",thickness_str);
-			return false;
-		}
-	}
-	
-	// get the proximal angle when gripper is open (theta1 - deg)
-	const char *theta_open_str = j->Attribute("theta_open");
-	if (theta_open_str == NULL)
-	{
-		theta_open_ = 20.0; // degrees
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: theta_open, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			theta_open_ = boost::lexical_cast<double>(theta_open_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("theta_open (%s) is not a float",theta_open_str);
-			return false;
-		}
-	}
-	// get the proximal angle when the gripper is fully closed (theta1 - deg)
-	const char *theta_closed_str = j->Attribute("theta_closed");
-	if (theta_closed_str == NULL)
-	{
-		theta_closed_ = 101.5; //degrees
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: theta_closed, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			theta_closed_ = boost::lexical_cast<double>(theta_closed_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("theta_closed (%s) is not a float",theta_closed_str);
-			return false;
-		}
-	}
-	
-	const char *gap_open_str = j->Attribute("gap_open");
-	if (gap_open_str == NULL)
-	{
-		gap_open_ = 0.135763; //m
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: gap_open, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			gap_open_ = boost::lexical_cast<double>(gap_open_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("gap_open (%s) is not a float", gap_open_str);
-			return false;
-		}
-	}
-	
-	const char *gap_closed_str = j->Attribute("gap_closed");
-	if (gap_closed_str == NULL)
-	{
-		gap_closed_ = 0.0;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: gap_closed, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			gap_closed_ = boost::lexical_cast<double>(gap_closed_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("gap_closed (%s) is not a float", gap_closed_str);
-			return false;
-		}
-	}
-	
-	
-	// Polynomial coefficients
-	// LENGTH TO GAP polynomial.
-	const char *l2g_coeffs_0_str = j->Attribute("l2g_coeffs_0");
-	if (l2g_coeffs_0_str == NULL)
-	{
-		length_to_gap_coeffs_[0] = 1.35959902e-01;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: l2g_coeffs_0, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			length_to_gap_coeffs_[0] = boost::lexical_cast<double>(l2g_coeffs_0_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("l2g_coeffs_0 (%s) is not a float",l2g_coeffs_0_str);
-			return false;
-		}
-	}
-	
-	const char *l2g_coeffs_1_str = j->Attribute("l2g_coeffs_1");
-	if (l2g_coeffs_1_str == NULL)
-	{
-		length_to_gap_coeffs_[1] = 1.10396557e+01;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: l2g_coeffs_1, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			length_to_gap_coeffs_[1] = boost::lexical_cast<double>(l2g_coeffs_1_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("l2g_coeffs_1 (%s) is not a float",l2g_coeffs_1_str);
-			return false;
-		}
-	}
-	
-	const char *l2g_coeffs_2_str = j->Attribute("l2g_coeffs_2");
-	if (l2g_coeffs_2_str == NULL)
-	{
-		length_to_gap_coeffs_[2] = -7.24526160e+02;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: l2g_coeffs_2, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			length_to_gap_coeffs_[2] = boost::lexical_cast<double>(l2g_coeffs_2_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("l2g_coeffs_2 (%s) is not a float",l2g_coeffs_2_str);
-			return false;
-		}
-	}
-	
-	const char *l2g_coeffs_3_str = j->Attribute("l2g_coeffs_3");
-	if (l2g_coeffs_3_str == NULL)
-	{
-		length_to_gap_coeffs_[3] = -7.95557419e+04;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: l2g_coeffs_3, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			length_to_gap_coeffs_[3] = boost::lexical_cast<double>(l2g_coeffs_3_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("l2g_coeffs_3 (%s) is not a float",l2g_coeffs_3_str);
-			return false;
-		}
-	}
-	
-	const char *l2g_coeffs_4_str = j->Attribute("l2g_coeffs_4");
-	if (l2g_coeffs_4_str == NULL)
-	{
-		length_to_gap_coeffs_[4] = -2.57497099e+06;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: l2g_coeffs_4, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			length_to_gap_coeffs_[4] = boost::lexical_cast<double>(l2g_coeffs_4_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("l2g_coeffs_4 (%s) is not a float",l2g_coeffs_4_str);
-			return false;
-		}
-	}
-	
-	// GAP TO LENGTH Polynomial Coefficients
-	const char *g2l_coeffs_0_str = j->Attribute("g2l_coeffs_0");
-	if (g2l_coeffs_0_str == NULL)
-	{
-		gap_to_length_coeffs_[0] = -0.01057876;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: g2l_coeffs_0, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			gap_to_length_coeffs_[0] = boost::lexical_cast<double>(g2l_coeffs_0_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("g2l_coeffs_0 (%s) is not a float",g2l_coeffs_0_str);
-			return false;
-		}
-	}
-	
-	const char *g2l_coeffs_1_str = j->Attribute("g2l_coeffs_1");
-	if (g2l_coeffs_1_str == NULL)
-	{
-		gap_to_length_coeffs_[1] = 0.08412417;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: g2l_coeffs_1, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			gap_to_length_coeffs_[1] = boost::lexical_cast<double>(g2l_coeffs_1_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("g2l_coeffs_1 (%s) is not a float",g2l_coeffs_1_str);
-			return false;
-		}
-	}
-	
-	const char *g2l_coeffs_2_str = j->Attribute("g2l_coeffs_2");
-	if (g2l_coeffs_2_str == NULL)
-	{
-		gap_to_length_coeffs_[2] = -0.04850085;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: g2l_coeffs_2, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			gap_to_length_coeffs_[2] = boost::lexical_cast<double>(g2l_coeffs_2_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("g2l_coeffs_2 (%s) is not a float",g2l_coeffs_2_str);
-			return false;
-		}
-	}
-	
-	const char *g2l_coeffs_3_str = j->Attribute("g2l_coeffs_3");
-	if (g2l_coeffs_3_str == NULL)
-	{
-		gap_to_length_coeffs_[3] = -0.87391894;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: g2l_coeffs_3, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			gap_to_length_coeffs_[3] = boost::lexical_cast<double>(g2l_coeffs_3_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("g2l_coeffs_3 (%s) is not a float",g2l_coeffs_3_str);
-			return false;
-		}
-	}
-	
-	const char *g2l_coeffs_4_str = j->Attribute("g2l_coeffs_4");
-	if (g2l_coeffs_4_str == NULL)
-	{
-		gap_to_length_coeffs_[4] = 6.51653529;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: g2l_coeffs_4, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			gap_to_length_coeffs_[4] = boost::lexical_cast<double>(g2l_coeffs_4_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("g2l_coeffs_4 (%s) is not a float",g2l_coeffs_4_str);
-			return false;
-		}
-	}	
-	
-	// GAP TO EFFECTIVE DISTANCE
-	const char *g2ed_coeffs_0_str = j->Attribute("g2ed_coeffs_0");
-	if (g2ed_coeffs_0_str == NULL)
-	{
-		gap_to_effective_dist_coeffs_[0] = 1.33852307e-02;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: g2ed_coeffs_0, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			gap_to_effective_dist_coeffs_[0] = boost::lexical_cast<double>(g2ed_coeffs_0_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("g2ed_coeffs_0 (%s) is not a float",g2ed_coeffs_0_str);
-			return false;
-		}
-	}
-	
-	const char *g2ed_coeffs_1_str = j->Attribute("g2ed_coeffs_1");
-	if (g2ed_coeffs_1_str == NULL)
-	{
-		gap_to_effective_dist_coeffs_[1] = -1.50212267e-02;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: g2ed_coeffs_1, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			gap_to_effective_dist_coeffs_[1] = boost::lexical_cast<double>(g2ed_coeffs_1_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("g2ed_coeffs_1 (%s) is not a float",g2ed_coeffs_1_str);
-			return false;
-		}
-	}
-	
-	const char *g2ed_coeffs_2_str = j->Attribute("g2ed_coeffs_2");
-	if (g2ed_coeffs_2_str == NULL)
-	{
-		gap_to_effective_dist_coeffs_[2] = -4.00341247e-01;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: g2ed_coeffs_2, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			gap_to_effective_dist_coeffs_[2] = boost::lexical_cast<double>(g2ed_coeffs_2_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("g2ed_coeffs_2 (%s) is not a float",g2ed_coeffs_2_str);
-			return false;
-		}
-	}
-	
-	const char *g2ed_coeffs_3_str = j->Attribute("g2ed_coeffs_3");
-	if (g2ed_coeffs_3_str == NULL)
-	{
-		gap_to_effective_dist_coeffs_[3] = 4.45724019e+00;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: g2ed_coeffs_3, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			gap_to_effective_dist_coeffs_[3] = boost::lexical_cast<double>(g2ed_coeffs_3_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("g2ed_coeffs_3 (%s) is not a float",g2ed_coeffs_3_str);
-			return false;
-		}
-	}
-	
-	const char *g2ed_coeffs_4_str = j->Attribute("g2ed_coeffs_4");
-	if (g2ed_coeffs_4_str == NULL)
-	{
-		gap_to_effective_dist_coeffs_[4] = -2.30064782e+01;
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: g2ed_coeffs_4, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			gap_to_effective_dist_coeffs_[4] = boost::lexical_cast<double>(g2ed_coeffs_4_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("g2ed_coeffs_4 (%s) is not a float",g2ed_coeffs_4_str);
-			return false;
-		}
-	}		
 
-	const char *enc_ticks_str = j->Attribute("enc_ticks");
-	if (enc_ticks_str == NULL)
-	{
-		enc_ticks_ = 120.0; // 120 pulses per rev
-		ROS_WARN("LCGripperTransmission's joint \"%s\" has no coefficient: enc_ticks, using default for LCG v1.46.", joint_name);
-	}
-	else
-	{
-		try
-		{
-			enc_ticks_ = boost::lexical_cast<double>(enc_ticks_str);
-		}
-		catch (boost::bad_lexical_cast &e)
-		{
-			ROS_ERROR("enc_ticks (%s) is not a float", enc_ticks_str);
-			return false;
-		}
-	}	
-	
 	int argc = 0;
 	char** argv;
 	
 	ros::init(argc, argv, gap_joint_);
 	ros::NodeHandle nh(gap_joint_);
-	
+
 	lcg_state_publisher_.reset(
 			new realtime_tools::RealtimePublisher<gripper_control::LCGTransmissionState>
 				(nh, "state", 1));
-	
 	return true;
 }
 
@@ -1374,41 +540,62 @@ void LCGripperTransmission::propagatePosition(std::vector<Actuator*>& as, std::v
 	double motor_vel 		= getMotorVelFromEncoderVel(as[0]->state_.velocity_); 
 	double motor_torque 		= as[0]->state_.last_measured_effort_; // Convert current -> Nm
 	
-	double tendon_length 		= getLengthFromMotorPos(motor_pos);
-	double tendon_vel		= getTendonLengthVelFromMotorVel(motor_vel);
-	double tendon_force 		= getTendonForceFromMotorTorque(motor_torque);
-	
-	double gap_size 		= fabs(getGapFromTendonLength(tendon_length) - gap_open_); // Gap size is in mm
-	//gap_size 			= validateGapSize(gap_size); // Check bounds
-	double gap_vel			= getGapVelFromTendonLengthVel(tendon_length, tendon_vel);
-//	double gap_force		= getGripperForceFromTendonForce(tendon_force, gap_size);
-//	gap_force = gap_force * gripper_efficiency_; // Apply efficiency coefficient.
-	
-	//ROS_INFO("PropagatePosition(): ENC_POS = %f --> MOTOR_POS = %f --> TENDON_LENGTH = %f --> GAP_SIZE = %f", as[0]->state_.position_, motor_pos, tendon_length, gap_size);
-	
-	double theta 			= getThetaFromGap(gap_size);
-	
-	// Determines the state of the gap joint.
-	js[0]->position_        = gap_size;
-	js[0]->velocity_        = gap_vel; // each finger is moving with this velocity.
-	js[0]->measured_effort_ = 0.0;//gap_force;	
-	
-	// Determines the states of the passive joints.
-	// we need to do this for each finger, in simulation, each finger has it's state filled out
-	
-	double joint_angle = theta;
-	double joint_vel = getThetaVelFromGapVel(gap_vel, gap_size);
-	//ROS_INFO("PropagatePosition(): joint_angle %f", (joint_angle*180.0/M_PI) );
-	for (size_t i = 1; i < passive_joints_.size()+1; ++i) //
+	if ( js[0]->calibrated_ )
 	{
-//		ROS_INFO("Joint %s, i %d, position %f", js[i]->joint_->name.c_str(), i, joint_angle*180.0/M_PI );
-		js[i]->position_           = joint_angle; 
-		if(i == 3 || i == 4) // Positive theta indicates gripper closing - distal links open during closing.
-                        js[i]->position_ = -joint_angle; 
+		double tendon_length 		= getLengthFromMotorPos(motor_pos);
+		double tendon_vel		= getTendonLengthVelFromMotorVel(motor_vel);
+		double tendon_force 		= getTendonForceFromMotorTorque(motor_torque);
 
-		js[i]->velocity_           = joint_vel;
-		js[i]->measured_effort_    = 1.0;// TODO: Old.MT / dtheta_dMR / RAD2MR;
+		double gap_size 		= fabs(getGapFromTendonLength(tendon_length) - gap_open_); // Gap size is in mm
+		//gap_size 			= validateGapSize(gap_size); // Check bounds
+		double gap_vel			= getGapVelFromTendonLengthVel(tendon_length, tendon_vel);
+	//	double gap_force		= getGripperForceFromTendonForce(tendon_force, gap_size);
+	//	gap_force = gap_force * gripper_efficiency_; // Apply efficiency coefficient.
+	
+		//ROS_INFO("PropagatePosition(): ENC_POS = %f --> MOTOR_POS = %f --> TENDON_LENGTH = %f --> GAP_SIZE = %f", as[0]->state_.position_, motor_pos, tendon_length, gap_size);
+	
+		// Determines the state of the gap joint.
+		js[0]->position_        = gap_size;
+		js[0]->velocity_        = gap_vel; // each finger is moving with this velocity.
+		js[0]->measured_effort_ = 0.0;//gap_force;
+
+		// Determines the states of the passive joints.
+		// we need to do this for each finger, in simulation, each finger has it's state filled out
+
+		double joint_angle = getThetaFromGap(gap_size);
+		double joint_vel = getThetaVelFromGapVel(gap_vel, gap_size);
+
+		//ROS_INFO("PropagatePosition(): joint_angle %f", (joint_angle*180.0/M_PI) );
+		for (size_t i = 1; i < passive_joints_.size()+1; ++i) //
+		{
+	//		ROS_INFO("Joint %s, i %d, position %f", js[i]->joint_->name.c_str(), i, joint_angle*180.0/M_PI );
+			js[i]->position_           = joint_angle;
+			if(i == 3 || i == 4) // Positive joint_angle(ie theta) indicates gripper closing - distal links open during closing.
+	                        js[i]->position_ = -joint_angle;
+
+			js[i]->velocity_           = joint_vel;
+			js[i]->measured_effort_    = 1.0;// TODO: Old.MT / dtheta_dMR / RAD2REV;
+		}
 	}
+	else
+	{	// WHEN CALIBRATING, THE TRANSMISSION IS UNITY, THUS USES ACTUATOR INFORMATION DIRECTLY
+		js[0]->position_        = motor_pos;
+		js[0]->velocity_        = motor_vel;
+		js[0]->measured_effort_ = motor_torque;
+
+		double joint_angle = 20.0*DEG2RAD;
+		double joint_vel   =  0.0;
+		for (size_t i = 1; i < passive_joints_.size()+1; ++i) //
+		{
+			js[i]->position_           = joint_angle;
+			if(i == 3 || i == 4) // Positive joint_angle(ie theta) indicates gripper closing - distal links open during closing.
+	                        js[i]->position_ = -joint_angle;
+
+			js[i]->velocity_           = joint_vel;
+			js[i]->measured_effort_    = 1.0;// TODO: Old.MT / dtheta_dMR / RAD2REV;
+		}
+	}
+
 	
 	if (use_simulated_actuated_joint_)
 	{
@@ -1451,29 +638,38 @@ void LCGripperTransmission::propagatePositionBackwards(std::vector<JointState*>&
 	
 	//ROS_WARN("Read js[0]: %f, js[1]: %f, js[2]: %f, js[3] %f, js[4] %f", js[0]->position_, js[1]->position_*180/M_PI, js[2]->position_*180/M_PI, js[3]->position_*180/M_PI, js[4]->position_*180/M_PI);
 	
-	double theta1 			= -js[2]->position_ + theta_closed_*M_PI/180.0; // Proximal joint angle, radians 
-	double theta1_vel 		= js[2]->velocity_;
-//	double torqueJ1 		= js[3]->commanded_effort_; // Joints 3/4 are the distal joints.
-	double gap_force		= js[0]->commanded_effort_;	
+	if ( js[0]->calibrated_ )
+	{
+		double theta1 			= -js[2]->position_ + theta_closed_*M_PI/180.0; // Proximal joint angle, radians
+		double theta1_vel 		= js[2]->velocity_;
+		//	double torqueJ1 		= js[3]->commanded_effort_; // Joints 3/4 are the distal joints.
+		double gap_force		= js[0]->commanded_effort_;
 
-	double gap_size 		= getGapFromTheta(theta1);	
-	double tendon_length 	= getTendonLengthFromGap(gap_size);
-	double motor_pos 		= getMotorPosFromLength(tendon_length);
-	double enc_pos 			= getEncoderPosFromMotorPos(motor_pos) + 5762.49;
-	//ROS_ERROR("PropagatePositionBackwards(): Theta1: %f, GAP SIZE: %f, TENDON LENGTH: %f, MOTOR POS: %f, ENC POS: %f", theta1, gap_size, tendon_length, motor_pos, enc_pos);
-	
-	double gap_rate         = theta1_vel*cos(theta1);
-	double tendon_rate		= getTendonLengthVelFromGapVel(gap_rate, gap_size);
-	double motor_vel		= getMotorVelFromTendonLengthVel(tendon_rate);
-	
-	double tendon_force 		= getTendonForceFromGripperForce(gap_force, gap_size);
-	double motor_torque		= getMotorTorqueFromTendonForce(tendon_force);
-	double motor_effort		= getMotorEffortFromTorque(motor_torque);
+		double gap_size 		= getGapFromTheta(theta1);
+		double tendon_length		= getTendonLengthFromGap(gap_size);
+		double motor_pos 		= getMotorPosFromLength(tendon_length);
+		double enc_pos 			= getEncoderPosFromMotorPos(motor_pos) + 5762.49;
+		//ROS_ERROR("PropagatePositionBackwards(): Theta1: %f, GAP SIZE: %f, TENDON LENGTH: %f, MOTOR POS: %f, ENC POS: %f", theta1, gap_size, tendon_length, motor_pos, enc_pos);
 
-	as[0]->state_.position_             = enc_pos;
-	as[0]->state_.velocity_             = motor_vel;
-	as[0]->state_.last_measured_effort_ = motor_effort;
-	
+		double gap_rate			= theta1_vel*cos(theta1);
+		double tendon_rate		= getTendonLengthVelFromGapVel(gap_rate, gap_size);
+		double motor_vel		= getMotorVelFromTendonLengthVel(tendon_rate);
+
+		double tendon_force		= getTendonForceFromGripperForce(gap_force, gap_size);
+		double motor_torque		= getMotorTorqueFromTendonForce(tendon_force);
+		double motor_effort		= getMotorEffortFromTorque(motor_torque);
+
+		as[0]->state_.position_             = enc_pos;
+		as[0]->state_.velocity_             = motor_vel;
+		as[0]->state_.last_measured_effort_ = motor_effort;
+	}
+	else
+	{	/* WHEN CALIBRATING, THE TRANSMISSION IS UNITY, THUS USES JOINT INFORMATION DIRECTLY */
+		// Negate output, since input is negated. TODO: Fix this at the controller level.
+		as[0]->state_.position_             = -js[0]->position_;
+		as[0]->state_.velocity_             =  js[0]->velocity_;
+		as[0]->state_.last_measured_effort_ = -js[0]->commanded_effort_;
+	}
 	// Update the timing (making sure it's initialized).
 	if (! simulated_actuator_timestamp_initialized_)
 	{
@@ -1828,7 +1024,7 @@ void LCGripperTransmission::initPolynomialCoefficients()
 	double g2l_coeffs[] = { -0.01057876, 0.08412417, -0.04850085, -0.87391894, 6.51653529 };
 	double g2ed_coeffs[] = { 1.33852307e-02, -1.50212267e-02, -4.00341247e-01, 4.45724019e+00, -2.30064782e+01 };
 	
-	//TODO: tidy this initialisation up a bit so that it works with lower order polynomials etc. 
+	//TODO: tidy this initialization up a bit so that it works with lower order polynomials etc.
 	length_to_gap_coeffs_.clear();
 	length_to_gap_coeffs_.assign(l2g_coeffs, l2g_coeffs+5); // 5 coefficients
 
