@@ -106,7 +106,6 @@ public:
 
 private:
 
-	void initPolynomialCoefficients();
 	bool initParametersFromURDF(TiXmlElement *j, Robot *robot);
 	bool initParametersFromServer(TiXmlElement *j);
 
@@ -132,30 +131,23 @@ private:
 	double getMotorTorqueFromEffort(double motor_effort);
 	double getMotorEffortFromTorque(double motor_torque);
 	
-	double getMotorPosFromEncoderPos(double enc_pos);
-	double getEncoderPosFromMotorPos(double motor_pos);
-	double getMotorVelFromEncoderVel(double enc_vel);
-	double getEncoderVelFromMotorVel(double motor_vel);
+	double getMotorQtyFromEncoderQty(double encQty);
+	double getEncoderQtyFromMotorQty(double motorQty);
 	
 	double getThetaVelFromGapVel(double gap_vel, double gap);
 	
 	double getFlexorMomentArm(double gap_size);
 	
-// DEPRECATED
-/*	double getTorqueJ0FromTendonForce(double tendon_force, double gap_size);
-	double getTorqueJ1FromTendonForce(double tendon_force);
-	double getTendonForceFromTorqueJ1(double torque);*/
-
 	double getExtensorTendonForce(double theta1);
 
 	double validateGapSize(double gap_size);
 
 	// GET PARAMS FROM PARAMETER SERVER OR URDF
-	class ParamServer;
+	class ParamFetcher;
 
-	bool getItems(ParamServer *itemServer);
+	bool getItems(ParamFetcher *itemFetcher);
 
-	ParamServer *itemServer_;
+	ParamFetcher *itemFetcher_;
 
 	// Tendon routing definition. Not actually used - this is replaced by the fitted polynomials.
 	double p0x_;
