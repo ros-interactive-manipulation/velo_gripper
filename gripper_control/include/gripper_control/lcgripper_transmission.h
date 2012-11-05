@@ -69,152 +69,152 @@ namespace pr2_mechanism_model {
 class LCGripperTransmission : public Transmission
 {
 public:
-	LCGripperTransmission(): use_simulated_actuated_joint_(false),
-				 has_simulated_passive_actuated_joint_(false) {};
-	virtual ~LCGripperTransmission() {/*myfile.close();*/}
-	
-	bool initXml(TiXmlElement *config, Robot *robot);
-	bool initXml(TiXmlElement *config);
-	
-	void propagatePosition(std::vector<pr2_hardware_interface::Actuator*>&,
-						 std::vector<pr2_mechanism_model::JointState*>&);
-	void propagatePositionBackwards(std::vector<pr2_mechanism_model::JointState*>&,
-								  std::vector<pr2_hardware_interface::Actuator*>&);
-	void propagateEffort(std::vector<pr2_mechanism_model::JointState*>&,
-					   std::vector<pr2_hardware_interface::Actuator*>&);
-	void propagateEffortBackwards(std::vector<pr2_hardware_interface::Actuator*>&,
-								std::vector<pr2_mechanism_model::JointState*>&);
-	std::string gap_joint_;
+  LCGripperTransmission(): use_simulated_actuated_joint_(false),
+         has_simulated_passive_actuated_joint_(false) {};
+  virtual ~LCGripperTransmission() {/*myfile.close();*/}
 
-	// if a screw_joint is specified, apply torque based on simulated_reduction_
-	double      simulated_reduction_;
-	bool        use_simulated_actuated_joint_;
-	bool        has_simulated_passive_actuated_joint_;
-	
-	// The joint_names_ variable is inherited from Transmission.  In
-	// joint_names_, the gap joint is first, followed by all the passive
-	// joints.
-	
-	// store name for passive joints.  This matches elements 1 to N of joint_names_.
-	std::vector<std::string> passive_joints_;
+  bool initXml(TiXmlElement *config, Robot *robot);
+  bool initXml(TiXmlElement *config);
 
-	boost::shared_ptr<
-			realtime_tools::RealtimePublisher<
-				gripper_control::LCGTransmissionState> > lcg_state_publisher_ ;
+  void propagatePosition(std::vector<pr2_hardware_interface::Actuator*>&,
+             std::vector<pr2_mechanism_model::JointState*>&);
+  void propagatePositionBackwards(std::vector<pr2_mechanism_model::JointState*>&,
+                  std::vector<pr2_hardware_interface::Actuator*>&);
+  void propagateEffort(std::vector<pr2_mechanism_model::JointState*>&,
+             std::vector<pr2_hardware_interface::Actuator*>&);
+  void propagateEffortBackwards(std::vector<pr2_hardware_interface::Actuator*>&,
+                std::vector<pr2_mechanism_model::JointState*>&);
+  std::string gap_joint_;
 
-	friend class LCGripperTransmissionTest;
+  // if a screw_joint is specified, apply torque based on simulated_reduction_
+  double      simulated_reduction_;
+  bool        use_simulated_actuated_joint_;
+  bool        has_simulated_passive_actuated_joint_;
+
+  // The joint_names_ variable is inherited from Transmission.  In
+  // joint_names_, the gap joint is first, followed by all the passive
+  // joints.
+
+  // store name for passive joints.  This matches elements 1 to N of joint_names_.
+  std::vector<std::string> passive_joints_;
+
+  boost::shared_ptr<
+      realtime_tools::RealtimePublisher<
+        gripper_control::LCGTransmissionState> > lcg_state_publisher_ ;
+
+  friend class LCGripperTransmissionTest;
 
 private:
 
-	bool initParametersFromURDF(TiXmlElement *j, Robot *robot);
-	bool initParametersFromServer(TiXmlElement *j);
+  bool initParametersFromURDF(TiXmlElement *j, Robot *robot);
+  bool initParametersFromServer(TiXmlElement *j);
 
-	// Mapping motor states to tendon states and to gripper states (and backwards).
-	double getGapFromTendonLength(double length);
-	double getTendonLengthFromGap(double gap);
-	double getThetaFromGap(double gap);
-	double getGapFromTheta(double theta);
-	
-	double getMotorPosFromLength(double length);
-	double getLengthFromMotorPos(double motor_pos);
-	
-	double getTendonLengthVelFromGapVel(double gap_vel, double gap);
-	double getGapVelFromTendonLengthVel(double length, double length_vel);
-	double getTendonLengthVelFromMotorVel(double motor_vel);
-	double getMotorVelFromTendonLengthVel(double length_vel);
-	
-	double getTendonForceFromMotorTorque(double motor_torque);
-	double getGripperForceFromTendonForce(double tendon_force, double gap_size);
-	double getTendonForceFromGripperForce(double gripper_force, double gap_size);
-	double getMotorTorqueFromTendonForce(double tendon_force);
-	
-	double getMotorTorqueFromEffort(double motor_effort);
-	double getMotorEffortFromTorque(double motor_torque);
-	
-	double getMotorQtyFromEncoderQty(double encQty);
-	double getEncoderQtyFromMotorQty(double motorQty);
-	
-	double getThetaVelFromGapVel(double gap_vel, double gap);
-	
-	double getFlexorMomentArm(double gap_size);
-	
-	double getExtensorTendonForce(double theta1);
+  // Mapping motor states to tendon states and to gripper states (and backwards).
+  double getGapFromTendonLength(double length);
+  double getTendonLengthFromGap(double gap);
+  double getThetaFromGap(double gap);
+  double getGapFromTheta(double theta);
 
-	double validateGapSize(double gap_size);
+  double getMotorPosFromLength(double length);
+  double getLengthFromMotorPos(double motor_pos);
 
-	// GET PARAMS FROM PARAMETER SERVER OR URDF
-	class ParamFetcher;
+  double getTendonLengthVelFromGapVel(double gap_vel, double gap);
+  double getGapVelFromTendonLengthVel(double length, double length_vel);
+  double getTendonLengthVelFromMotorVel(double motor_vel);
+  double getMotorVelFromTendonLengthVel(double length_vel);
 
-	bool getItems(ParamFetcher *itemFetcher);
+  double getTendonForceFromMotorTorque(double motor_torque);
+  double getGripperForceFromTendonForce(double tendon_force, double gap_size);
+  double getTendonForceFromGripperForce(double gripper_force, double gap_size);
+  double getMotorTorqueFromTendonForce(double tendon_force);
 
-	ParamFetcher *itemFetcher_;
+  double getMotorTorqueFromEffort(double motor_effort);
+  double getMotorEffortFromTorque(double motor_torque);
 
-	// Tendon routing definition. Not actually used - this is replaced by the fitted polynomials.
-	double p0x_;
-	double p0y_;
-	double p1x_;
-	double p1y_;
-	double p2x_;
-	double p2y_;
-	double p3x_;
-	double p3y_;
-	// Joint positions - required for gap/theta conversions.
-	double j0x_;
-	double j0y_;
-	double j1x_;
-	double j1y_;
-	
-	double j1_radius_;
-	double p0_radius_;
-	// Link lengths. L0 is palm, L1 is proximal, L2 is distal.
-	double l0_;
-	double l1_;
-	double l2_;
-	
-	double thickness_;
-	
-	double theta_open_;
-	double theta_closed_;
-	double gap_open_;
-	double gap_closed_;
-	double theta0_;
+  double getMotorQtyFromEncoderQty(double encQty);
+  double getEncoderQtyFromMotorQty(double motorQty);
 
-	double spring_x_;
-	double spring_x0_;
-	double spring_k_;
+  double getThetaVelFromGapVel(double gap_vel, double gap);
 
-	double r_c0_;
-	double r_c1_;
-	double r_e0_;
-	double r_e1_;
-	double r_f0_;
-	double r_f1_;
-	double r_g0_;
-	double r_g1_;
-	
-	double enc_ticks_;
-	double max_torque_;
-	
-	// FITTED POLYNOMIALS:
-	std::vector<double> length_to_gap_coeffs_;
-	std::vector<double> gap_to_length_coeffs_;
-	std::vector<double> gap_to_effective_dist_coeffs_;
+  double getFlexorMomentArm(double gap_size);
 
-	// Drivetrain parameters
-	double encoder_ticks_per_rev_; // eg 1200 pulses per motor rev.
-	double gear_reduction_; // gear reduction from motor to ball screw shaft: MotorSpeed/GearReduction -> BallScrewSpeed
-	double gripper_efficiency_;
-	double screw_lead_;
-	
-	bool use_simulated_gripper_joint;
-	
-	int loop_count_; // RT Publisher frequency (ie publish every X cycles).
+  double getExtensorTendonForce(double theta1);
 
-	int simulated_actuator_timestamp_initialized_;
-	ros::Time simulated_actuator_start_time_;
-	
-	JointCalibrationSimulator joint_calibration_simulator_;
-	
+  double validateGapSize(double gap_size);
+
+  // GET PARAMS FROM PARAMETER SERVER OR URDF
+  class ParamFetcher;
+
+  bool getItems(ParamFetcher *itemFetcher);
+
+  ParamFetcher *itemFetcher_;
+
+  // Tendon routing definition. Not actually used - this is replaced by the fitted polynomials.
+  double p0x_;
+  double p0y_;
+  double p1x_;
+  double p1y_;
+  double p2x_;
+  double p2y_;
+  double p3x_;
+  double p3y_;
+  // Joint positions - required for gap/theta conversions.
+  double j0x_;
+  double j0y_;
+  double j1x_;
+  double j1y_;
+
+  double j1_radius_;
+  double p0_radius_;
+  // Link lengths. L0 is palm, L1 is proximal, L2 is distal.
+  double l0_;
+  double l1_;
+  double l2_;
+
+  double thickness_;
+
+  double theta_open_;
+  double theta_closed_;
+  double gap_open_;
+  double gap_closed_;
+  double theta0_;
+
+  double spring_x_;
+  double spring_x0_;
+  double spring_k_;
+
+  double r_c0_;
+  double r_c1_;
+  double r_e0_;
+  double r_e1_;
+  double r_f0_;
+  double r_f1_;
+  double r_g0_;
+  double r_g1_;
+
+  double enc_ticks_;
+  double max_torque_;
+
+  // FITTED POLYNOMIALS:
+  std::vector<double> length_to_gap_coeffs_;
+  std::vector<double> gap_to_length_coeffs_;
+  std::vector<double> gap_to_effective_dist_coeffs_;
+
+  // Drivetrain parameters
+  double encoder_ticks_per_rev_; // eg 1200 pulses per motor rev.
+  double gear_reduction_; // gear reduction from motor to ball screw shaft: MotorSpeed/GearReduction -> BallScrewSpeed
+  double gripper_efficiency_;
+  double screw_lead_;
+
+  bool use_simulated_gripper_joint;
+
+  int loop_count_; // RT Publisher frequency (ie publish every X cycles).
+
+  int simulated_actuator_timestamp_initialized_;
+  ros::Time simulated_actuator_start_time_;
+
+  JointCalibrationSimulator joint_calibration_simulator_;
+
 };
 
 } // namespace pr2_mechanism_model
