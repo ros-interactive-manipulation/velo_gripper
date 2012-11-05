@@ -7,7 +7,7 @@
 
   <xacro:macro name="pr2_lcgripper_transmission_v0" params=     "side
                                                                 gear_reduction gear_efficiency
-                                                                screw_reduction screw_efficiency screw_lead
+                                                                screw_efficiency screw_lead
                                                                 j0x j0y
                                                                 j1x j1y
                                                                 p0x p0y
@@ -36,7 +36,6 @@
       <gap_joint      name="${side}_gripper_joint"
                       gear_reduction="${gear_reduction}"
                       gear_efficiency="${gear_efficiency}"
-                      screw_reduction="${screw_reduction}"
                       screw_efficiency="${screw_efficiency}"
                       screw_lead="${screw_lead}"
                       j0x="${j0x}"

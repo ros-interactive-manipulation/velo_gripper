@@ -24,7 +24,7 @@
 
 
 
-  <xacro:macro name="pr2_lcgripper_v0" params="side reflect parent *origin gear_ratio theta0 phi0 t0 L0 h a b r">
+  <xacro:macro name="pr2_lcgripper_v0" params="side reflect parent *origin">
 
     <link name="${side}_gripper_palm_link">
       <visual>
