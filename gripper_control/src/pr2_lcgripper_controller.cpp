@@ -82,9 +82,9 @@ bool Pr2LCGripperController::init(pr2_mechanism_model::RobotState *robot, ros::N
               joint_state_->joint_->name.c_str(), node_.getNamespace().c_str());
     return false;
   }
-  if (!pid_.init(ros::NodeHandle(node_, "pid")))	  
+  if (!pid_.init(ros::NodeHandle(node_, "pid")))
     return false;
-  
+
   ros::NodeHandle pid_node(node_, "pid");
 
   // Position holding parameters for the control loop
@@ -118,10 +118,10 @@ void Pr2LCGripperController::update()
 
   // Computes the position error
   error = joint_state_->position_ - command->position;
-  
-  // TODO: FILTER VELOCITY HERE.  
+
+  // TODO: FILTER VELOCITY HERE.
   double error_dot = joint_state_->velocity_;
-  
+
   // Sets the effort (limited)
   double effort = pid_.updatePid(error, error_dot, dt);
   if (command->max_effort >= 0.0)
@@ -130,27 +130,26 @@ void Pr2LCGripperController::update()
   }
 
   // Check for stall. If the gripper position hasn't moved by less than a threshold for at greater than some timeout, limit the output to a holding torque.
-  double delta_position = joint_state_->position_ - stall_start_position_; 
+  double delta_position = joint_state_->position_ - stall_start_position_;
   //ROS_INFO("LCGCtrl: delta_pos = %f", delta_position);
   if ( fabs(delta_position) < stall_threshold_ && command->position == last_setpoint_ && command->max_effort == last_max_effort_)
   {
-	  // Reset the stall check if the position or max effort changes ... ie, a new command was sent.
-	  ros::Duration stall_length = time - stall_start_time_;
-//	  ROS_INFO("LCGCtrl: stall_length = %f", stall_length.toSec());
-	  if (stall_length.toSec() > stall_timeout_ && fabs(effort) > holding_torque_) // Don't increase the torque if the controller is requesting a lower torque.
-	  {
-//		ROS_INFO("Stalled for %f seconds", stall_length.toSec());
-		double direction = 1.0;
-		if (effort < 0) // Simple sign check.
-			direction = -1.0;
-		effort = direction*holding_torque_;
-
-	  }
+    // Reset the stall check if the position or max effort changes ... ie, a new command was sent.
+    ros::Duration stall_length = time - stall_start_time_;
+//    ROS_INFO("LCGCtrl: stall_length = %f", stall_length.toSec());
+    if (stall_length.toSec() > stall_timeout_ && fabs(effort) > holding_torque_) // Don't increase the torque if the controller is requesting a lower torque.
+    {
+//    ROS_INFO("Stalled for %f seconds", stall_length.toSec());
+      double direction = 1.0;
+      if (effort < 0) // Simple sign check.
+        direction = -1.0;
+      effort = direction*holding_torque_;
+    }
   }
   else // if we're not stalled, update the stored copy of the current position + time parameters.
   {
-	  stall_start_position_ = joint_state_->position_;
-	  stall_start_time_ = time;
+    stall_start_position_ = joint_state_->position_;
+    stall_start_time_ = time;
     last_setpoint_ = command->position;
     last_max_effort_ = command->max_effort;
   }
