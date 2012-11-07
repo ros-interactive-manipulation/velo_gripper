@@ -181,6 +181,7 @@ cal_l_gripper:
     d: 0
     i: 100.0
     i_clamp: 20.0
+    error_max: 0.0013
 
 
 

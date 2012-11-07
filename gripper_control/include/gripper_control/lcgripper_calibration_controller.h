@@ -37,7 +37,7 @@
 
 
 #include "pr2_mechanism_model/robot.h"
-#include "gripper_control/capped_joint_velocity_controller.h"
+#include "gripper_control/capped_joint_position_controller.h"
 #include "realtime_tools/realtime_publisher.h"
 #include "std_msgs/Empty.h"
 #include "pr2_controllers_msgs/QueryCalibrationState.h"
@@ -60,18 +60,20 @@ public:
 
 protected:
 
-  enum { INITIALIZED, BEGINNING, STARTING, CLOSING, BACK_OFF, CLOSING_SLOWLY, CALIBRATED };
+  enum { INITIALIZED, BEGINNING, STARTING, CLOSING, BACK_OFF, HOME, CALIBRATED };
   int state_;
-  int count_;
+  int close_count_;
   int stop_count_;
 
   ros::NodeHandle node_;
   pr2_mechanism_model::RobotState *robot_;
-  ros::Time last_publish_time_;
+  ros::Time next_publish_time_;
   ros::ServiceServer is_calibrated_srv_;
   boost::scoped_ptr<realtime_tools::RealtimePublisher<std_msgs::Empty> > pub_calibrated_;
 
   double search_velocity_;
+  double search_delta_;
+
   pr2_hardware_interface::Actuator *actuator_;
   pr2_mechanism_model::JointState *joint_;
   std::vector<pr2_mechanism_model::JointState*> other_joints_;
@@ -79,7 +81,7 @@ protected:
   double init_time;
   double stopped_velocity_tolerance_;
 
-  controller::CappedJointVelocityController vc_; /** The joint velocity controller used to sweep the joint.*/
+  controller::CappedJointPositionController vc_; /** The joint position controller used to move the joint.*/
 };
 
 

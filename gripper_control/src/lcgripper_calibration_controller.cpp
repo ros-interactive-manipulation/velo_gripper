@@ -46,7 +46,7 @@ namespace controller
 {
 
 LCGripperCalibrationController::LCGripperCalibrationController()
-  : last_publish_time_(0), joint_(NULL)
+  : next_publish_time_(0), joint_(NULL)
 {
 }
 
@@ -120,6 +120,7 @@ bool LCGripperCalibrationController::init(pr2_mechanism_model::RobotState *robot
               actuator_name.c_str(), node_.getNamespace().c_str());
     return false;
   }
+  /*****
   if (actuator_->state_.zero_offset_ != 0){
     ROS_INFO("Joint %s is already calibrated at offset %f", joint_name.c_str(), actuator_->state_.zero_offset_);
     joint_->calibrated_ = true;
@@ -127,8 +128,9 @@ bool LCGripperCalibrationController::init(pr2_mechanism_model::RobotState *robot
       other_joints_[i]->calibrated_ = true;
     state_ = CALIBRATED;
   }
+  */
   else{
-    ROS_INFO("Joint %s is not yet calibrated", joint_name.c_str());
+    ROS_INFO("Joint '%s' will always (re)calibrate when loaded.", joint_name.c_str());
     state_ = INITIALIZED;
     joint_->calibrated_ = false;
   }
@@ -169,85 +171,97 @@ void LCGripperCalibrationController::update()
   assert(joint_);
   assert(actuator_);
 
+  // Always
+  if ( !joint_->calibrated_ && fabs(joint_->velocity_) < this->stopped_velocity_tolerance_)
+    stop_count_++;
+  else
+    stop_count_ = 0;
+
   switch (state_)
   {
   case INITIALIZED:
     state_ = BEGINNING;
     return;
+
   case BEGINNING:
-    count_ = 0;
+    close_count_ = 0;
     stop_count_ = 0;
+
     joint_->calibrated_ = false;
     actuator_->state_.zero_offset_ = 0.0;
 
-    vc_.setCommand(search_velocity_);
-
-    state_ = STARTING;
+    vc_.setCommand( -0.020 ); // More than full travel
+    state_ = CLOSING;
     break;
-  case STARTING:
-    // Makes sure we start moving for a bit before checking if we've stopped.
-    if (++count_ > 100)
+
+  case CLOSING:
+    // Makes sure the gripper is stopped for a while before cal
+    if (stop_count_ > 250)
     {
-      count_ = 0;
       stop_count_ = 0;
+      // ALWAYS RESET THE ACTUATOR TO ZERO AT THE BOTTOM
+      actuator_->state_.zero_offset_ = actuator_->state_.position_;
+
+      close_count_++;
+      if ( close_count_ < 2 )
+      {
+        // BACK OFF A TIME OR TWO TO MAKE SURE WE ARE AT THE END OF TRAVEL
+        vc_.setCommand( 0.003 ); // Bump out from our new zero
+        state_ = BACK_OFF;
+      }
+      else
+      {
+        // FOUND THE BOTTOM OF TRAVEL
+        vc_.setCommand( 0.0135 ); // Gripper installation position
+        state_ = HOME;
+      }
+    }
+
+    break;
+
+  case BACK_OFF: // Back off so we can reset from a known good position
+    if (stop_count_ > 500)
+    {
+      stop_count_ = 0;
+      vc_.setCommand( -0.020 ); // More than full travel
       state_ = CLOSING;
     }
     break;
-  case CLOSING:
-    // Makes sure the gripper is stopped for a while before cal
-    if (fabs(joint_->velocity_) < this->stopped_velocity_tolerance_)
-      stop_count_++;
-    else
-      stop_count_ = 0;
 
-    if (stop_count_ > 100)
+  case HOME:
+    if (stop_count_ > 1000)
     {
-      state_ = BACK_OFF;
-      stop_count_ = 0;
-      vc_.setCommand(-1 * search_velocity_);
-    }
-    break;
-  case BACK_OFF: // Back off so we can reset from a known good position
-    if (++stop_count_ > 1000)
-    {
-      state_ = CLOSING_SLOWLY;
-      count_ = 0;
-      stop_count_ = 0;
-      vc_.setCommand(1.0 * search_velocity_);
-    }
+      if ( joint_->position_ < 0.009)
+      {
+        ROS_WARN("Gripper NOT installed properly!  Please reinstall and recalibrate.  (pos=%6.4fm)",joint_->position_);
+      }
+      else if ( joint_->position_ > 0.014)
+      {
+        ROS_WARN("Gripper NOT installed!  Please install and recalibrate.  (pos=%6.4fm)",joint_->position_);
+      }
 
-    break;
-  case CLOSING_SLOWLY: // Close slowly to avoid windup
-    // Makes sure the gripper is stopped for a while before cal
-    if (fabs(joint_->velocity_) < this->stopped_velocity_tolerance_)
-      stop_count_++;
-    else
-      stop_count_ = 0;
-
-    if (stop_count_ > 500)
-    {
-      state_ = CALIBRATED;
-      actuator_->state_.zero_offset_ = actuator_->state_.position_;
       joint_->calibrated_ = true;
       for (size_t i = 0; i < other_joints_.size(); ++i)
         other_joints_[i]->calibrated_ = true;
-      vc_.setCommand(0);
+      state_ = CALIBRATED;
     }
-
     break;
+
   case CALIBRATED:
-    if (pub_calibrated_) {
-      if (last_publish_time_ + ros::Duration(0.5) < robot_->getTime()) {
-	if (pub_calibrated_->trylock()) {
-	  last_publish_time_ = robot_->getTime();
-	  pub_calibrated_->unlockAndPublish();
-	}
+    if ( pub_calibrated_ && next_publish_time_ > robot_->getTime() )
+    {
+      if (pub_calibrated_->trylock())
+      {
+        next_publish_time_ = robot_->getTime() + ros::Duration(0.5);
+        pub_calibrated_->unlockAndPublish();
       }
     }
     break;
   }
+
+  // RUN THE CONTROLLER UPDATE
   if (state_ != CALIBRATED)
     vc_.update();
-}
-}
 
+}
+} // namespace
