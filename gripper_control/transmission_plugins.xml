@@ -1,6 +1,8 @@
 <library path="lib/liblcgripper_transmission">
 
-  <class name="gripper_control/LCGripperTransmission" type="pr2_mechanism_model::LCGripperTransmission" base_class_type="pr2_mechanism_model::Transmission" />
+  <class name="gripper_control/LCGripperTransmission"
+         type="pr2_mechanism_model::LCGripperTransmission"
+         base_class_type="pr2_mechanism_model::Transmission" />
 
 </library>
 ~                                      
