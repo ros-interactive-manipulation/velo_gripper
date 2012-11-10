@@ -5,7 +5,7 @@
   <class name="gripper_control/LCGripperCalibrationController"
          type="controller::LCGripperCalibrationController"
          base_class_type="pr2_controller_interface::Controller" />
-  <class name="gripper_control/CappedJointVelocityController"
-         type="controller::CappedJointVelocityController"
+  <class name="gripper_control/CappedJointPositionController"
+         type="controller::CappedJointPositionController"
          base_class_type="pr2_controller_interface::Controller" />
 </library>
