@@ -36,7 +36,8 @@
 #include "angles/angles.h"
 #include "pluginlib/class_list_macros.h"
 
-PLUGINLIB_DECLARE_CLASS(gripper_control, CappedJointPositionController, controller::CappedJointPositionController, pr2_controller_interface::Controller)
+PLUGINLIB_DECLARE_CLASS(gripper_control, CappedJointPositionController,
+                             controller::CappedJointPositionController, pr2_controller_interface::Controller)
 
 using namespace std;
 
