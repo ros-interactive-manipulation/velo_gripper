@@ -145,6 +145,7 @@ bool CappedPid::init(const ros::NodeHandle &node)
   n.param("d", d_gain_, 0.0);
   n.param("i_clamp", i_max_, 0.0);
   i_min_ = -i_max_;
+  n.param("error_max_", error_max_, .0013);
 
   reset();
   return true;
