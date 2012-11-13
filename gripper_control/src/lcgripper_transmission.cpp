@@ -72,28 +72,13 @@ class LCGripperTransmission::ParamFetcher
 {
 public:
   // CONSTRUCTOR
-  ParamFetcher(const TiXmlElement *j, std::string &gap_joint)
+  ParamFetcher(const TiXmlElement *j, Robot *robot = NULL): nh_(NULL)
   {
+    ROS_WARN("ParamFetcher: constructor with j=%p,  robot=%p",j,robot);
     error_count_=0;
     j_ = j;
     setJointName();
 
-    ros::NodeHandle nh(gap_joint);
-
-    if (!nh.ok())
-    {
-      error_count_++;
-      ROS_ERROR("LCG Transmission: Attempted to load parameters from server, but node handle didn't exist/is shutdown");
-      return;
-    }
-  }
-
-  // CONSTRUCTOR
-  ParamFetcher(const TiXmlElement *j, Robot *robot)
-  {
-    error_count_=0;
-    j_ = j;
-    setJointName();
     if (robot)
     {
       const boost::shared_ptr<const urdf::Joint> joint = robot->robot_model_.getJoint(joint_name_);
@@ -110,9 +95,9 @@ public:
   ~ParamFetcher();
 
   // API to retrieve joint_name
-  void getJointName(const char *joint_name)
+  const char * getJointName()
   {
-    joint_name = joint_name_;
+    return joint_name_;
   }
 
 
@@ -176,25 +161,34 @@ public:
 
   int error_count_;
 
+  ros::NodeHandle *nh_;
+
 private:
 
   const TiXmlElement *j_;
-  const char *joint_name_;  //Will always point to a string that was set in an object somewhere else.
-  ros::NodeHandle *nh_;
+  const char* joint_name_;
 
   // SET THE NAME OF THIS joint. USED WITHIN ALL OTHER METHODS.
   bool setJointName()
   {
     joint_name_ = j_->Attribute("name");
-    if (joint_name_)
+    ROS_WARN("JointName = %s", joint_name_ );
+    if (!joint_name_)
     {
-      return true;
-    }
-    else
-    {
+      error_count_++;
       ROS_ERROR("LCGripperTransmission did not specify joint name");
       return false;
     }
+
+    nh_ = new ros::NodeHandle(std::string(joint_name_));
+    if (!nh_->ok())
+    {
+      error_count_++;
+      ROS_ERROR("LCG Transmission: node handle didn't exist/is shutdown");
+      return false;
+    }
+
+    return true;
   }
 
 };
@@ -204,6 +198,9 @@ bool LCGripperTransmission::getItems(ParamFetcher *itemFetcher)
 {
   // Load parameters from server that is initialized at instantiation of "itemFetcher" object.
   // Joints
+
+  std::cout << "Init Parameters" << std::endl;
+
   itemFetcher->getParam("joints/j0x", j0x_);
   itemFetcher->getParam("joints/j0y", j0y_);
   itemFetcher->getParam("joints/j1x", j1x_);
@@ -221,9 +218,9 @@ bool LCGripperTransmission::getItems(ParamFetcher *itemFetcher)
   itemFetcher->getParam("radii/r_e1", r_e1_);
   itemFetcher->getParam("radii/r_f1", r_f1_);
 
-  itemFetcher->getParam("p0_radius", p0_radius_);
-  itemFetcher->getParam("j1_radius", j1_radius_);
-  itemFetcher->getParam("thickness", thickness_);
+  //itemFetcher->getParam("p0_radius", p0_radius_);
+  //itemFetcher->getParam("j1_radius", j1_radius_);
+  //itemFetcher->getParam("thickness", thickness_);
 
   // Spring
   itemFetcher->getParam("spring/k",  spring_k_);
@@ -265,35 +262,34 @@ bool LCGripperTransmission::getItems(ParamFetcher *itemFetcher)
   itemFetcher->getParam("polynomials/g2ed_3", tmp);  gap_to_effective_dist_coeffs_[3] = tmp;
   itemFetcher->getParam("polynomials/g2ed_4", tmp);  gap_to_effective_dist_coeffs_[4] = tmp;
 
+  if ( itemFetcher->error_count_ > 0 )
+  {
+    ROS_WARN("itemFetcher error_count = %d",itemFetcher->error_count_);
+  }
   return !((bool) itemFetcher->error_count_);
 }
 
 
 bool LCGripperTransmission::initParametersFromServer(TiXmlElement *j)
 {
-  gap_joint_ = "gap_joint"; // BOBH: This was not set, as far as I could tell ???
-  itemFetcher_ = new ParamFetcher(j,gap_joint_);
+  itemFetcher_ = new ParamFetcher(j);
   if ( !getItems(itemFetcher_) )
   {
     return false;
   }
-  ros::NodeHandle nh(gap_joint_);
 
   return true;
 }
 
 bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot)
 {
-  std::cout << "Init Parameters" << std::endl;
-
   itemFetcher_ = new ParamFetcher(j,robot);
   if ( !getItems(itemFetcher_) )
   {
     return false;
   }
 
-  const char *joint_name=NULL;
-  itemFetcher_->getJointName(joint_name);
+  const char *joint_name = itemFetcher_->getJointName();
   gap_joint_ = std::string(joint_name);
   joint_names_.push_back(joint_name);  // The first joint is the gap joint
 
@@ -301,11 +297,11 @@ bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot
   char** argv;
 
   ros::init(argc, argv, gap_joint_);
-  ros::NodeHandle nh(gap_joint_);
 
   lcg_state_publisher_.reset(
       new realtime_tools::RealtimePublisher<gripper_control::LCGTransmissionState>
-        (nh, "state", 1));
+        (*(itemFetcher_->nh_), "state", 1));
+
   return true;
 }
 
@@ -333,89 +329,89 @@ bool LCGripperTransmission::initXml(TiXmlElement *config, Robot *robot)
   }
 
 
-    // Get passive joint informations
-    for (TiXmlElement *j = config->FirstChildElement("passive_joint"); j; j = j->NextSiblingElement("passive_joint"))
+  // Get passive joint informations
+  for (TiXmlElement *j = config->FirstChildElement("passive_joint"); j; j = j->NextSiblingElement("passive_joint"))
+  {
+    const char *joint_name = j->Attribute("name");
+    if (!joint_name)
     {
-      const char *joint_name = j->Attribute("name");
-      if (!joint_name)
-      {
-        ROS_ERROR("PR2GripperTransmission did not specify joint name");
-        return false;
-      }
-      const boost::shared_ptr<const urdf::Joint> joint = robot->robot_model_.getJoint(joint_name);
+      ROS_ERROR("PR2GripperTransmission did not specify joint name");
+      return false;
+    }
+    const boost::shared_ptr<const urdf::Joint> joint = robot->robot_model_.getJoint(joint_name);
 
+    if (!joint)
+    {
+      ROS_ERROR("PR2GripperTransmission could not find joint named \"%s\"", joint_name);
+      return false;
+    }
+
+    // add joint name to list
+    joint_names_.push_back(joint_name);  // Adds the passive joints after the gap joint
+    passive_joints_.push_back(joint_name);
+  }
+
+  // Get screw joint informations
+  for (TiXmlElement *j = config->FirstChildElement("simulated_actuated_joint"); j; j = j->NextSiblingElement("simulated_actuated_joint"))
+  {
+    const char *joint_name = j->Attribute("name");
+    if (!joint_name)
+    {
+      ROS_ERROR("PR2GripperTransmission simulated_actuated_joint did snot specify joint name");
+      use_simulated_actuated_joint_=false;
+    }
+    else
+    {
+      const boost::shared_ptr<const urdf::Joint> joint = robot->robot_model_.getJoint(joint_name);
       if (!joint)
       {
         ROS_ERROR("PR2GripperTransmission could not find joint named \"%s\"", joint_name);
-        return false;
-      }
-
-      // add joint name to list
-      joint_names_.push_back(joint_name);  // Adds the passive joints after the gap joint
-      passive_joints_.push_back(joint_name);
-    }
-
-    // Get screw joint informations
-    for (TiXmlElement *j = config->FirstChildElement("simulated_actuated_joint"); j; j = j->NextSiblingElement("simulated_actuated_joint"))
-    {
-      const char *joint_name = j->Attribute("name");
-      if (!joint_name)
-      {
-        ROS_ERROR("PR2GripperTransmission simulated_actuated_joint did snot specify joint name");
         use_simulated_actuated_joint_=false;
       }
       else
       {
-        const boost::shared_ptr<const urdf::Joint> joint = robot->robot_model_.getJoint(joint_name);
-        if (!joint)
+        use_simulated_actuated_joint_=true;
+        joint_names_.push_back(joint_name);  // The first joint is the gap joint
+
+        // get the thread pitch
+        const char *simulated_reduction = j->Attribute("simulated_reduction");
+        if (!simulated_reduction)
         {
-          ROS_ERROR("PR2GripperTransmission could not find joint named \"%s\"", joint_name);
-          use_simulated_actuated_joint_=false;
+          ROS_ERROR("PR2GripperTransmission's joint \"%s\" has no coefficient: simulated_reduction.", joint_name);
+          return false;
         }
-        else
+        try
         {
-          use_simulated_actuated_joint_=true;
-          joint_names_.push_back(joint_name);  // The first joint is the gap joint
-
-          // get the thread pitch
-          const char *simulated_reduction = j->Attribute("simulated_reduction");
-          if (!simulated_reduction)
-          {
-            ROS_ERROR("PR2GripperTransmission's joint \"%s\" has no coefficient: simulated_reduction.", joint_name);
-            return false;
-          }
-          try
-          {
-            simulated_reduction_ = boost::lexical_cast<double>(simulated_reduction);
-          }
-          catch (boost::bad_lexical_cast &e)
-          {
-            ROS_ERROR("simulated_reduction (%s) is not a float",simulated_reduction);
-            return false;
-          }
-
-          // get any additional joint introduced from this screw joint implementation
-          // for the gripper, this is due to the limitation that screw constraint
-          // requires axis of rotation to be aligned with line between CG's of the two
-          // connected bodies.  For this reason, an additional slider joint was introduced
-          // thus, requiring joint state to be published for motion planning packages
-          // and that's why we're here.
-          const char *passive_actuated_joint_name = j->Attribute("passive_actuated_joint");
-          if (passive_actuated_joint_name)
-          {
-            const boost::shared_ptr<const urdf::Joint> passive_actuated_joint = robot->robot_model_.getJoint(passive_actuated_joint_name);
-            if (passive_actuated_joint)
-            {
-              has_simulated_passive_actuated_joint_ = true;
-              joint_names_.push_back(passive_actuated_joint_name);  // The first joint is the gap joint
-            }
-          }
-
+          simulated_reduction_ = boost::lexical_cast<double>(simulated_reduction);
         }
+        catch (boost::bad_lexical_cast &e)
+        {
+          ROS_ERROR("simulated_reduction (%s) is not a float",simulated_reduction);
+          return false;
+        }
+
+        // get any additional joint introduced from this screw joint implementation
+        // for the gripper, this is due to the limitation that screw constraint
+        // requires axis of rotation to be aligned with line between CG's of the two
+        // connected bodies.  For this reason, an additional slider joint was introduced
+        // thus, requiring joint state to be published for motion planning packages
+        // and that's why we're here.
+        const char *passive_actuated_joint_name = j->Attribute("passive_actuated_joint");
+        if (passive_actuated_joint_name)
+        {
+          const boost::shared_ptr<const urdf::Joint> passive_actuated_joint = robot->robot_model_.getJoint(passive_actuated_joint_name);
+          if (passive_actuated_joint)
+          {
+            has_simulated_passive_actuated_joint_ = true;
+            joint_names_.push_back(passive_actuated_joint_name);  // The first joint is the gap joint
+          }
+        }
+
       }
     }
+  }
 
-    // assuming simulated gripper prismatic joint exists, use it
+  // assuming simulated gripper prismatic joint exists, use it
 
   return true;
 }
