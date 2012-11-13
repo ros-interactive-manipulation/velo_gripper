@@ -139,7 +139,8 @@ int LCGripperTransmissionTest::mytest()
 	cout << "Mt @ 10N: " << Mt << endl;
 	
 	cout << "Done" << endl;
-	
+
+	return 0;
 }
 } // END namespace
 
