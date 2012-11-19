@@ -45,7 +45,7 @@
 
    @param type Must be "CappedJointPositionController"
    @param joint Name of the joint to control.
-   @param pid Contains the gains for the PID loop around position.  See: control_toolbox::CappedPid
+   @param pid Contains the gains for the PID loop around position.  See: control_toolbox::Pid
 
    Subscribes to:
 
@@ -61,7 +61,8 @@
 #include <ros/node_handle.h>
 
 #include <pr2_controller_interface/controller.h>
-#include <gripper_control/capped_pid.h>
+//#include <gripper_control/capped_pid.h>
+#include <control_toolbox/pid.h>
 #include <boost/scoped_ptr.hpp>
 #include <boost/thread/condition.hpp>
 #include <realtime_tools/realtime_publisher.h>
@@ -78,7 +79,7 @@ public:
   CappedJointPositionController();
   ~CappedJointPositionController();
 
-  bool init(pr2_mechanism_model::RobotState *robot, const std::string &joint_name,const control_toolbox::CappedPid &pid);
+  bool init(pr2_mechanism_model::RobotState *robot, const std::string &joint_name,const control_toolbox::Pid &pid);
   bool init(pr2_mechanism_model::RobotState *robot, ros::NodeHandle &n);
 
   /*!
@@ -91,7 +92,7 @@ public:
   /*!
    * \brief Get latest position command to the joint: revolute (angle) and prismatic (position).
    */
-   void getCommand(double & cmd);
+  void getCommand(double & cmd);
 
   virtual void starting() {
     command_ = joint_state_->position_;
@@ -103,21 +104,25 @@ public:
    */
   virtual void update();
 
-  void getGains(double &p, double &i, double &d, double &i_max, double &i_min, double &error_max);
-  void setGains(const double &p, const double &i, const double &d, const double &i_max, const double &i_min, const double &error_max);
+  void getGains(double &p, double &i, double &d, double &i_max, double &i_min);
+  void setGains(const double &p, const double &i, const double &d, const double &i_max, const double &i_min);
 
   std::string getJointName();
-  pr2_mechanism_model::JointState *joint_state_;        /**< Joint we're controlling. */
+  pr2_mechanism_model::JointState *joint_state_; /**< Joint we're controlling. */
   ros::Duration dt_;
-  double command_;                            /**< Last commanded position. */
+  double command_;                               /**< Last commanded position. */
+
 
 private:
+
   int loop_count_;
   bool initialized_;
-  pr2_mechanism_model::RobotState *robot_;              /**< Pointer to robot structure. */
-  control_toolbox::CappedPid pid_controller_;       /**< Internal PID controller. */
-  ros::Time last_time_;                          /**< Last time stamp of update. */
 
+  double error_max_;
+
+  pr2_mechanism_model::RobotState *robot_;       /**< Pointer to robot structure. */
+  control_toolbox::Pid pid_controller_;          /**< Internal PID controller. */
+  ros::Time last_time_;                          /**< Last time stamp of update. */
 
   ros::NodeHandle node_;
 
@@ -127,6 +132,17 @@ private:
 
   ros::Subscriber sub_command_;
   void setCommandCB(const std_msgs::Float64ConstPtr& msg);
+
+  template <typename T> bool getNodeParam(const char *key, T &value)
+  {
+    if (!node_.getParam(key, value))
+    {
+      ROS_ERROR("Missing parameter, (namespace: %s) \"%s\"", node_.getNamespace().c_str(), key);
+      return false;
+    }
+    return true;
+  }
+
 };
 
 } // namespace
