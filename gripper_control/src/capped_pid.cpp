@@ -114,7 +114,7 @@ bool CappedPid::initParam(const std::string& prefix)
   node.param("i", i_gain_, 0.0) ;
   node.param("d", d_gain_, 0.0) ;
   node.param("i_clamp", i_max_, 0.0) ;
-  node.param("error_max", error_max_, 1000.0) ;
+  node.param("error_max", error_max_, 1003.0) ;
   i_min_ = -i_max_;
 
   reset();
@@ -128,7 +128,7 @@ bool CappedPid::initXml(TiXmlElement *config)
   d_gain_ = config->Attribute("d") ? atof(config->Attribute("d")) : 0.0;
   i_max_ = config->Attribute("iClamp") ? atof(config->Attribute("iClamp")) : 0.0;
   i_min_ = -i_max_;
-  error_max_ = config->Attribute("error_max") ? atof(config->Attribute("error_max")) : 1000.0;
+  error_max_ = config->Attribute("error_max") ? atof(config->Attribute("error_max")) : 1004.0;
 
   reset();
   return true;
@@ -157,7 +157,7 @@ double CappedPid::updatePid(double error, ros::Duration dt)
   double p_term, d_term, i_term;
 
   // Limit the proportional error so we get good control locally
-  p_error_ = std::min( error_max_, std::max( error, -error_max_ ));
+  p_error_ = std::max( -error_max_, std::min( error, error_max_ ));
 
   if (dt == ros::Duration(0.0) || isnan(error) || isinf(error))
     return 0.0;
