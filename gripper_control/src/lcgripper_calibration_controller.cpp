@@ -55,16 +55,35 @@ LCGripperCalibrationController::~LCGripperCalibrationController()
 }
 
 bool LCGripperCalibrationController::init(pr2_mechanism_model::RobotState *robot,
-                                        ros::NodeHandle &n)
+                                          ros::NodeHandle &n)
 {
+  std::string joint_name, actuator_name;
+
   assert(robot);
   robot_ = robot;
   node_ = n;
 
-  node_.param("stopped_velocity_tolerance", stopped_velocity_tolerance_, 0.0001);
+  getNodeParam<std::string>("joint", joint_name);
+  getNodeParam<std::string>("actuator", actuator_name);
+  getNodeParam<double>("velocity", search_velocity_);
+  getNodeParam<double>("stopped_velocity_tolerance", stopped_velocity_tolerance_);
+//  getNodeParam<double>("error_max", error_max_); // NOT NEEDED HERE. PICKED UP IN vc_ (THE CAPPED CONTROLLER).
+
+  if (!(joint_ = robot->getJointState(joint_name)))
+  {
+    ROS_ERROR("Could not find joint \"%s\" (namespace: %s)",joint_name.c_str(), node_.getNamespace().c_str());
+    return false;
+  }
+
+  if (!(actuator_ = robot->model_->getActuator(actuator_name)))
+  {
+    ROS_ERROR("Could not find actuator \"%s\" (namespace: %s)",
+              actuator_name.c_str(), node_.getNamespace().c_str());
+    return false;
+  }
 
   XmlRpc::XmlRpcValue other_joint_names;
-  if (node_.getParam("other_joints", other_joint_names))
+  if ( node_.getParam("other_joints", other_joint_names) )
   {
     if (other_joint_names.getType() != XmlRpc::XmlRpcValue::TypeArray)
     {
@@ -89,37 +108,6 @@ bool LCGripperCalibrationController::init(pr2_mechanism_model::RobotState *robot
     }
   }
 
-  if (!node_.getParam("velocity", search_velocity_))
-  {
-    ROS_ERROR("No velocity given (namespace: %s)", node_.getNamespace().c_str());
-    return false;
-  }
-
-  std::string joint_name;
-  if (!node_.getParam("joint", joint_name))
-  {
-    ROS_ERROR("No joint given (namespace: %s)", node_.getNamespace().c_str());
-    return false;
-  }
-  if (!(joint_ = robot->getJointState(joint_name)))
-  {
-    ROS_ERROR("Could not find joint \"%s\" (namespace: %s)",
-              joint_name.c_str(), node_.getNamespace().c_str());
-    return false;
-  }
-
-  std::string actuator_name;
-  if (!node_.getParam("actuator", actuator_name))
-  {
-    ROS_ERROR("No actuator given (namespace: %s)", node_.getNamespace().c_str());
-    return false;
-  }
-  if (!(actuator_ = robot->model_->getActuator(actuator_name)))
-  {
-    ROS_ERROR("Could not find actuator \"%s\" (namespace: %s)",
-              actuator_name.c_str(), node_.getNamespace().c_str());
-    return false;
-  }
   /*****
   if (actuator_->state_.zero_offset_ != 0){
     ROS_INFO("Joint %s is already calibrated at offset %f", joint_name.c_str(), actuator_->state_.zero_offset_);
@@ -129,6 +117,7 @@ bool LCGripperCalibrationController::init(pr2_mechanism_model::RobotState *robot
     state_ = CALIBRATED;
   }
   */
+  if ( false ) {}
   else{
     ROS_INFO("Joint '%s' will always (re)calibrate when loaded.", joint_name.c_str());
     state_ = INITIALIZED;
@@ -137,7 +126,7 @@ bool LCGripperCalibrationController::init(pr2_mechanism_model::RobotState *robot
 
 
 
-  if (!vc_.init(robot, node_))
+  if (!(vc_.init(robot, node_)))
     return false;
 
   // advertise service to check calibration
@@ -155,11 +144,19 @@ void LCGripperCalibrationController::starting()
   state_ = INITIALIZED;
   actuator_->state_.zero_offset_ = 0.0;
   joint_->calibrated_ = false;
+  s0_ = state_;
+
+  ROS_INFO("%d : INITIALIZED", INITIALIZED);
+  ROS_INFO("%d : STARTING", STARTING);
+  ROS_INFO("%d : CLOSING", CLOSING);
+  ROS_INFO("%d : BACK_OFF", BACK_OFF);
+  ROS_INFO("%d : HOME", HOME);
+  ROS_INFO("%d : CALIBRATED", CALIBRATED);
 }
 
 
 bool LCGripperCalibrationController::isCalibrated(pr2_controllers_msgs::QueryCalibrationState::Request& req,
-						pr2_controllers_msgs::QueryCalibrationState::Response& resp)
+						  pr2_controllers_msgs::QueryCalibrationState::Response& resp)
 {
   resp.is_calibrated = (state_ == CALIBRATED);
   return true;
@@ -171,26 +168,40 @@ void LCGripperCalibrationController::update()
   assert(joint_);
   assert(actuator_);
 
+  // DEBUG STATE TRANSITIONS
+  if ( s0_ != state_ || (stop_count_ && !(stop_count_ % 100)) )
+  { ROS_WARN("STATE: %d --> %d    (c=%d)  jvel=%.4lf",s0_,state_,stop_count_,joint_->velocity_);
+    s0_=state_;
+  }
+
   // Always
-  if ( !joint_->calibrated_ && fabs(joint_->velocity_) < this->stopped_velocity_tolerance_)
+  if ( !(joint_->calibrated_) && fabs(joint_->velocity_) < stopped_velocity_tolerance_)
     stop_count_++;
   else
-    stop_count_ = 0;
+    stop_count_=0;
+
+  double LCGCC_mttop   =  0.0165;
+  double LCGCC_empty   =  0.0140;
+  double LCGCC_install =  0.0135;
+  double LCGCC_wrong   =  0.0090;
+  double LCGCC_backoff =  0.0030;
+  double LCGCC_mtclosed= -0.0040;
+  double LCGCC_mtbottom= -0.0200;
 
   switch (state_)
   {
   case INITIALIZED:
-    state_ = BEGINNING;
-    return;
+    state_ = STARTING;
+    break;
 
-  case BEGINNING:
+  case STARTING:
     close_count_ = 0;
     stop_count_ = 0;
 
     joint_->calibrated_ = false;
     actuator_->state_.zero_offset_ = 0.0;
 
-    vc_.setCommand( -0.020 ); // More than full travel
+    vc_.setCommand( LCGCC_mtbottom ); // More than full travel
     state_ = CLOSING;
     break;
 
@@ -206,43 +217,56 @@ void LCGripperCalibrationController::update()
       if ( close_count_ < 2 )
       {
         // BACK OFF A TIME OR TWO TO MAKE SURE WE ARE AT THE END OF TRAVEL
-        vc_.setCommand( 0.003 ); // Bump out from our new zero
+        ROS_INFO("FOUND Bottom, now heading to BACKOFF");
+        vc_.setCommand( LCGCC_backoff ); // Bump out from our new zero
         state_ = BACK_OFF;
       }
       else
       {
         // FOUND THE BOTTOM OF TRAVEL
-        vc_.setCommand( 0.0135 ); // Gripper installation position
-        state_ = HOME;
+        ROS_INFO("FOUND Bottom, now heading to TOP");
+        vc_.setCommand( LCGCC_mttop ); // Gripper installation/fully-open position.
+        state_ = TOP;
       }
     }
-
     break;
 
   case BACK_OFF: // Back off so we can reset from a known good position
-    if (stop_count_ > 500)
+    if (stop_count_ > 400)
     {
       stop_count_ = 0;
-      vc_.setCommand( -0.020 ); // More than full travel
+      vc_.setCommand( LCGCC_mtclosed );
       state_ = CLOSING;
     }
     break;
 
-  case HOME:
-    if (stop_count_ > 1000)
+  case TOP:
+    /* PUSHING THE BALLSCREW ALL THE WAY OUT FROM CLOSED TELLS US THAT WE HAVE A GRIPPER INSTALLED CORRECTLY */
+    if (stop_count_ > 600)
     {
-      if ( joint_->position_ < 0.009)
+      if ( joint_->position_ < LCGCC_wrong )
       {
         ROS_WARN("Gripper NOT installed properly!  Please reinstall and recalibrate.  (pos=%6.4fm)",joint_->position_);
+        vc_.setCommand( LCGCC_backoff ); // Go to a safe place, not at either end.
+
       }
-      else if ( joint_->position_ > 0.014)
+      else if ( joint_->position_ > LCGCC_empty )
       {
         ROS_WARN("Gripper NOT installed!  Please install and recalibrate.  (pos=%6.4fm)",joint_->position_);
+        vc_.setCommand( LCGCC_install ); // Gripper installation/fully-open position.
       }
+      state_ = HOME;
+    }
+    break;
 
+  case HOME:
+    if (stop_count_ > 400)
+    {
+      stop_count_ = 0;
       joint_->calibrated_ = true;
       for (size_t i = 0; i < other_joints_.size(); ++i)
         other_joints_[i]->calibrated_ = true;
+      vc_.setGains(0.0,0.0,0.0,0.0,0.0);
       state_ = CALIBRATED;
     }
     break;

@@ -34,8 +34,6 @@
 
 #pragma once
 
-
-
 #include "pr2_mechanism_model/robot.h"
 #include "gripper_control/capped_joint_position_controller.h"
 #include "realtime_tools/realtime_publisher.h"
@@ -60,10 +58,12 @@ public:
 
 protected:
 
-  enum { INITIALIZED, BEGINNING, STARTING, CLOSING, BACK_OFF, HOME, CALIBRATED };
+  enum { INITIALIZED, STARTING, CLOSING, BACK_OFF, TOP, HOME, CALIBRATED };
   int state_;
   int close_count_;
   int stop_count_;
+
+  int s0_,c0_;
 
   ros::NodeHandle node_;
   pr2_mechanism_model::RobotState *robot_;
@@ -71,17 +71,29 @@ protected:
   ros::ServiceServer is_calibrated_srv_;
   boost::scoped_ptr<realtime_tools::RealtimePublisher<std_msgs::Empty> > pub_calibrated_;
 
-  double search_velocity_;
-  double search_delta_;
-
-  pr2_hardware_interface::Actuator *actuator_;
   pr2_mechanism_model::JointState *joint_;
+  pr2_hardware_interface::Actuator *actuator_;
   std::vector<pr2_mechanism_model::JointState*> other_joints_;
 
   double init_time;
+  double search_velocity_;
   double stopped_velocity_tolerance_;
+  double error_max_;
 
   controller::CappedJointPositionController vc_; /** The joint position controller used to move the joint.*/
+
+private:
+
+  template <typename T> bool getNodeParam(const char *key, T &value)
+  {
+    if (!node_.getParam(key, value))
+    {
+      ROS_ERROR("Missing parameter, (namespace: %s) \"%s\"", node_.getNamespace().c_str(), key);
+      return false;
+    }
+    return true;
+  }
+
 };
 
 
