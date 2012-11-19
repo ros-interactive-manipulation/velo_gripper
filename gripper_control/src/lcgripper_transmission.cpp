@@ -56,6 +56,7 @@
 #include <angles/angles.h>
 #include <boost/lexical_cast.hpp>
 #include <iostream>
+#include <string>
 
 #include <math.h>
 
@@ -70,18 +71,52 @@ PLUGINLIB_DECLARE_CLASS(gripper_control, LCGripperTransmission,
 
 class LCGripperTransmission::ParamFetcher
 {
+
+private:
+  const TiXmlElement *j_;
+  const char* joint_name_;
+
 public:
+
+  int error_count_;
+
+  ros::NodeHandle *nh_;
+
+
   // CONSTRUCTOR
   ParamFetcher(const TiXmlElement *j, Robot *robot = NULL): nh_(NULL)
   {
-    ROS_WARN("ParamFetcher: constructor with j=%p,  robot=%p",j,robot);
+    ROS_INFO("ParamFetcher: constructor with j=%p,  robot=%p",j,robot);
     error_count_=0;
     j_ = j;
-    setJointName();
 
+
+    // SET joint_name_ FROM XML
+    joint_name_ = j_->Attribute("name");
+    if (!joint_name_)
+    {
+      error_count_++;
+      ROS_ERROR("LCGripperTransmission did not specify joint name");
+      return;
+    }
+    ROS_INFO("JointName = %s", joint_name_ );
+
+    // CREATE NODE HANDLE
+    nh_ = new ros::NodeHandle(std::string(joint_name_));
+    if (!nh_->ok())
+    {
+      error_count_++;
+      ROS_ERROR("LCG Transmission: node handle does not exist/is shutdown");
+      return;
+    }
+
+    /************************************
     if (robot)
     {
-      const boost::shared_ptr<const urdf::Joint> joint = robot->robot_model_.getJoint(joint_name_);
+      // SET joint_name_ FROM ROBOT POINTER
+      std::string jn_str;
+      const boost::shared_ptr<const urdf::Joint> joint = robot->robot_model_.getJoint(jn_str);
+      joint_name_ = jn_str.c_str();
       if (!joint)
       {
         error_count_++;
@@ -89,6 +124,9 @@ public:
         return;
       }
     }
+    ****************************************/
+
+
   }
 
   // DESTRUCTOR
@@ -157,38 +195,6 @@ public:
     {
       return true;
     }
-  }
-
-  int error_count_;
-
-  ros::NodeHandle *nh_;
-
-private:
-
-  const TiXmlElement *j_;
-  const char* joint_name_;
-
-  // SET THE NAME OF THIS joint. USED WITHIN ALL OTHER METHODS.
-  bool setJointName()
-  {
-    joint_name_ = j_->Attribute("name");
-    ROS_WARN("JointName = %s", joint_name_ );
-    if (!joint_name_)
-    {
-      error_count_++;
-      ROS_ERROR("LCGripperTransmission did not specify joint name");
-      return false;
-    }
-
-    nh_ = new ros::NodeHandle(std::string(joint_name_));
-    if (!nh_->ok())
-    {
-      error_count_++;
-      ROS_ERROR("LCG Transmission: node handle didn't exist/is shutdown");
-      return false;
-    }
-
-    return true;
   }
 
 };
@@ -535,9 +541,11 @@ void LCGripperTransmission::propagatePosition(std::vector<Actuator*>& as, std::v
   }
 
   // Negate output, since input is negated. TODO: Fix this at the controller level.
-  double motor_pos  = -as[0]->state_.position_;
-  double motor_vel  =  getMotorQtyFromEncoderQty(as[0]->state_.velocity_);
-  double motor_torque  =  as[0]->state_.last_measured_effort_; // Convert current -> Nm
+  double motor_pos  = as[0]->state_.position_;
+  assert(std::fabs(as[0]->state_.velocity_)<100000.0);
+  double motor_vel  =  as[0]->state_.velocity_;
+  assert(std::fabs(motor_vel)<100000.0);
+  double motor_torque  =  tqSign_ * as[0]->state_.last_measured_effort_; // Convert current -> Nm
 
   double tendon_length  = getLengthFromMotorPos(motor_pos);
   double tendon_vel  = getTendonLengthVelFromMotorVel(motor_vel);
@@ -648,8 +656,7 @@ void LCGripperTransmission::propagatePositionBackwards(std::vector<JointState*>&
     double gap_size     = getGapFromTheta(theta1);
     double tendon_length    = getTendonLengthFromGap(gap_size);
     double motor_pos     = getMotorPosFromLength(tendon_length);
-    double enc_pos       = getEncoderQtyFromMotorQty(motor_pos) + 5762.49; //TODO: why this constant???
-    //ROS_ERROR("PropagatePositionBackwards(): Theta1: %f, GAP SIZE: %f, TENDON LENGTH: %f, MOTOR POS: %f, ENC POS: %f", theta1, gap_size, tendon_length, motor_pos, enc_pos);
+    //ROS_ERROR("PropagatePositionBackwards(): Theta1: %f, GAP SIZE: %f, TENDON LENGTH: %f, MOTOR POS: %f", theta1, gap_size, tendon_length, motor_pos);
 
     double gap_rate      = theta1_vel*cos(theta1);
     double tendon_rate    = getTendonLengthVelFromGapVel(gap_rate, gap_size);
@@ -659,17 +666,17 @@ void LCGripperTransmission::propagatePositionBackwards(std::vector<JointState*>&
     double motor_torque    = getMotorTorqueFromTendonForce(tendon_force);
     double motor_effort    = getMotorEffortFromTorque(motor_torque);
 
-    as[0]->state_.position_             = enc_pos;
+    as[0]->state_.position_             = motor_pos;
     as[0]->state_.velocity_             = motor_vel;
-    as[0]->state_.last_measured_effort_ = motor_effort;
+    as[0]->state_.last_measured_effort_ = tqSign_ * motor_effort;
   }
   else
   {  /* WHEN CALIBRATING, THE TRANSMISSION IS TO TENDON ie BALLSCREW */
     // Negate output, since input is negated. TODO: Fix this at the controller level.
-    as[0]->state_.position_             = getMotorPosFromLength(-js[0]->position_);
+    as[0]->state_.position_             = getMotorPosFromLength(js[0]->position_);
     as[0]->state_.velocity_             = getMotorVelFromTendonLengthVel(js[0]->velocity_);
     // Negate output, since input is negated. TODO: Fix this at the controller level.
-    as[0]->state_.last_measured_effort_ = getMotorTorqueFromTendonForce(-js[0]->commanded_effort_);
+    as[0]->state_.last_measured_effort_ = getMotorTorqueFromTendonForce(tqSign_ * js[0]->commanded_effort_);
   }
 
   // Update the timing (making sure it's initialized).
@@ -739,9 +746,9 @@ void LCGripperTransmission::propagateEffort(
     }
 
     as[0]->command_.enable_ = true;
-    as[0]->command_.effort_ = -motor_torque; // Negate output, since input is negated. TODO: Fix this at the controller level.
+    as[0]->command_.effort_ = tqSign_ * motor_torque; // Negate output, since input is negated. TODO: Fix this at the controller level.
 
-    if(loop_count_ % 10 == 0)
+    if(++loop_count_ % 10 == 0)
     {
       if(lcg_state_publisher_ && lcg_state_publisher_->trylock())
       {
@@ -756,14 +763,13 @@ void LCGripperTransmission::propagateEffort(
         lcg_state_publisher_->unlockAndPublish();
       }
     }
-    loop_count_++;
   }
   else
   {
     /* WHEN CALIBRATING, THE TRANSMISSION IS TO TENDON ie BALLSCREW */
     // Negate output, since input is negated. TODO: Fix this at the controller level.
     as[0]->command_.enable_ = true;
-    as[0]->command_.effort_ = getMotorTorqueFromTendonForce(-js[0]->commanded_effort_);
+    as[0]->command_.effort_ = getMotorTorqueFromTendonForce(tqSign_ * js[0]->commanded_effort_);
   }
 }
 
@@ -788,10 +794,10 @@ void LCGripperTransmission::propagateEffortBackwards(
 
   if ( js[0]->calibrated_ )
   {
-    double motor_effort   = as[0]->command_.effort_;
+    double motor_effort   = tqSign_ * as[0]->command_.effort_;
 
     // gap_size is required to compute the effective distance from the tendon to the J0 joint
-    double motor_pos  = getMotorQtyFromEncoderQty(as[0]->state_.position_);
+    double motor_pos  = as[0]->state_.position_;
     double tendon_length   = getLengthFromMotorPos(motor_pos);
     double gap_size    = getGapFromTendonLength(tendon_length);
 
@@ -820,7 +826,7 @@ void LCGripperTransmission::propagateEffortBackwards(
   {
     /* WHEN CALIBRATING, THE TRANSMISSION IS TO TENDON ie BALLSCREW */
     // Negate output, since input is negated. TODO: Fix this at the controller level.
-    js[0]->commanded_effort_  = getTendonForceFromMotorTorque(-as[0]->command_.effort_);
+    js[0]->commanded_effort_  = getTendonForceFromMotorTorque(tqSign_ * as[0]->command_.effort_);
   }
 }
 
@@ -835,7 +841,6 @@ double LCGripperTransmission::getLengthFromMotorPos(double motor_pos)
   double tendon_length = motor_pos / gear_reduction_ * RAD2REV * screw_lead_;
   return tendon_length;  // m
 }
-
 
 double LCGripperTransmission::getGapFromTheta(double theta)
 { // NB: theta = radians
@@ -986,12 +991,6 @@ double LCGripperTransmission::getTendonForceFromGripperForce(double gripper_forc
 
   double torque = force_j1 * l1_; // l1 is in mm
 
-  double effective_distance = getFlexorMomentArm(gap_size);
-
-  double tendon_force = torque / (effective_distance);
-  //ROS_WARN("getTendonForceFromGripperForce()
-
-
   double t1 = getThetaFromGap(gap_size);
   double Fe = getExtensorTendonForce(t1);
   if (gripper_force <= 0.0) // Positive force = close gripper
@@ -1003,7 +1002,7 @@ double LCGripperTransmission::getTendonForceFromGripperForce(double gripper_forc
   r_g1_ = l2_/2.0;
 
   double Ff = 2.0* (Fg*(r_g1_ - (r_c1_/r_c0_)*r_g0_) + Fe*(r_e1_ - (r_c1_/r_c0_)*r_e0_)) / (r_f1_ - (r_c1_/r_c0_)*r_f0_);
-//  ROS_INFO("getFFfromFG: Fg: %f, gap %f, t1 %f;    Fe %f, Ff %f   tendon_force %f", Fg, gap_size, t1, Fe, Ff, tendon_force);
+//  ROS_INFO("getFFfromFG: Fg: %f, gap %f, t1 %f;    Fe %f, Ff %f ", Fg, gap_size, t1, Fe, Ff);
   return Ff; // Double the result as the motor force is split between the two tendons
 }
 
@@ -1049,13 +1048,13 @@ double LCGripperTransmission::getFlexorMomentArm(double gap_size)
 
 double LCGripperTransmission::getMotorQtyFromEncoderQty(double encQty)
 {
-  double motorQty = (encQty/enc_ticks_)*REV2RAD;
+  double motorQty = encQty*REV2RAD;
   return motorQty;
 }
 
 double LCGripperTransmission::getEncoderQtyFromMotorQty(double motorQty)
 {
-  double encQty = motorQty*RAD2REV*enc_ticks_;
+  double encQty = motorQty*RAD2REV;
   return encQty;
 }
 

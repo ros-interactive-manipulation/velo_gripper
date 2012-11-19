@@ -69,8 +69,10 @@ namespace pr2_mechanism_model {
 class LCGripperTransmission : public Transmission
 {
 public:
-  LCGripperTransmission(): use_simulated_actuated_joint_(false),
-         has_simulated_passive_actuated_joint_(false) {};
+  LCGripperTransmission():
+         use_simulated_actuated_joint_(false),
+         has_simulated_passive_actuated_joint_(false),
+         tqSign_(1.0) {};
   virtual ~LCGripperTransmission() {/*myfile.close();*/}
 
   bool initXml(TiXmlElement *config, Robot *robot);
@@ -90,6 +92,8 @@ public:
   double      simulated_reduction_;
   bool        use_simulated_actuated_joint_;
   bool        has_simulated_passive_actuated_joint_;
+
+  double tqSign_;
 
   // The joint_names_ variable is inherited from Transmission.  In
   // joint_names_, the gap joint is first, followed by all the passive
@@ -192,7 +196,6 @@ private:
   double r_g0_;
   double r_g1_;
 
-  double enc_ticks_;
   double max_torque_;
 
   // FITTED POLYNOMIALS:
@@ -201,7 +204,6 @@ private:
   std::vector<double> gap_to_effective_dist_coeffs_;
 
   // Drivetrain parameters
-  double encoder_ticks_per_rev_; // eg 1200 pulses per motor rev.
   double gear_reduction_; // gear reduction from motor to ball screw shaft: MotorSpeed/GearReduction -> BallScrewSpeed
   double gripper_efficiency_;
   double screw_lead_;
