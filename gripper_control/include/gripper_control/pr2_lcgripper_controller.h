@@ -61,7 +61,7 @@
 #include <ros/node_handle.h>
 
 #include <pr2_controller_interface/controller.h>
-#include <gripper_control/lcgripper_pid.h>
+#include <control_toolbox/pid.h>
 #include <control_toolbox/pid_gains_setter.h>
 #include <boost/scoped_ptr.hpp>
 #include <boost/thread/condition.hpp>
