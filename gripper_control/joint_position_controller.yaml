@@ -2,13 +2,16 @@ fake_controller:
     type: pr2_calibration_controllers/FakeCalibrationController
     joint: gripper_joint
 calibration_controller:
-    type: pr2_calibration_controllers/GripperCalibrationController
-    joint: gripper_joint
+    type: gripper_control/LCGripperCalibrationController
+    joint: l_gripper_joint
     actuator: low_cost_gripper_motor
-    velocity: 0.004
+    velocity: 0.005
+    stopped_velocity_tolerance: 0.001
+    error_max: 0.0004
     pid:
-        p: 40000.0
-        d: 200.0
+        p: 800000.0
+        d: 100000.0
+        i: 0.0
         i_clamp: 0.0
 cycle_controller:
     type: robot_mechanism_controllers/JointPositionController

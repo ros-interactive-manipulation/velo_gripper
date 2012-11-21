@@ -46,7 +46,7 @@ namespace controller
 {
 
 LCGripperCalibrationController::LCGripperCalibrationController()
-  : next_publish_time_(0), joint_(NULL)
+  : next_publish_time_(0), joint_(NULL), zero_offset_(0.0)
 {
 }
 
@@ -65,7 +65,6 @@ bool LCGripperCalibrationController::init(pr2_mechanism_model::RobotState *robot
 
   getNodeParam<std::string>("joint", joint_name);
   getNodeParam<std::string>("actuator", actuator_name);
-  getNodeParam<double>("velocity", search_velocity_);
   getNodeParam<double>("stopped_velocity_tolerance", stopped_velocity_tolerance_);
 //  getNodeParam<double>("error_max", error_max_); // NOT NEEDED HERE. PICKED UP IN vc_ (THE CAPPED CONTROLLER).
 
@@ -146,13 +145,13 @@ void LCGripperCalibrationController::starting()
   joint_->calibrated_ = false;
   s0_ = state_;
 
-  ROS_INFO("%d : INITIALIZED", INITIALIZED);
-  ROS_INFO("%d : STARTING", STARTING);
-  ROS_INFO("%d : CLOSING", CLOSING);
-  ROS_INFO("%d : BACK_OFF", BACK_OFF);
-  ROS_INFO("%d : TOP", TOP);
-  ROS_INFO("%d : HOME", HOME);
-  ROS_INFO("%d : CALIBRATED", CALIBRATED);
+  // ROS_INFO("%d : INITIALIZED", INITIALIZED);
+  // ROS_INFO("%d : STARTING", STARTING);
+  // ROS_INFO("%d : CLOSING", CLOSING);
+  // ROS_INFO("%d : BACK_OFF", BACK_OFF);
+  // ROS_INFO("%d : TOP", TOP);
+  // ROS_INFO("%d : HOME", HOME);
+  // ROS_INFO("%d : CALIBRATED", CALIBRATED);
 }
 
 
@@ -185,7 +184,7 @@ void LCGripperCalibrationController::update()
   else
     stop_count_=0;
 
-  int settleCount = 300;
+  int settleCount = 600;
 
   double LCGCC_MTtop     =  0.0165;    // FULL TRAVEL is 0.0162
   double LCGCC_empty     =  0.0150;    // More travel than this indicates Missing Gripper (or broken tendon)
@@ -261,13 +260,13 @@ void LCGripperCalibrationController::update()
       stop_count_ = 0;
       if ( joint_->position_ < LCGCC_wrong )
       {
-        ROS_WARN("Gripper NOT installed properly!  Please reinstall and recalibrate.  (pos=%6.4fm)",joint_->position_);
+        ROS_ERROR("Gripper NOT installed properly!  Please reinstall and recalibrate.  (pos=%6.4fm)",joint_->position_);
         goalCommand( LCGCC_BObottom); // Go to a safe place, not at either end.
 
       }
       else if ( joint_->position_ > LCGCC_empty )
       {
-        ROS_WARN("Gripper NOT installed!  Please install and recalibrate.  (pos=%6.4fm)",joint_->position_);
+        ROS_ERROR("Gripper NOT installed!  Please install and recalibrate.  (pos=%6.4fm)",joint_->position_);
         goalCommand( joint_->position_ - LCGCC_BOinstall ); // Gripper installation/fully-open position.
       }
       state_ = HOME;

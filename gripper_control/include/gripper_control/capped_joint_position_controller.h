@@ -119,6 +119,7 @@ private:
   bool initialized_;
 
   double error_max_;
+  double velocity_;
 
   pr2_mechanism_model::RobotState *robot_;       /**< Pointer to robot structure. */
   control_toolbox::Pid pid_controller_;          /**< Internal PID controller. */

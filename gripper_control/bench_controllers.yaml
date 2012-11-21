@@ -4,13 +4,13 @@ fake_controller:
 calibration_controller:
     type: gripper_control/LCGripperCalibrationController
     joint: l_gripper_joint
-    actuator: low_cost_gripper_motor
-    velocity: 0.005
+    actuator: l_gripper_motor
     stopped_velocity_tolerance: 0.001
-    error_max: 0.0004
+    error_max: 0.005
+    velocity:  0.003
     pid:
-        p: 800000.0
-        d: 100000.0
+        p: 50000.0
+        d: 50000.0
         i: 0.0
         i_clamp: 0.0
 cycle_controller:

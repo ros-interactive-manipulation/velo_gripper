@@ -32,12 +32,14 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
+#include <math.h>
 #include "gripper_control/capped_joint_position_controller.h"
 #include "angles/angles.h"
 #include "pluginlib/class_list_macros.h"
 
 PLUGINLIB_DECLARE_CLASS(gripper_control, CappedJointPositionController,
-                             controller::CappedJointPositionController, pr2_controller_interface::Controller);
+                             controller::CappedJointPositionController, 
+               pr2_controller_interface::Controller);
 
 using namespace std;
 
@@ -91,6 +93,7 @@ bool CappedJointPositionController::init(pr2_mechanism_model::RobotState *robot,
   getNodeParam<std::string>("joint", joint_name);
   getNodeParam<double>("error_max", error_max_);    /**< special-sauce IN THE _CAPPED_ VERSION OF THIS CONTROLLER */
   error_max_ = std::fabs(error_max_);
+  getNodeParam<double>("velocity", velocity_);      /**< special-sauce IN THE _CAPPED_ VERSION OF THIS CONTROLLER */
 
   control_toolbox::Pid pid;
   if (!pid.init(ros::NodeHandle(node_, "pid")))
@@ -166,11 +169,21 @@ void CappedJointPositionController::update()
   }
 
   /** limit the postion error */
-  double capped_error = std::max( -error_max_, std::min( error, error_max_));
+  double capped_pError, capped_vError;
+  if ( std::fabs(error) > error_max_ ) {  //  SIGNUM(error)*velocity_ - v
+    capped_vError = copysign(velocity_,error) - joint_state_->velocity_;
+    capped_vError *= 100 * capped_vError; // Squared !  We want this to dominate
+  }
+  else {
+    capped_vError = 0.0;
+  }
+  capped_pError = std::max( -error_max_, std::min( error, error_max_));
 
-  double commanded_effort = pid_controller_.updatePid(capped_error, dt_);  // assuming desired velocity is 0
-  //double commanded_effort = pid_controller_.updatePid(error, joint_state_->velocity_, dt_);
-  joint_state_->commanded_effort_ += commanded_effort; // There may already be a command from somewhere else in the system ??
+  // double commanded_effort = pid_controller_.updatePid(capped_pError, dt_);  // assuming desired velocity is 0
+  double commanded_effort = pid_controller_.updatePid(capped_pError, capped_vError, dt_);
+  //assert(joint_state_->commanded_effort_==0.0);  // I DON'T WANT ANY OTHER TORQUE...
+  //joint_state_->commanded_effort_ += commanded_effort; // There may already be a command from somewhere else in the system ??
+  joint_state_->commanded_effort_ = commanded_effort;
 
   if(loop_count_++ % 25 == 0)
   {

@@ -840,22 +840,31 @@ double LCGripperTransmission::getGapFromTheta(double theta)
 
 double LCGripperTransmission::getThetaFromGap(double gap)
 {
+  static int count = 1;
+
   // The inverse of getGapFromTheta.
   double inner_part = (gap/2.0 - fabs(j0x_)/2.0 + thickness_)/l1_;
+
   if (inner_part > 1.0)
   {
-    ROS_ERROR("GetThetaFromGap invalid - trying to get acos of %f", inner_part);
-    ROS_WARN("gap: %f \tj0x_: %f \tthickness: %f \tl1: %f \tinner: %f", gap, j0x_, thickness_, l1_, inner_part);
+    if ( !count ) {
+    ROS_ERROR("GetThetaFromGap invalid - trying to get acos of %.1g", inner_part);
+    ROS_WARN("gap: %f \tj0x_: %.1g \tthickness: %.1g \tl1: %.1g \tinner: %.1g", gap, j0x_, thickness_, l1_, inner_part);
+    }
     inner_part = 1.0;
   }
-  if (inner_part < -1.0)
+  else if (inner_part < -1.0)
   {
-    ROS_ERROR("GetThetaFromGap invalid - trying to get acos of %f", inner_part);
+    if ( !count ) {
+    ROS_ERROR("GetThetaFromGap invalid - trying to get acos of %.1g", inner_part);
     ROS_WARN("gap: %f \tj0x_: %f \tthickness: %f \tl1: %f \tinner: %f", gap, j0x_, thickness_, l1_, inner_part);
+    }
     inner_part = -1.0;
   }
   double theta = acos(inner_part);
   return theta; // NB: radians
+
+  if ( !(++count % 1000) ) count = 0.0;
 }
 
 double LCGripperTransmission::getTendonLengthFromGap(double gap)
