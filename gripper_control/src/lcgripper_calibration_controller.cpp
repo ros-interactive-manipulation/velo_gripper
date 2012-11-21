@@ -119,7 +119,7 @@ bool LCGripperCalibrationController::init(pr2_mechanism_model::RobotState *robot
   */
   if ( false ) {}
   else{
-    ROS_INFO("Joint '%s' will always (re)calibrate when loaded.", joint_name.c_str());
+    ROS_INFO("Joint \"%s\" will always (re)calibrate when calibration is run", joint_name.c_str());
     state_ = INITIALIZED;
     joint_->calibrated_ = false;
   }
@@ -150,6 +150,7 @@ void LCGripperCalibrationController::starting()
   ROS_INFO("%d : STARTING", STARTING);
   ROS_INFO("%d : CLOSING", CLOSING);
   ROS_INFO("%d : BACK_OFF", BACK_OFF);
+  ROS_INFO("%d : TOP", TOP);
   ROS_INFO("%d : HOME", HOME);
   ROS_INFO("%d : CALIBRATED", CALIBRATED);
 }
@@ -162,6 +163,10 @@ bool LCGripperCalibrationController::isCalibrated(pr2_controllers_msgs::QueryCal
   return true;
 }
 
+void LCGripperCalibrationController::goalCommand(double goal)
+{
+  vc_.setCommand( goal + zero_offset_);
+}
 
 void LCGripperCalibrationController::update()
 {
@@ -169,8 +174,8 @@ void LCGripperCalibrationController::update()
   assert(actuator_);
 
   // DEBUG STATE TRANSITIONS
-  if ( s0_ != state_ || (stop_count_ && !(stop_count_ % 100)) )
-  { ROS_WARN("STATE: %d --> %d    (c=%d)  jvel=%.4lf",s0_,state_,stop_count_,joint_->velocity_);
+  if ( s0_ != state_ || (stop_count_ && !(stop_count_ % 1000)) )
+  { ROS_INFO("STATE: %d --> %d    pos= %7.4lf  (zo= %7.4lf)",s0_,state_,joint_->position_,zero_offset_ );
     s0_=state_;
   }
 
@@ -180,13 +185,15 @@ void LCGripperCalibrationController::update()
   else
     stop_count_=0;
 
-  double LCGCC_mttop   =  0.0165;
-  double LCGCC_empty   =  0.0140;
-  double LCGCC_install =  0.0135;
-  double LCGCC_wrong   =  0.0090;
-  double LCGCC_backoff =  0.0030;
-  double LCGCC_mtclosed= -0.0040;
-  double LCGCC_mtbottom= -0.0200;
+  int settleCount = 300;
+
+  double LCGCC_MTtop     =  0.0165;    // FULL TRAVEL is 0.0162
+  double LCGCC_empty     =  0.0150;    // More travel than this indicates Missing Gripper (or broken tendon)
+  double LCGCC_BOinstall =  0.0006;    // "BackOff install" AMOUNT TO RETRACT FROM TOP TO installation point
+  double LCGCC_wrong     =  0.0090;    // Travel must be more than this to be engaged with tendon interlock (0.0075 minimum)
+  double LCGCC_BObottom  =  0.0030;    // "BackOff from Bottom"
+  double LCGCC_MTclosed  = -0.0040;    // "More Than Closed"  (After moving coords to bottom)
+  double LCGCC_MTbottom  = -0.0170;    // "More Than Bottom"  (Starting from anywhere)
 
   switch (state_)
   {
@@ -198,69 +205,77 @@ void LCGripperCalibrationController::update()
     close_count_ = 0;
     stop_count_ = 0;
 
-    joint_->calibrated_ = false;
     actuator_->state_.zero_offset_ = 0.0;
+    joint_->calibrated_ = false;
+    zero_offset_ = joint_->position_;
 
-    vc_.setCommand( LCGCC_mtbottom ); // More than full travel
+    goalCommand( LCGCC_MTbottom ); // More than full travel
     state_ = CLOSING;
     break;
 
   case CLOSING:
     // Makes sure the gripper is stopped for a while before cal
-    if (stop_count_ > 250)
+    if (stop_count_ > settleCount)
     {
       stop_count_ = 0;
-      // ALWAYS RESET THE ACTUATOR TO ZERO AT THE BOTTOM
-      actuator_->state_.zero_offset_ = actuator_->state_.position_;
 
-      close_count_++;
-      if ( close_count_ < 2 )
+      // ALWAYS RESET THE ACTUATOR TO ZERO AT THE BOTTOM
+      zero_offset_ = joint_->position_;
+
+      if ( ++close_count_ < 2 )
       {
         // BACK OFF A TIME OR TWO TO MAKE SURE WE ARE AT THE END OF TRAVEL
-        ROS_INFO("FOUND Bottom, now heading to BACKOFF");
-        vc_.setCommand( LCGCC_backoff ); // Bump out from our new zero
+//        ROS_INFO("FOUND Bottom, now heading to BACKOFF");
+        goalCommand( LCGCC_BObottom); // Bump out from our new zero
         state_ = BACK_OFF;
       }
       else
       {
         // FOUND THE BOTTOM OF TRAVEL
-        ROS_INFO("FOUND Bottom, now heading to TOP");
-        vc_.setCommand( LCGCC_mttop ); // Gripper installation/fully-open position.
+//        ROS_INFO("FOUND Bottom, now heading to TOP");
+
+        // Set the actuator zero once.
+        actuator_->state_.zero_offset_ = actuator_->state_.position_;
+        // Now coords are actually relative to zero.
+        zero_offset_ = 0.0;
+
+        goalCommand( LCGCC_MTtop ); // Gripper installation/fully-open position.
         state_ = TOP;
       }
     }
     break;
 
   case BACK_OFF: // Back off so we can reset from a known good position
-    if (stop_count_ > 400)
+    if (stop_count_ > settleCount)
     {
       stop_count_ = 0;
-      vc_.setCommand( LCGCC_mtclosed );
+      goalCommand( LCGCC_MTclosed );
       state_ = CLOSING;
     }
     break;
 
   case TOP:
     /* PUSHING THE BALLSCREW ALL THE WAY OUT FROM CLOSED TELLS US THAT WE HAVE A GRIPPER INSTALLED CORRECTLY */
-    if (stop_count_ > 600)
+    if (stop_count_ > settleCount)
     {
+      stop_count_ = 0;
       if ( joint_->position_ < LCGCC_wrong )
       {
         ROS_WARN("Gripper NOT installed properly!  Please reinstall and recalibrate.  (pos=%6.4fm)",joint_->position_);
-        vc_.setCommand( LCGCC_backoff ); // Go to a safe place, not at either end.
+        goalCommand( LCGCC_BObottom); // Go to a safe place, not at either end.
 
       }
       else if ( joint_->position_ > LCGCC_empty )
       {
         ROS_WARN("Gripper NOT installed!  Please install and recalibrate.  (pos=%6.4fm)",joint_->position_);
-        vc_.setCommand( LCGCC_install ); // Gripper installation/fully-open position.
+        goalCommand( joint_->position_ - LCGCC_BOinstall ); // Gripper installation/fully-open position.
       }
       state_ = HOME;
     }
     break;
 
   case HOME:
-    if (stop_count_ > 400)
+    if (stop_count_ > settleCount)
     {
       stop_count_ = 0;
       joint_->calibrated_ = true;

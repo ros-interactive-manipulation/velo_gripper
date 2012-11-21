@@ -170,11 +170,12 @@ void CappedJointPositionController::update()
 
   double commanded_effort = pid_controller_.updatePid(capped_error, dt_);  // assuming desired velocity is 0
   //double commanded_effort = pid_controller_.updatePid(error, joint_state_->velocity_, dt_);
-  joint_state_->commanded_effort_ = commanded_effort;
+  joint_state_->commanded_effort_ += commanded_effort; // There may already be a command from somewhere else in the system ??
 
-  if(loop_count_++ % 24 == 0)
+  if(loop_count_++ % 25 == 0)
   {
-    ROS_WARN("p = %.4lf, cmd= %.4lf, e= %.4lf, CE= %.4lf",joint_state_->position_,command_,error,joint_state_->commanded_effort_);
+//    ROS_WARN("p= %.4lf,  cmd= %.4lf,  v= %.4lf,  CE= %.4lf",
+//        joint_state_->position_, command_, joint_state_->velocity_, joint_state_->commanded_effort_);
 
     if(controller_state_publisher_ && controller_state_publisher_->trylock())
     {

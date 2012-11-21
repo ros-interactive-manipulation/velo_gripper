@@ -75,6 +75,9 @@ protected:
   pr2_hardware_interface::Actuator *actuator_;
   std::vector<pr2_mechanism_model::JointState*> other_joints_;
 
+  void goalCommand(double goal);
+  double zero_offset_;
+
   double init_time;
   double search_velocity_;
   double stopped_velocity_tolerance_;

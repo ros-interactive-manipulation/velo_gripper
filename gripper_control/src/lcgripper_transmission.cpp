@@ -86,7 +86,6 @@ public:
   // CONSTRUCTOR
   ParamFetcher(const TiXmlElement *j, Robot *robot = NULL): nh_(NULL)
   {
-    ROS_INFO("ParamFetcher: constructor with j=%p,  robot=%p",j,robot);
     error_count_=0;
     j_ = j;
 
@@ -99,7 +98,6 @@ public:
       ROS_ERROR("LCGripperTransmission did not specify joint name");
       return;
     }
-    ROS_INFO("JointName = %s", joint_name_ );
 
     // CREATE NODE HANDLE
     nh_ = new ros::NodeHandle(std::string(joint_name_));
@@ -540,11 +538,8 @@ void LCGripperTransmission::propagatePosition(std::vector<Actuator*>& as, std::v
     ROS_ASSERT(js.size() == 1 + passive_joints_.size());
   }
 
-  // Negate output, since input is negated. TODO: Fix this at the controller level.
-  double motor_pos  = as[0]->state_.position_;
-  assert(std::fabs(as[0]->state_.velocity_)<100000.0);
-  double motor_vel  =  as[0]->state_.velocity_;
-  assert(std::fabs(motor_vel)<100000.0);
+  double motor_pos = as[0]->state_.position_;
+  double motor_vel = as[0]->state_.velocity_;
   double motor_torque  =  tqSign_ * as[0]->state_.last_measured_effort_; // Convert current -> Nm
 
   double tendon_length  = getLengthFromMotorPos(motor_pos);
@@ -672,10 +667,8 @@ void LCGripperTransmission::propagatePositionBackwards(std::vector<JointState*>&
   }
   else
   {  /* WHEN CALIBRATING, THE TRANSMISSION IS TO TENDON ie BALLSCREW */
-    // Negate output, since input is negated. TODO: Fix this at the controller level.
     as[0]->state_.position_             = getMotorPosFromLength(js[0]->position_);
     as[0]->state_.velocity_             = getMotorVelFromTendonLengthVel(js[0]->velocity_);
-    // Negate output, since input is negated. TODO: Fix this at the controller level.
     as[0]->state_.last_measured_effort_ = getMotorTorqueFromTendonForce(tqSign_ * js[0]->commanded_effort_);
   }
 
@@ -724,10 +717,7 @@ void LCGripperTransmission::propagateEffort(
 
   if ( js[0]->calibrated_ )
   {
-
-    // NB: Positive gap effort should mean close. The controller currently gives a negative value.
-    // Negate output, since input is negated. TODO: Fix this at the controller level.
-    double gap_effort       = -js[0]->commanded_effort_; // Newtons
+    double gap_effort       = tqSign_ * js[0]->commanded_effort_; // Newtons
     double gap_size   = js[0]->position_;       // Needed to calculate forces (varies with gap).
 
     double tendon_force   = getTendonForceFromGripperForce(gap_effort, gap_size);
@@ -746,7 +736,7 @@ void LCGripperTransmission::propagateEffort(
     }
 
     as[0]->command_.enable_ = true;
-    as[0]->command_.effort_ = tqSign_ * motor_torque; // Negate output, since input is negated. TODO: Fix this at the controller level.
+    as[0]->command_.effort_ = tqSign_ * motor_torque;
 
     if(++loop_count_ % 10 == 0)
     {
@@ -763,11 +753,11 @@ void LCGripperTransmission::propagateEffort(
         lcg_state_publisher_->unlockAndPublish();
       }
     }
+
   }
   else
   {
     /* WHEN CALIBRATING, THE TRANSMISSION IS TO TENDON ie BALLSCREW */
-    // Negate output, since input is negated. TODO: Fix this at the controller level.
     as[0]->command_.enable_ = true;
     as[0]->command_.effort_ = getMotorTorqueFromTendonForce(tqSign_ * js[0]->commanded_effort_);
   }
@@ -825,7 +815,6 @@ void LCGripperTransmission::propagateEffortBackwards(
   else
   {
     /* WHEN CALIBRATING, THE TRANSMISSION IS TO TENDON ie BALLSCREW */
-    // Negate output, since input is negated. TODO: Fix this at the controller level.
     js[0]->commanded_effort_  = getTendonForceFromMotorTorque(tqSign_ * as[0]->command_.effort_);
   }
 }
