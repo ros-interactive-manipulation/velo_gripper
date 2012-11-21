@@ -171,8 +171,9 @@ void CappedJointPositionController::update()
   /** limit the postion error */
   double capped_pError, capped_vError;
   if ( std::fabs(error) > error_max_ ) {  //  SIGNUM(error)*velocity_ - v
-    capped_vError = copysign(velocity_,error) - joint_state_->velocity_;
-    capped_vError *= 100 * capped_vError; // Squared !  We want this to dominate
+    capped_vError  = copysign(velocity_,error) - joint_state_->velocity_;
+    capped_vError *= capped_vError; // Squared !  We want this to dominate
+    capped_vError  = copysign(capped_vError,error);  // squared val in correct direction
   }
   else {
     capped_vError = 0.0;

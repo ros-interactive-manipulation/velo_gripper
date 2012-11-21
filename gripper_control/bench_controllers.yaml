@@ -6,11 +6,11 @@ calibration_controller:
     joint: l_gripper_joint
     actuator: l_gripper_motor
     stopped_velocity_tolerance: 0.001
-    error_max: 0.005
-    velocity:  0.003
+    error_max: 0.003
+    velocity:  0.000
     pid:
-        p: 50000.0
-        d: 50000.0
+        p: 100000.0
+        d: 80000.0
         i: 0.0
         i_clamp: 0.0
 cycle_controller:
