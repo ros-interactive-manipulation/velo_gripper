@@ -125,7 +125,7 @@
   </xacro:pr2_forearm_v0>
 
   <xacro:pr2_lcgripper_v0 reflect="1.0" side="l" parent="l_wrist_roll_link">
-    <origin xyz="0 0 0" rpy="0 0 0" />
+     <origin xyz="0.135 0.0 0.0" rpy="0 0 0"/>
   </xacro:pr2_lcgripper_v0>
 
   <!-- Forearm cam Position is a guess, based on full robot calibration -->

@@ -52,7 +52,7 @@
     <joint name="${side}_gripper_palm_joint" type="fixed">
       <parent link="${parent}"/>
       <child link="${side}_gripper_palm_link"/>
-      <origin xyz="0.135 0.0 0.0" rpy="0 0 0"/>
+      <insert_block name="origin" />
     </joint>
 
     <link name="${side}_gripper_l_finger_link">
