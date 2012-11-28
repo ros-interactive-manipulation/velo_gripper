@@ -5,14 +5,14 @@ calibration_controller:
     type: gripper_control/LCGripperCalibrationController
     joint: l_gripper_joint
     actuator: low_cost_gripper_motor
-    velocity: 0.005
+    velocity: 0.003
+    error_max: 0.0013
     stopped_velocity_tolerance: 0.001
-    error_max: 0.0004
     pid:
-        p: 800000.0
-        d: 100000.0
-        i: 0.0
-        i_clamp: 0.0
+        p: 810000.0
+        d: 1500.0
+        i: 10000.0
+        i_clamp: 1000.0
 cycle_controller:
     type: robot_mechanism_controllers/JointPositionController
     joint: gripper_joint

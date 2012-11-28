@@ -47,7 +47,7 @@ namespace controller {
 
 CappedJointPositionController::CappedJointPositionController()
 : joint_state_(NULL), command_(0),
-  loop_count_(0),  initialized_(false), robot_(NULL), last_time_(0)
+  loop_count_(0),  initialized_(false), command_prev_(99.0), robot_(NULL), last_time_(0)
 {
 }
 
@@ -142,10 +142,8 @@ void CappedJointPositionController::update()
     if (!joint_state_->calibrated_)
     return;
   */
-  assert(robot_ != NULL);
   double error(0);
   ros::Time time = robot_->getTime();
-  assert(joint_state_->joint_);
   dt_= time - last_time_;
 
   if (!initialized_)
@@ -153,6 +151,23 @@ void CappedJointPositionController::update()
     initialized_ = true;
     command_ = joint_state_->position_;
   }
+
+  if (command_ != command_prev_ )
+  {
+    // Nice to have a jolt at the beginning of a motion to unstick us.
+    double cp = command_ - joint_state_->position_;
+    command_via_ = joint_state_->position_ + copysign(error_max_,cp);
+    command_prev_ = command_;
+  }
+  else
+  {
+    double via_step = velocity_ * dt_.toSec();
+    if ( fabs(via_step) > fabs(command_ - command_via_) )
+      command_via_ = command_;   // Step would go past command_; stop at command_.
+    else
+      command_via_ += via_step;  // Take a step toward commad_.
+  }
+
 
   if(joint_state_->joint_->type == urdf::Joint::REVOLUTE)
   {
@@ -165,25 +180,18 @@ void CappedJointPositionController::update()
   }
   else //prismatic
   {
-    error = joint_state_->position_ - command_;
+    error = joint_state_->position_ - command_via_;
   }
 
-  /** limit the postion error */
-  double capped_pError, capped_vError;
-  if ( std::fabs(error) > error_max_ ) {  //  SIGNUM(error)*velocity_ - v
-    capped_vError  = copysign(velocity_,error) - joint_state_->velocity_;
-    capped_vError *= capped_vError; // Squared !  We want this to dominate
-    capped_vError  = copysign(capped_vError,error);  // squared val in correct direction
-  }
-  else {
-    capped_vError = 0.0;
-  }
-  capped_pError = std::max( -error_max_, std::min( error, error_max_));
+  double velocity_desired = fabs(error) < fabs(error_max_) ? 0.0 : copysign(velocity_,error);
+  double capped_vError = velocity_desired - joint_state_->velocity_;
+
+  double capped_pError = error;
+  double commanded_effort = pid_controller_.updatePid(capped_pError, capped_vError, dt_);
 
   // double commanded_effort = pid_controller_.updatePid(capped_pError, dt_);  // assuming desired velocity is 0
-  double commanded_effort = pid_controller_.updatePid(capped_pError, capped_vError, dt_);
-  //assert(joint_state_->commanded_effort_==0.0);  // I DON'T WANT ANY OTHER TORQUE...
-  //joint_state_->commanded_effort_ += commanded_effort; // There may already be a command from somewhere else in the system ??
+
+  //joint_state_->commanded_effort_ += commanded_effort; // There may already be an effort from safety controller ??
   joint_state_->commanded_effort_ = commanded_effort;
 
   if(loop_count_++ % 25 == 0)

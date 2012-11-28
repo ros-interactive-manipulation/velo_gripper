@@ -118,8 +118,11 @@ private:
   int loop_count_;
   bool initialized_;
 
-  double error_max_;
-  double velocity_;
+  double command_prev_;                          /**< Previous commanded position. */
+  double command_via_;                           /**< Current setpoint to track. */
+
+  double error_max_;                             /**< Max error to start with. */
+  double velocity_;                              /**< Move velocity for slow motions. */
 
   pr2_mechanism_model::RobotState *robot_;       /**< Pointer to robot structure. */
   control_toolbox::Pid pid_controller_;          /**< Internal PID controller. */
