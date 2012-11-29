@@ -8,7 +8,7 @@
   <child  link="gripper_link"/>
 </joint>
 <transmission type="pr2_mechanism_model/SimpleTransmission" name="gripper_trans">
-  <actuator name="low_cost_gripper_motor"/>
+  <actuator name="l_gripper_motor"/>
   <joint name="gripper_joint"/>
   <mechanicalReduction> 28999.317 </mechanicalReduction> 
 </transmission>

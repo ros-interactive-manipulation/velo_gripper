@@ -79,7 +79,7 @@ def rosInfra():
             rospy.sleep(4)
             try:
                 buf += p_launch.read_nonblocking(timeout=0)
-            except ExceptionPecpect.EOF:
+            except pexpect.ExceptionPexpect:
                 pass
             print(buf)
             p_launch.kill(9)
@@ -103,7 +103,7 @@ def main():
     global G_pv
 
     # SOME BASIC CONSTANTS 
-    gearSign  = -1     # -1 for no idler; +1 for idler in gear train.
+    gearSign  = 1     # +1 for no idler; -1 for idler in gear train.
     depth_min = 0.0018
     depth_max = 0.0135
     # Absolute magnitude of stopping point randomization 

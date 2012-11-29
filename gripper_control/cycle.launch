@@ -1,10 +1,10 @@
 <launch>
   <node name="controller_manager" launch-prefix="pr2-grant" 
         pkg="pr2_etherCAT" type="pr2_etherCAT"
-        args="-i eth1 -x $(find gripper_control)/low_cost_gripper.xml" 
+        args="-i eth1 -x $(find gripper_control)/cycle.xml" 
         output="screen"/>
 
-  <rosparam file="$(find gripper_control)/joint_position_controller.yaml" command="load" />
+  <rosparam file="$(find gripper_control)/cycle_controllers.yaml" command="load" />
 
   <node name="calibration_controller"
         pkg="pr2_controller_manager" type="spawner"
