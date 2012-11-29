@@ -29,7 +29,7 @@
 
 /*
  * <transmission type="PR2GripperTransmission" name="gripper_l_transmission">
- *   <actuator       name="l_gripper_motor" />
+ *   <actuator       name="l_velo_gripper_motor" />
  *   <gap_joint      name="l_gripper_joint"              mechanical_reduction="1.0" A="0.05"  B="1.0"  C="0.0" />
  *   <passive_joint  name="l_gripper_l_finger_joint"     />
  *   <passive_joint  name="l_gripper_r_finger_joint"     />

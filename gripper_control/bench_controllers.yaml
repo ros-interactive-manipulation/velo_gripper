@@ -4,7 +4,7 @@ fake_controller:
 calibration_controller:
     type: gripper_control/LCGripperCalibrationController
     joint: l_gripper_joint
-    actuator: l_gripper_motor
+    actuator: r_velo_gripper_motor
     velocity:  0.003
     error_max: 0.001
     stopped_velocity_tolerance: 0.0005

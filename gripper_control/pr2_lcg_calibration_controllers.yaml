@@ -125,7 +125,7 @@ cal_r_wrist:
     i_clamp: 2.0
 cal_r_gripper:
   type: pr2_calibration_controllers/GripperCalibrationController
-  actuator: r_gripper_motor
+  actuator: r_velo_gripper_motor
   joint: r_gripper_joint
   other_joints:
     - r_gripper_l_finger_joint
@@ -168,16 +168,15 @@ cal_l_wrist:
 cal_l_gripper:
   type: gripper_control/LCGripperCalibrationController
   joint: l_gripper_joint
-  actuator: l_gripper_motor
-  stopped_velocity_tolerance: 0.001
-  error_max: 0.003
-  velocity: 0.003
-  max_effort: 30.0
+  actuator: l_velo_gripper_motor
+  velocity:  0.003
+  error_max: 0.001
+  stopped_velocity_tolerance: 0.0005
   pid:
-    p: 200000.0
-    d: 100000.0
-    i: 0.0
-    i_clamp: 0.0
+    p: 360000.0
+    d: 36000.0
+    i: 50000.0
+    i_clamp: 40.0
   other_joints:
     - l_gripper_l_finger_joint
     - l_gripper_l_finger_tip_joint

@@ -176,7 +176,7 @@ void LCGripperCalibrationController::update()
 
   // DEBUG STATE TRANSITIONS
   if ( s0_ != state_ || (stop_count_ && !(stop_count_ % 1000)) )
-  { ROS_INFO("STATE: %d --> %d    pos= %7.4lf  (zo= %7.4lf)",s0_,state_,joint_->position_,zero_offset_ );
+  { ROS_DEBUG("STATE: %d --> %d    pos= %7.4lf  (zo= %7.4lf)",s0_,state_,joint_->position_,zero_offset_ );
     s0_=state_;
   }
 
