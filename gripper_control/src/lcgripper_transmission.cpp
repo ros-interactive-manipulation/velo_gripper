@@ -542,9 +542,9 @@ void LCGripperTransmission::propagatePosition(std::vector<Actuator*>& as, std::v
   double motor_vel = as[0]->state_.velocity_;
   double motor_torque  =  tqSign_ * as[0]->state_.last_measured_effort_; // Convert current -> Nm
 
-  double tendon_length  = getLengthFromMotorPos(motor_pos);
-  double tendon_vel  = getTendonLengthVelFromMotorVel(motor_vel);
-  double tendon_force  = getTendonForceFromMotorTorque(motor_torque);
+  double tendon_length  = motor_pos    * motorGeom2TendonGeom();
+  double tendon_vel     = motor_vel    * motorGeom2TendonGeom();
+  double tendon_force   = motor_torque * motorTorque2TendonForce();
 
   if ( js[0]->calibrated_ )
   {
@@ -644,21 +644,21 @@ void LCGripperTransmission::propagatePositionBackwards(std::vector<JointState*>&
   if ( js[0]->calibrated_ )
   {
     double theta1       = -js[2]->position_ + theta_closed_*DEG2RAD; // Proximal joint angle, radians
-    double theta1_vel     = js[2]->velocity_;
+    double theta1_vel   =  js[2]->velocity_;
     //  double torqueJ1     = js[3]->commanded_effort_; // Joints 3/4 are the distal joints.
-    double gap_force    = js[0]->commanded_effort_;
+    double gap_force    =  js[0]->commanded_effort_;
 
-    double gap_size     = getGapFromTheta(theta1);
-    double tendon_length    = getTendonLengthFromGap(gap_size);
-    double motor_pos     = getMotorPosFromLength(tendon_length);
+    double gap_size      = getGapFromTheta(theta1);
+    double tendon_length = getTendonLengthFromGap(gap_size);
+    double motor_pos     = tendon_length * tendonGeom2MotorGeom();
     //ROS_ERROR("PropagatePositionBackwards(): Theta1: %f, GAP SIZE: %f, TENDON LENGTH: %f, MOTOR POS: %f", theta1, gap_size, tendon_length, motor_pos);
 
     double gap_rate      = theta1_vel*cos(theta1);
-    double tendon_rate    = getTendonLengthVelFromGapVel(gap_rate, gap_size);
-    double motor_vel    = getMotorVelFromTendonLengthVel(tendon_rate);
+    double tendon_rate   = getTendonLengthVelFromGapVel(gap_rate, gap_size);
+    double motor_vel     = tendon_rate * tendonGeom2MotorGeom();
 
     double tendon_force    = getTendonForceFromGripperForce(gap_force, gap_size);
-    double motor_torque    = getMotorTorqueFromTendonForce(tendon_force);
+    double motor_torque    = tendon_force * tendonForce2MotorTorque();
     double motor_effort    = getMotorEffortFromTorque(motor_torque);
 
     as[0]->state_.position_             = motor_pos;
@@ -667,9 +667,9 @@ void LCGripperTransmission::propagatePositionBackwards(std::vector<JointState*>&
   }
   else
   {  /* WHEN CALIBRATING, THE TRANSMISSION IS TO TENDON ie BALLSCREW */
-    as[0]->state_.position_             = getMotorPosFromLength(js[0]->position_);
-    as[0]->state_.velocity_             = getMotorVelFromTendonLengthVel(js[0]->velocity_);
-    as[0]->state_.last_measured_effort_ = getMotorTorqueFromTendonForce(tqSign_ * js[0]->commanded_effort_);
+    as[0]->state_.position_             = js[0]->position_ * tendonGeom2MotorGeom();
+    as[0]->state_.velocity_             = js[0]->velocity_ * tendonGeom2MotorGeom();
+    as[0]->state_.last_measured_effort_ = tqSign_ * js[0]->commanded_effort_ * tendonForce2MotorTorque();
   }
 
   // Update the timing (making sure it's initialized).
@@ -721,12 +721,12 @@ void LCGripperTransmission::propagateEffort(
     double gap_size   = js[0]->position_;       // Needed to calculate forces (varies with gap).
 
     double tendon_force   = getTendonForceFromGripperForce(gap_effort, gap_size);
-    double motor_torque   = getMotorTorqueFromTendonForce(tendon_force);
+    double motor_torque   = tendon_force * tendonForce2MotorTorque();
     if (gripper_efficiency_ > 0.0 && gripper_efficiency_ <= 1.0)
       motor_torque = motor_torque / gripper_efficiency_; // Apply the efficiency coefficient.
 
-    double tendon_length   = getTendonLengthFromGap(gap_size);
-    double motor_pos   = getMotorPosFromLength(tendon_length);
+    double tendon_length = getTendonLengthFromGap(gap_size);
+    double motor_pos     = tendon_length * tendonGeom2MotorGeom();
 
   //  ROS_INFO("PropagateEffort(): Gap Pos = %f ; Gap Effort = %f ; Tendon Force %f ; Motor Torque %f", gap_size, gap_effort, tendon_force, motor_torque);
 
@@ -759,7 +759,7 @@ void LCGripperTransmission::propagateEffort(
   {
     /* WHEN CALIBRATING, THE TRANSMISSION IS TO TENDON ie BALLSCREW */
     as[0]->command_.enable_ = true;
-    as[0]->command_.effort_ = getMotorTorqueFromTendonForce(tqSign_ * js[0]->commanded_effort_);
+    as[0]->command_.effort_ = tqSign_ * js[0]->commanded_effort_ * tendonForce2MotorTorque();
   }
 }
 
@@ -788,11 +788,11 @@ void LCGripperTransmission::propagateEffortBackwards(
 
     // gap_size is required to compute the effective distance from the tendon to the J0 joint
     double motor_pos  = as[0]->state_.position_;
-    double tendon_length   = getLengthFromMotorPos(motor_pos);
+    double tendon_length   = motor_pos * motorGeom2TendonGeom();
     double gap_size    = getGapFromTendonLength(tendon_length);
 
     double motor_torque   = getMotorTorqueFromEffort(motor_effort);
-    double tendon_force   = getTendonForceFromMotorTorque(motor_torque);
+    double tendon_force   = motor_torque * motorTorque2TendonForce();
     //ROS_WARN("Tendon force: %f", tendon_force);
     double gap_effort  = getGripperForceFromTendonForce(tendon_force, gap_size);
 
@@ -815,21 +815,32 @@ void LCGripperTransmission::propagateEffortBackwards(
   else
   {
     /* WHEN CALIBRATING, THE TRANSMISSION IS TO TENDON ie BALLSCREW */
-    js[0]->commanded_effort_  = getTendonForceFromMotorTorque(tqSign_ * as[0]->command_.effort_);
+    js[0]->commanded_effort_  = tqSign_ * as[0]->command_.effort_ * motorTorque2TendonForce();
   }
 }
 
-double LCGripperTransmission::getMotorPosFromLength(double length)
+double LCGripperTransmission::motorGeom2TendonGeom()
 {
-  double motor_pos = length / screw_lead_ * REV2RAD * gear_reduction_;
-  return motor_pos; // radians
+  double tendon_qty = RAD2REV / gear_reduction_ * screw_lead_;
+  return tendon_qty;
 }
 
-double LCGripperTransmission::getLengthFromMotorPos(double motor_pos)
+double LCGripperTransmission::tendonGeom2MotorGeom()
 {
-  double tendon_length = motor_pos / gear_reduction_ * RAD2REV * screw_lead_;
-  return tendon_length;  // m
+  return 1.0/motorGeom2TendonGeom();
 }
+
+double LCGripperTransmission::tendonForce2MotorTorque()
+{
+  return motorGeom2TendonGeom();
+}
+
+double LCGripperTransmission::motorTorque2TendonForce()
+{
+  return 1.0/motorGeom2TendonGeom();
+}
+
+
 
 double LCGripperTransmission::getGapFromTheta(double theta)
 { // NB: theta = radians
@@ -932,26 +943,6 @@ double LCGripperTransmission::getThetaVelFromGapVel(double gap_vel, double gap_s
   return theta_vel;
 }
 
-double LCGripperTransmission::getTendonLengthVelFromMotorVel(double motor_vel)
-{
-  // dLength/dTime = dLength/dMotorPos * dMotorPos/dTime
-  // where Length = MotorPos / (GearRatio * ScrewReduction)
-  // therefore LengthVel =  MotorVel / (GearRatio * ScrewReduction)
-  double length_vel = motor_vel * screw_lead_ / gear_reduction_;
-  return length_vel;
-}
-
-double LCGripperTransmission::getMotorVelFromTendonLengthVel(double length_vel)
-{
-  double motor_vel = length_vel * gear_reduction_ / screw_lead_;
-  return motor_vel;
-}
-
-double LCGripperTransmission::getTendonForceFromMotorTorque(double motor_torque)
-{
-  double tendon_force = motor_torque * gear_reduction_ * REV2RAD / screw_lead_;
-  return tendon_force;
-}
 
 double LCGripperTransmission::getGripperForceFromTendonForce(double tendon_force, double gap_size)
 {
@@ -1010,12 +1001,6 @@ double LCGripperTransmission::getExtensorTendonForce(double theta1)
     double spring_x = fabs(delta_theta) * (r_e0_ - r_e1_) + spring_x0_; // spring extension, nominal.
     double ext_force = spring_k_ * spring_x; // extensor tendon force at the current pose.
     return ext_force;
-}
-
-double LCGripperTransmission::getMotorTorqueFromTendonForce(double tendon_force)
-{
-  double motor_torque = tendon_force * screw_lead_ * RAD2REV / gear_reduction_;
-  return motor_torque;
 }
 
 double LCGripperTransmission::getMotorTorqueFromEffort(double motor_effort)

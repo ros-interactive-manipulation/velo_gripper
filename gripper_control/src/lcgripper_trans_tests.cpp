@@ -122,20 +122,20 @@ int LCGripperTransmissionTest::mytest()
 	assert (length_open > (LENGTH_OPEN - LENGTH_TOL) && length_open < (LENGTH_OPEN + LENGTH_TOL) );
 	
 	// TODO: Motor pos to tendon length
-	double motor_open = getMotorPosFromLength(LENGTH_CLOSED);
+	double motor_open = LENGTH_CLOSED * tendonGeom2MotorGeom();
 	
 	cout << "Motor_open: " << motor_open << endl;
 	// TODO: Tendon length to motor pos
 	
 	// TODO: Motor torque to tendon force
-	double mt_20 = getMotorTorqueFromTendonForce(20.0);
+	double mt_20 = 20.0 * tendonForce2MotorTorque();
 	cout << "MT_20: " << mt_20 << endl;
 	
 	// TODO: Tendon force to motor torque
 
 	double Ff = getTendonForceFromGripperForce(10.0, 0.06);
 	cout << "Ff @ 10N: " << Ff << endl;
-	double Mt = getMotorTorqueFromTendonForce(Ff);
+	double Mt = Ff * tendonForce2MotorTorque();
 	cout << "Mt @ 10N: " << Mt << endl;
 	
 	cout << "Done" << endl;

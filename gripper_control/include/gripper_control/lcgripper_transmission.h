@@ -119,18 +119,16 @@ private:
   double getThetaFromGap(double gap);
   double getGapFromTheta(double theta);
 
-  double getMotorPosFromLength(double length);
-  double getLengthFromMotorPos(double motor_pos);
+  double motorGeom2TendonGeom();
+  double tendonGeom2MotorGeom();
+  double tendonForce2MotorTorque();
+  double motorTorque2TendonForce();
 
   double getTendonLengthVelFromGapVel(double gap_vel, double gap);
   double getGapVelFromTendonLengthVel(double length, double length_vel);
-  double getTendonLengthVelFromMotorVel(double motor_vel);
-  double getMotorVelFromTendonLengthVel(double length_vel);
 
-  double getTendonForceFromMotorTorque(double motor_torque);
   double getGripperForceFromTendonForce(double tendon_force, double gap_size);
   double getTendonForceFromGripperForce(double gripper_force, double gap_size);
-  double getMotorTorqueFromTendonForce(double tendon_force);
 
   double getMotorTorqueFromEffort(double motor_effort);
   double getMotorEffortFromTorque(double motor_torque);
