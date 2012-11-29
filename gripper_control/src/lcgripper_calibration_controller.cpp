@@ -281,6 +281,7 @@ void LCGripperCalibrationController::update()
       for (size_t i = 0; i < other_joints_.size(); ++i)
         other_joints_[i]->calibrated_ = true;
       vc_.setGains(0.0,0.0,0.0,0.0,0.0);
+      vc_.update();
       state_ = CALIBRATED;
     }
     break;

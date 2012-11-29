@@ -152,16 +152,24 @@ void CappedJointPositionController::update()
     command_ = joint_state_->position_;
   }
 
+  double error_direction = copysign(1.0, command_ - joint_state_->position_);
+
   if (command_ != command_prev_ )
   {
     // Nice to have a jolt at the beginning of a motion to unstick us.
-    double cp = command_ - joint_state_->position_;
-    command_via_ = joint_state_->position_ + copysign(error_max_,cp);
+    // double pe,ie,de;
+    // pid_controller_.getCurrentPIDErrors(&pe,&ie,&de);
+    // ROS_WARN("ending command_ = %g,  PID_errors=(%.2g, %.2g, %.2g)",
+    //          command_,pe,ie,de);
+
+    command_via_ = joint_state_->position_ + error_direction*error_max_;
     command_prev_ = command_;
+
+    pid_controller_.reset();
   }
   else
   {
-    double via_step = velocity_ * dt_.toSec();
+    double via_step = error_direction * velocity_ * dt_.toSec();
     if ( fabs(via_step) > fabs(command_ - command_via_) )
       command_via_ = command_;   // Step would go past command_; stop at command_.
     else
@@ -184,21 +192,27 @@ void CappedJointPositionController::update()
   }
 
   double velocity_desired = fabs(error) < fabs(error_max_) ? 0.0 : copysign(velocity_,error);
-  double capped_vError = velocity_desired - joint_state_->velocity_;
+  double capped_vError = joint_state_->velocity_ - velocity_desired;
 
   double capped_pError = error;
   double commanded_effort = pid_controller_.updatePid(capped_pError, capped_vError, dt_);
 
   // double commanded_effort = pid_controller_.updatePid(capped_pError, dt_);  // assuming desired velocity is 0
 
-  //joint_state_->commanded_effort_ += commanded_effort; // There may already be an effort from safety controller ??
-  joint_state_->commanded_effort_ = commanded_effort;
+  joint_state_->commanded_effort_ += commanded_effort; // Safety and Joint controllers can also run.
 
-  if(loop_count_++ % 25 == 0)
+  // if(loop_count_++ % 200 == 0)
+  // {
+  //   ROS_WARN("p= %5.1lf,  cmd= %5.1lf,  via= %5.1lf,  v= %5.1lf,  CE= %7.1lf",
+  //            1000*joint_state_->position_, 
+  //            1000*command_, 
+  //            1000*command_via_, 
+  //            1000*joint_state_->velocity_, 
+  //            joint_state_->commanded_effort_);
+  // }
+
+  if(loop_count_++ % 10 == 0)
   {
-//    ROS_WARN("p= %.4lf,  cmd= %.4lf,  v= %.4lf,  CE= %.4lf",
-//        joint_state_->position_, command_, joint_state_->velocity_, joint_state_->commanded_effort_);
-
     if(controller_state_publisher_ && controller_state_publisher_->trylock())
     {
       controller_state_publisher_->msg_.header.stamp = time;

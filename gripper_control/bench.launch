@@ -4,13 +4,13 @@
   <!-- <param name="robot_description" command="$(find xacro)/xacro.py '$(find gripper_control)/urdf/pr2.urdf.xacro'" /> -->
 
   <!-- WHEN ON A DESKTOP -->
-  <node name="controller_manager" launch-prefix="pr2-grant" 
+  <node if="0" name="controller_manager" launch-prefix="pr2-grant" 
         pkg="pr2_etherCAT" type="pr2_etherCAT"
         args="-i eth1 -x $(find gripper_control)/bench_gripper.xml"
         output="screen"/>
 
   <!-- WHEN ON A PR2 -->
-  <node if="0" name="controller_manager" launch-prefix="pr2-grant" 
+  <node name="controller_manager" launch-prefix="pr2-grant" 
         pkg="pr2_etherCAT" type="pr2_etherCAT"
         args="-i ecat0 -x $(find gripper_control)/bench_gripper.xml"
         output="screen"/>
