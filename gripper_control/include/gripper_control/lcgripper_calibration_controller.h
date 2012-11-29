@@ -67,7 +67,7 @@ protected:
 
   ros::NodeHandle node_;
   pr2_mechanism_model::RobotState *robot_;
-  ros::Time next_publish_time_;
+  ros::Time last_publish_time_;
   ros::ServiceServer is_calibrated_srv_;
   boost::scoped_ptr<realtime_tools::RealtimePublisher<std_msgs::Empty> > pub_calibrated_;
 

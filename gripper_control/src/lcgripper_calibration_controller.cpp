@@ -46,7 +46,7 @@ namespace controller
 {
 
 LCGripperCalibrationController::LCGripperCalibrationController()
-  : next_publish_time_(0), joint_(NULL), zero_offset_(0.0)
+  : last_publish_time_(0), joint_(NULL), zero_offset_(0.0)
 {
 }
 
@@ -124,9 +124,11 @@ bool LCGripperCalibrationController::init(pr2_mechanism_model::RobotState *robot
   }
 
 
-
   if (!(vc_.init(robot, node_)))
+  {
+    ROS_ERROR("Could not init PID class from %s",__FILE__);
     return false;
+  }
 
   // advertise service to check calibration
   is_calibrated_srv_ = node_.advertiseService("is_calibrated", &LCGripperCalibrationController::isCalibrated, this);
@@ -287,13 +289,12 @@ void LCGripperCalibrationController::update()
     break;
 
   case CALIBRATED:
-    if ( pub_calibrated_ && next_publish_time_ > robot_->getTime() )
+    if ( pub_calibrated_ && 
+         last_publish_time_ + ros::Duration(0.5) < robot_->getTime() &&
+         pub_calibrated_->trylock() )
     {
-      if (pub_calibrated_->trylock())
-      {
-        next_publish_time_ = robot_->getTime() + ros::Duration(0.5);
-        pub_calibrated_->unlockAndPublish();
-      }
+      last_publish_time_ = robot_->getTime();
+      pub_calibrated_->unlockAndPublish();
     }
     break;
   }
