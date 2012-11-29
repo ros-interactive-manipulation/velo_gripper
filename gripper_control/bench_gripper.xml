@@ -252,7 +252,7 @@
   </joint>
 
   <transmission name="l_gripper_trans" type="gripper_control/LCGripperTransmission"  >
-<!--  <actuator name="low_cost_gripper_motor"/> -->
+    <!-- CHANGE ACTUATOR NAME ON NEXT LINE -->
     <actuator name="r_velo_gripper_motor"/>
     <gap_joint g2ed_coeffs_0="0.0133852307" g2ed_coeffs_1="-0.0150212267" g2ed_coeffs_2="-0.400341247" g2ed_coeffs_3="4.45724019" g2ed_coeffs_4="-23.0064782" g2l_coeffs_0="-0.01057876" g2l_coeffs_1="0.08412417" g2l_coeffs_2="-0.04850085" g2l_coeffs_3="-0.87391894" g2l_coeffs_4="6.51653529" gear_efficiency="1.0" gear_reduction="15.0" j0x="-0.035" j0y="0.0" j1_radius="0.0032" j1x="-0.06" j1y="0.0" l0="0.035" l1="0.06" l2="0.05" l2g_coeffs_0="0.135959902" l2g_coeffs_1="11.0396557" l2g_coeffs_2="-724.52616" l2g_coeffs_3="-79555.7419" l2g_coeffs_4="-2574970.99" name="l_gripper_joint" p0_radius="0.004" p0x="-0.025" p0y="0.002" p1x="-0.045" p1y="0.004" p2x="-0.0084" p2y="0.0023" p3x="-0.044" p3y="-0.005" screw_efficiency="1.0" screw_lead="0.00325" theta_closed="101.5" theta_open="20.0" thickness="0.006"/>
     <!-- if a gazebo joint exists as [l|r]_gripper_joint, use this tag to have
