@@ -35,6 +35,7 @@
 #include "gripper_control/lcgripper_calibration_controller.h"
 #include "ros/time.h"
 #include "pluginlib/class_list_macros.h"
+#include "pr2_mechanism_model/joint.h"
 
 using namespace std;
 using namespace controller;
@@ -57,20 +58,21 @@ LCGripperCalibrationController::~LCGripperCalibrationController()
 bool LCGripperCalibrationController::init(pr2_mechanism_model::RobotState *robot,
                                           ros::NodeHandle &n)
 {
-  std::string joint_name, actuator_name;
+  std::string actuator_name;
 
   assert(robot);
   robot_ = robot;
   node_ = n;
 
-  getNodeParam<std::string>("joint", joint_name);
+  getNodeParam<std::string>("joint", joint_name_);
   getNodeParam<std::string>("actuator", actuator_name);
   getNodeParam<double>("stopped_velocity_tolerance", stopped_velocity_tolerance_);
 //  getNodeParam<double>("error_max", error_max_); // NOT NEEDED HERE. PICKED UP IN vc_ (THE CAPPED CONTROLLER).
 
-  if (!(joint_ = robot->getJointState(joint_name)))
+  if (!(joint_ = robot->getJointState(joint_name_)))
   {
-    ROS_ERROR("Could not find joint \"%s\" (namespace: %s)",joint_name.c_str(), node_.getNamespace().c_str());
+    ROS_ERROR("Could not find joint \"%s\" (namespace: %s)",
+              joint_name_.c_str(), node_.getNamespace().c_str());
     return false;
   }
 
@@ -109,7 +111,7 @@ bool LCGripperCalibrationController::init(pr2_mechanism_model::RobotState *robot
 
   /*****
   if (actuator_->state_.zero_offset_ != 0){
-    ROS_INFO("Joint %s is already calibrated at offset %f", joint_name.c_str(), actuator_->state_.zero_offset_);
+    ROS_INFO("Joint %s is already calibrated at offset %f", joint_name_.c_str(), actuator_->state_.zero_offset_);
     joint_->calibrated_ = true;
     for (size_t i = 0; i < other_joints_.size(); ++i)
       other_joints_[i]->calibrated_ = true;
@@ -118,7 +120,7 @@ bool LCGripperCalibrationController::init(pr2_mechanism_model::RobotState *robot
   */
   if ( false ) {}
   else{
-    ROS_INFO("Joint \"%s\" will always (re)calibrate when calibration is run", joint_name.c_str());
+    ROS_INFO("Joint \"%s\" will always (re)calibrate when calibration is run", joint_name_.c_str());
     state_ = INITIALIZED;
     joint_->calibrated_ = false;
   }
@@ -147,6 +149,7 @@ void LCGripperCalibrationController::starting()
   joint_->calibrated_ = false;
   s0_ = state_;
 
+  // ROS_INFO("STATE MACHINE STATE TABLE:");
   // ROS_INFO("%d : INITIALIZED", INITIALIZED);
   // ROS_INFO("%d : STARTING", STARTING);
   // ROS_INFO("%d : CLOSING", CLOSING);
@@ -174,11 +177,18 @@ void LCGripperCalibrationController::update()
   assert(joint_);
   assert(actuator_);
 
+#ifdef DEBUG_VELO_GRIPPER
   // DEBUG STATE TRANSITIONS
   if ( s0_ != state_ || (stop_count_ && !(stop_count_ % 1000)) )
-  { ROS_DEBUG("STATE: %d --> %d    pos= %7.4lf  (zo= %7.4lf)",s0_,state_,joint_->position_,zero_offset_ );
+  { ROS_WARN("STATE: %d --> %d    pos= %7.4lf  (zo= %7.4lf)  odo= %.4lf",
+              s0_, state_, joint_->position_, zero_offset_ , joint->joint_statistics_.odometer);
     s0_=state_;
   }
+#endif
+
+  // RUN THE CONTROLLER UPDATE.  NEED TO RUN THIS BEFORE STATE ENGINE.
+  if (state_ != CALIBRATED)
+    vc_.update();
 
   // Always
   if ( !(joint_->calibrated_) && fabs(joint_->velocity_) < stopped_velocity_tolerance_)
@@ -209,6 +219,8 @@ void LCGripperCalibrationController::update()
     actuator_->state_.zero_offset_ = 0.0;
     joint_->calibrated_ = false;
     zero_offset_ = joint_->position_;
+
+    odometer_last_ = joint_->joint_statistics_.odometer_;
 
     goalCommand( LCGCC_MTbottom ); // More than full travel
     state_ = CLOSING;
@@ -249,6 +261,9 @@ void LCGripperCalibrationController::update()
   case BACK_OFF: // Back off so we can reset from a known good position
     if (stop_count_ > settleCount)
     {
+      if ( joint_->joint_statistics_.odometer_ < odometer_last_ + .001)
+        ROS_ERROR("Joint \"%s\"is NOT moving.  Breakers turned on?  Joint stuck?",
+                  joint_name_.c_str());
       stop_count_ = 0;
       goalCommand( LCGCC_MTclosed );
       state_ = CLOSING;
@@ -262,14 +277,19 @@ void LCGripperCalibrationController::update()
       stop_count_ = 0;
       if ( joint_->position_ < LCGCC_wrong )
       {
-        ROS_ERROR("Gripper NOT installed properly!  Please reinstall and recalibrate.  (pos=%6.4fm)",joint_->position_);
+        ROS_ERROR("Gripper \"%s\" NOT installed properly!  Please reinstall and recalibrate.  (pos=%6.4fm)",
+                  joint_name_.c_str(),joint_->position_);
         goalCommand( LCGCC_BObottom); // Go to a safe place, not at either end.
 
       }
       else if ( joint_->position_ > LCGCC_empty )
       {
-        ROS_ERROR("Gripper NOT installed!  Please install and recalibrate.  (pos=%6.4fm)",joint_->position_);
+        ROS_ERROR("Gripper \"%s\" NOT installed!  Please install and recalibrate.  (pos=%6.4fm)",
+                  joint_name_.c_str(),joint_->position_);
         goalCommand( joint_->position_ - LCGCC_BOinstall ); // Gripper installation/fully-open position.
+
+        // Ballscrew could get jammed at top end of travel.  Watch for it...
+        odometer_last_ = joint_->joint_statistics_.odometer_;
       }
       state_ = HOME;
     }
@@ -278,6 +298,8 @@ void LCGripperCalibrationController::update()
   case HOME:
     if (stop_count_ > settleCount)
     {
+      if ( joint_->joint_statistics_.odometer_ < odometer_last_ + .001)
+        ROS_ERROR("Joint \"%s\"is NOT moving. Joint stuck?",joint_name_.c_str());
       stop_count_ = 0;
       joint_->calibrated_ = true;
       for (size_t i = 0; i < other_joints_.size(); ++i)
@@ -298,10 +320,6 @@ void LCGripperCalibrationController::update()
     }
     break;
   }
-
-  // RUN THE CONTROLLER UPDATE
-  if (state_ != CALIBRATED)
-    vc_.update();
 
 }
 } // namespace

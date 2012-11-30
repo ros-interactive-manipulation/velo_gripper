@@ -156,12 +156,7 @@ void CappedJointPositionController::update()
 
   if (command_ != command_prev_ )
   {
-    // Nice to have a jolt at the beginning of a motion to unstick us.
-    // double pe,ie,de;
-    // pid_controller_.getCurrentPIDErrors(&pe,&ie,&de);
-    // ROS_WARN("ending command_ = %g,  PID_errors=(%.2g, %.2g, %.2g)",
-    //          command_,pe,ie,de);
-
+    //// Nice to have a jolt at the beginning of a motion to unstick us.
     command_via_ = joint_state_->position_ + error_direction*error_max_;
     command_prev_ = command_;
 
@@ -201,15 +196,17 @@ void CappedJointPositionController::update()
 
   joint_state_->commanded_effort_ += commanded_effort; // Safety and Joint controllers can also run.
 
-  // if(loop_count_++ % 200 == 0)
-  // {
-  //   ROS_WARN("p= %5.1lf,  cmd= %5.1lf,  via= %5.1lf,  v= %5.1lf,  CE= %7.1lf",
-  //            1000*joint_state_->position_, 
-  //            1000*command_, 
-  //            1000*command_via_, 
-  //            1000*joint_state_->velocity_, 
-  //            joint_state_->commanded_effort_);
-  // }
+#ifdef DEBUG_VELO_GRIPPER
+  if(loop_count_++ % 200 == 0)
+  {
+    ROS_DEBUG("p= %5.1lf,  via= %5.1lf,  cmd= %5.1lf,  v= %5.1lf,  CE= %7.1lf",
+             1000*joint_state_->position_, 
+             1000*command_via_, 
+             1000*command_, 
+             1000*joint_state_->velocity_, 
+             joint_state_->commanded_effort_);
+  }
+#endif
 
   if(loop_count_++ % 10 == 0)
   {

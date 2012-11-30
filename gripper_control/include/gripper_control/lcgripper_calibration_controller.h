@@ -58,6 +58,7 @@ public:
 
 protected:
 
+  std::string joint_name_;
   enum { INITIALIZED, STARTING, CLOSING, BACK_OFF, TOP, HOME, CALIBRATED };
   int state_;
   int close_count_;
@@ -74,6 +75,7 @@ protected:
   pr2_mechanism_model::JointState *joint_;
   pr2_hardware_interface::Actuator *actuator_;
   std::vector<pr2_mechanism_model::JointState*> other_joints_;
+  double odometer_last_;
 
   void goalCommand(double goal);
   double zero_offset_;
