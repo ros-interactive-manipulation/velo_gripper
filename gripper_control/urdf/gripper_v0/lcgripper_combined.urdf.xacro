@@ -293,8 +293,10 @@
       <child link="${side}_gripper_l_finger_tip_frame"/>
       <axis xyz="0 1 0" />
       <dynamics damping="${gripper_damping}" />
+<!--
     <limit effort="333.3" lower="-99999.9" upper="99999.9" velocity="9.9"/>
     <safety_controller k_position="1e6" k_velocity="1e6" soft_lower_limit="-99999.1" soft_upper_limit="99999.1"/>
+-->
     </joint>
 
 
@@ -333,16 +335,16 @@
       theta_closed="${101.5}"
 
       l2g_coeffs_0="${0.0}"
-      l2g_coeffs_1="${2.4921992E+00}"
-      l2g_coeffs_2="${2.4099383E+03}"
-      l2g_coeffs_3="${-2.1196419E+05}"
-      l2g_coeffs_4="${6.3301282E+06}"
+      l2g_coeffs_1="${3.85967649}"
+      l2g_coeffs_2="${1886.81169}"
+      l2g_coeffs_3="${-141680.258}"
+      l2g_coeffs_4="${3259847.98}"
 
       g2l_coeffs_0="${0.0}"
-      g2l_coeffs_1="${0.1522668912}"
-      g2l_coeffs_2="${-1.8199473592}"
-      g2l_coeffs_3="${16.4566307174}"
-      g2l_coeffs_4="${-50.439321307}"
+      g2l_coeffs_1="${0.18264328}"
+      g2l_coeffs_2="${-2.67180971}"
+      g2l_coeffs_3="${25.00650584}"
+      g2l_coeffs_4="${-78.48807206}"
 
       g2ed_coeffs_0="${1.33852307e-02}"
       g2ed_coeffs_1="${-1.50212267e-02}"

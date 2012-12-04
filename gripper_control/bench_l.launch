@@ -23,23 +23,34 @@
         pkg="pr2_dashboard" type="pr2_dashboard"
         respawn="false" output="screen" />
 
-  <node name="calibration_controller"
+  <!-- Gripper
+  <rosparam command="load" 
+			file="$(find gripper_control)/pr2_lcgripper_controllers.yaml" />
+  -->
+
+  <node name="cal_l_gripper"
         pkg="pr2_controller_manager" type="spawner"
-        args="calibration_controller"
+        args="cal_l_gripper"
         respawn="false" output="screen" />
 
-  <node if="0" name="monitor" 
+  <node name="monitor" 
         pkg="runtime_monitor" type="monitor"
         respawn="false" output="screen" />
 
-  <node if="0" name="glueEmpty2Bool"
+  <node name="glueEmpty2Bool"
         pkg="gripper_control" type="glueEmpty2Bool.py"
         respawn="false" output="screen" />
 
-  <node if="0" name="cycle_controller"
-        pkg="pr2_controller_manager" type="spawner"
-        args="--wait=glueEmpty2Bool/calibratedBool  cycle_controller"
-        respawn="false" output="screen" />
+  <!-- Controllers that come up started -->
+  <node name="default_controllers_spawner"
+        pkg="pr2_controller_manager" type="spawner" output="screen"
+        args="--wait=glueEmpty2Bool/calibratedBool l_gripper_controller" />
+
+  <!-- Nodes on top of the controllers -->
+  <group ns="l_gripper_controller">
+    <node name="gripper_action_node"
+          pkg="pr2_gripper_action" type="pr2_gripper_action" />
+  </group>
 
   <node if="0" name="plot_effort"
         pkg="rxtools" type="rxplot"

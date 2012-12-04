@@ -50,7 +50,7 @@ inTopic_result = None
 def main():
     print("Starting %s"%__file__)
 
-    inTopic_default = "calibration_controller/calibrated"
+    inTopic_default = "cal_l_gripper/calibrated"
     outTopic_default= "glueEmpty2Bool/calibratedBool"
 
     parser=OptionParser()

@@ -88,6 +88,7 @@ public:
     using namespace pr2_controllers_msgs;
     Pr2GripperCommandPtr c(new Pr2GripperCommand);
     c->position = joint_state_->position_;
+    ROS_INFO("STARTING at posn: %.4lf",c->position);
     c->max_effort = 0.0;
     command_box_.set(c);
   }

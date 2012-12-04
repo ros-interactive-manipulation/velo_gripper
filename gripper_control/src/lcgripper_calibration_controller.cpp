@@ -311,6 +311,12 @@ void LCGripperCalibrationController::update()
     break;
 
   case CALIBRATED:
+    vc_.update();
+    // if ( last_publish_time_ + ros::Duration(0.5) < robot_->getTime() )
+    // {
+    //    last_publish_time_ = robot_->getTime();
+    //    ROS_INFO("jp= %7.4lf",joint_->position_);
+    // }
     if ( pub_calibrated_ && 
          last_publish_time_ + ros::Duration(0.5) < robot_->getTime() &&
          pub_calibrated_->trylock() )

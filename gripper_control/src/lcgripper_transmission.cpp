@@ -245,21 +245,21 @@ bool LCGripperTransmission::getItems(ParamFetcher *itemFetcher)
   // Polynomial coefficients
   // USE tmp BECAUSE single element of vector<double> does not pass by reference.
   double tmp;
-  length_to_gap_coeffs_.reserve(5);
+  length_to_gap_coeffs_.resize(5);
   itemFetcher->getParam("polynomials/l2g_0", tmp);  length_to_gap_coeffs_[0] = tmp;
   itemFetcher->getParam("polynomials/l2g_1", tmp);  length_to_gap_coeffs_[1] = tmp;
   itemFetcher->getParam("polynomials/l2g_2", tmp);  length_to_gap_coeffs_[2] = tmp;
   itemFetcher->getParam("polynomials/l2g_3", tmp);  length_to_gap_coeffs_[3] = tmp;
   itemFetcher->getParam("polynomials/l2g_4", tmp);  length_to_gap_coeffs_[4] = tmp;
 
-  gap_to_length_coeffs_.reserve(5);
+  gap_to_length_coeffs_.resize(5);
   itemFetcher->getParam("polynomials/g2l_0", tmp);  gap_to_length_coeffs_[0] = tmp;
   itemFetcher->getParam("polynomials/g2l_1", tmp);  gap_to_length_coeffs_[1] = tmp;
   itemFetcher->getParam("polynomials/g2l_2", tmp);  gap_to_length_coeffs_[2] = tmp;
   itemFetcher->getParam("polynomials/g2l_3", tmp);  gap_to_length_coeffs_[3] = tmp;
   itemFetcher->getParam("polynomials/g2l_4", tmp);  gap_to_length_coeffs_[4] = tmp;
 
-  gap_to_effective_dist_coeffs_.reserve(5);
+  gap_to_effective_dist_coeffs_.resize(5);
   itemFetcher->getParam("polynomials/g2ed_0", tmp);  gap_to_effective_dist_coeffs_[0] = tmp;
   itemFetcher->getParam("polynomials/g2ed_1", tmp);  gap_to_effective_dist_coeffs_[1] = tmp;
   itemFetcher->getParam("polynomials/g2ed_2", tmp);  gap_to_effective_dist_coeffs_[2] = tmp;
@@ -445,8 +445,8 @@ bool LCGripperTransmission::initXml(TiXmlElement *config)
   }
 
   // Print all coefficients
-  ROS_DEBUG("LCGripper transmission parameters for %s: j0x=%f, j0y=%f, j1x=%f, j1y=%f, p0x=%f, p0y=%f, p1x=%f, p1y=%f, p2x=%f, p2y=%f, p3x=%f, p3y=%f, l0=%f, l1=%f, l2=%f, p0_radius=%f, j1_radius=%f, thickness=%f, theta_open=%f, theta_closed=%f, gear_reduction=%f",
-  name_.c_str(), j0x_, j0y_, j1x_, j1y_, p0x_, p0y_, p1x_, p1y_, p2x_, p2y_, p3x_, p3y_, l0_, l1_, l2_, p0_radius_, j1_radius_, thickness_, theta_open_, theta_closed_, gear_reduction_);
+  //ROS_DEBUG("LCGripper transmission parameters for %s: j0x=%f, j0y=%f, j1x=%f, j1y=%f, p0x=%f, p0y=%f, p1x=%f, p1y=%f, p2x=%f, p2y=%f, p3x=%f, p3y=%f, l0=%f, l1=%f, l2=%f, p0_radius=%f, j1_radius=%f, thickness=%f, theta_open=%f, theta_closed=%f, gear_reduction=%f",
+  //name_.c_str(), j0x_, j0y_, j1x_, j1y_, p0x_, p0y_, p1x_, p1y_, p2x_, p2y_, p3x_, p3y_, l0_, l1_, l2_, p0_radius_, j1_radius_, thickness_, theta_open_, theta_closed_, gear_reduction_);
 
   // Get passive joint informations
   for (TiXmlElement *j = config->FirstChildElement("passive_joint"); j; j = j->NextSiblingElement("passive_joint"))
@@ -538,24 +538,24 @@ void LCGripperTransmission::propagatePosition(std::vector<Actuator*>& as, std::v
     ROS_ASSERT(js.size() == 1 + passive_joints_.size());
   }
 
-  double motor_pos = as[0]->state_.position_;
-  double motor_vel = as[0]->state_.velocity_;
-  double motor_torque  =  tqSign_ * as[0]->state_.last_measured_effort_; // Convert current -> Nm
-
-  double tendon_length  = motor_pos    * motorGeom2TendonGeom();
-  double tendon_vel     = motor_vel    * motorGeom2TendonGeom();
+  double tendon_length  = as[0]->state_.position_ * motorGeom2TendonGeom();
+  double tendon_vel     = as[0]->state_.velocity_ * motorGeom2TendonGeom();
+  double motor_torque   = tqSign_ * as[0]->state_.last_measured_effort_;
   double tendon_force   = motor_torque * motorTorque2TendonForce();
 
   if ( js[0]->calibrated_ )
   {
-
-    double gap_size    = fabs(getGapFromTendonLength(tendon_length) - gap_open_); // Gap size is in mm
-    //gap_size     = validateGapSize(gap_size); // Check bounds
+    double gap_size   = getGapFromTendonLength(tendon_length);
     double gap_vel    = getGapVelFromTendonLengthVel(tendon_length, tendon_vel);
   //  double gap_force  = getGripperForceFromTendonForce(tendon_force, gap_size);
   //  gap_force = gap_force * gripper_efficiency_; // Apply efficiency coefficient.
 
-    //ROS_INFO("PropagatePosition(): ENC_POS = %f --> MOTOR_POS = %f --> TENDON_LENGTH = %f --> GAP_SIZE = %f", as[0]->state_.position_, motor_pos, tendon_length, gap_size);
+    if(loop_count_ % 1650 == 800)
+    {
+      ROS_INFO("T=%.4f --> G=%.4f", 
+               tendon_length, 
+               gap_size);
+    }
 
     // Determines the state of the gap joint.
     js[0]->position_        = gap_size;
@@ -717,7 +717,7 @@ void LCGripperTransmission::propagateEffort(
 
   if ( js[0]->calibrated_ )
   {
-    double gap_effort       = tqSign_ * js[0]->commanded_effort_; // Newtons
+    double gap_effort = tqSign_ * js[0]->commanded_effort_; // Newtons
     double gap_size   = js[0]->position_;       // Needed to calculate forces (varies with gap).
 
     double tendon_force   = getTendonForceFromGripperForce(gap_effort, gap_size);
@@ -738,20 +738,29 @@ void LCGripperTransmission::propagateEffort(
     as[0]->command_.enable_ = true;
     as[0]->command_.effort_ = tqSign_ * motor_torque;
 
-    if(++loop_count_ % 10 == 0)
+    if(loop_count_ % 1650 == 0)
     {
-      if(lcg_state_publisher_ && lcg_state_publisher_->trylock())
-      {
-        lcg_state_publisher_->msg_.header.stamp = ros::Time::now();
-        lcg_state_publisher_->msg_.gap_size = gap_size;
-        lcg_state_publisher_->msg_.tendon_position = tendon_length;
-        lcg_state_publisher_->msg_.motor_position = motor_pos;
-        lcg_state_publisher_->msg_.gap_force = gap_effort;
-        lcg_state_publisher_->msg_.tendon_force = tendon_force;
-        lcg_state_publisher_->msg_.motor_torque = motor_torque;
+      ROS_INFO("js0ce=%g, tf=%g, mtq=%g, max_mtq_=%g",
+               js[0]->commanded_effort_,
+               tendon_force,
+               motor_torque,
+               max_torque_);
+    }
 
-        lcg_state_publisher_->unlockAndPublish();
-      }
+
+    if(++loop_count_ % 10 == 0 &&
+       lcg_state_publisher_ &&
+       lcg_state_publisher_->trylock() )
+    {
+      lcg_state_publisher_->msg_.header.stamp = ros::Time::now();
+      lcg_state_publisher_->msg_.gap_size = gap_size;
+      lcg_state_publisher_->msg_.tendon_position = tendon_length;
+      lcg_state_publisher_->msg_.motor_position = motor_pos;
+      lcg_state_publisher_->msg_.gap_force = gap_effort;
+      lcg_state_publisher_->msg_.tendon_force = tendon_force;
+      lcg_state_publisher_->msg_.motor_torque = motor_torque;
+
+      lcg_state_publisher_->unlockAndPublish();
     }
 
   }
@@ -787,8 +796,7 @@ void LCGripperTransmission::propagateEffortBackwards(
     double motor_effort   = tqSign_ * as[0]->command_.effort_;
 
     // gap_size is required to compute the effective distance from the tendon to the J0 joint
-    double motor_pos  = as[0]->state_.position_;
-    double tendon_length   = motor_pos * motorGeom2TendonGeom();
+    double tendon_length = as[0]->state_.position_ * motorGeom2TendonGeom();
     double gap_size    = getGapFromTendonLength(tendon_length);
 
     double motor_torque   = getMotorTorqueFromEffort(motor_effort);
@@ -875,15 +883,15 @@ double LCGripperTransmission::getThetaFromGap(double gap)
   double theta = acos(inner_part);
   return theta; // NB: radians
 
-  if ( !(++count % 1000) ) count = 0.0;
+  if ( ++count % 1000 == 0 ) count = 0.0;
 }
 
 double LCGripperTransmission::getTendonLengthFromGap(double gap)
 {
   double length = 0.0;
-  for (int i = 0; i <= (int)gap_to_length_coeffs_.size(); i++)
+  for (int i = 0; i < (int)gap_to_length_coeffs_.size(); i++)
   {
-    length += (gap_to_length_coeffs_[i] * pow(gap,i));
+    length += gap_to_length_coeffs_[i] * pow(gap,i);
   }
   return length;
 }
@@ -891,9 +899,9 @@ double LCGripperTransmission::getTendonLengthFromGap(double gap)
 double LCGripperTransmission::getGapFromTendonLength(double length)
 {
   double gap_pos = 0.0;
-  for (int i = 0; i <= (int)gap_to_length_coeffs_.size(); i++)
+  for (int i = 0; i < (int)length_to_gap_coeffs_.size(); i++)
   {
-    gap_pos += (length_to_gap_coeffs_[i] * pow(length,i));
+    gap_pos += length_to_gap_coeffs_[i] * pow(length,i);
   }
   return gap_pos;
 }
@@ -905,9 +913,9 @@ double LCGripperTransmission::getGapVelFromTendonLengthVel(double length, double
 
   // dGap/dTime = dGap/dLength * dLength/dTime
   // Calculates dGap/dLength
-  for (int i = 0; i < (int)length_to_gap_coeffs_.size(); i++)
+  for (int i = 1; i < (int)length_to_gap_coeffs_.size(); i++)
   {
-    dGap_dLength += (i+1) * (length_to_gap_coeffs_[i+1] * pow(length, i));
+    dGap_dLength += i * (length_to_gap_coeffs_[i] * pow(length, i-1));
   }
   // Calculate dGap/dTime
 //  ROS_WARN("getGapVelFromTendonLengthVel: dGap_dLength: %f , length_vel %f", dGap_dLength, length);
@@ -924,9 +932,9 @@ double LCGripperTransmission::getTendonLengthVelFromGapVel(double gap_vel, doubl
 
   // dLength/dTime = dLength/dGap * dGap/dTime
   // Calculates dLength/dGap
-  for (int i = 0; i < (int)gap_to_length_coeffs_.size(); i++)
+  for (int i = 1; i < (int)gap_to_length_coeffs_.size(); i++)
   {
-    dLength_dGap += (i+1) * (gap_to_length_coeffs_[i+1] * pow(gap, i));
+    dLength_dGap += i * gap_to_length_coeffs_[i] * pow(gap, i-1);
   }
   // Calculate dLength/dTime
   length_vel = dLength_dGap * gap_vel;
@@ -1022,9 +1030,9 @@ double LCGripperTransmission::getMotorEffortFromTorque(double motor_torque)
 double LCGripperTransmission::getFlexorMomentArm(double gap_size)
 {
   double effective_distance = 0.0;
-  for (int i = 0; i <= (int)gap_to_effective_dist_coeffs_.size(); i++)
+  for (int i = 0; i < (int)gap_to_effective_dist_coeffs_.size(); i++)
   {
-    effective_distance += (gap_to_effective_dist_coeffs_[i] * pow(gap_size,i));
+    effective_distance += gap_to_effective_dist_coeffs_[i] * pow(gap_size,i);
   }
   return effective_distance;
 }

@@ -1,7 +1,7 @@
 r_gripper_controller:
   type: gripper_control/Pr2LCGripperController
   joint: r_gripper_joint
-  pid: &lcgripper_position_gains
+  pid: 
     p: 200.0
     i: 0.0
     d: 50.0

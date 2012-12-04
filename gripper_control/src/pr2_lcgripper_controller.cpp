@@ -139,11 +139,8 @@ void Pr2LCGripperController::update()
 //    ROS_INFO("LCGCtrl: stall_length = %f", stall_length.toSec());
     if (stall_length.toSec() > stall_timeout_ && fabs(effort) > holding_torque_) // Don't increase the torque if the controller is requesting a lower torque.
     {
-//    ROS_INFO("Stalled for %f seconds", stall_length.toSec());
-      double direction = 1.0;
-      if (effort < 0) // Simple sign check.
-        direction = -1.0;
-      effort = direction*holding_torque_;
+      // ROS_INFO("Stalled for %f seconds", stall_length.toSec());
+      effort = copysign(holding_torque_,effort);
     }
   }
   else // if we're not stalled, update the stored copy of the current position + time parameters.
@@ -157,27 +154,35 @@ void Pr2LCGripperController::update()
 
   joint_state_->commanded_effort_ = effort;
 
-  // Publish controller state info
-  if(loop_count_ % 10 == 0)
+  if( loop_count_ % 1650 == 0 )
   {
-    if(controller_state_publisher_ && controller_state_publisher_->trylock())
-    {
-      controller_state_publisher_->msg_.header.stamp = time;
-      controller_state_publisher_->msg_.set_point = command->position;
-      controller_state_publisher_->msg_.process_value = joint_state_->position_;
-      controller_state_publisher_->msg_.process_value_dot = joint_state_->velocity_;
-      controller_state_publisher_->msg_.error = error;
-      controller_state_publisher_->msg_.time_step = dt.toSec();
-      controller_state_publisher_->msg_.command = effort;
+    ROS_INFO("pos=%.4g, effort=%.4g, cmd=%.4g, maxE=%.4g",
+             joint_state_->position_,
+             effort,
+             command->position,
+             command->max_effort);
+  }
 
-      double dummy;
-      pid_.getGains(controller_state_publisher_->msg_.p,
-                    controller_state_publisher_->msg_.i,
-                    controller_state_publisher_->msg_.d,
-                    controller_state_publisher_->msg_.i_clamp,
-                    dummy);
-      controller_state_publisher_->unlockAndPublish();
-    }
+  // Publish controller state info
+  if(loop_count_ % 10 == 0 &&
+     controller_state_publisher_ && 
+     controller_state_publisher_->trylock() )
+  {
+    controller_state_publisher_->msg_.header.stamp = time;
+    controller_state_publisher_->msg_.set_point = command->position;
+    controller_state_publisher_->msg_.process_value = joint_state_->position_;
+    controller_state_publisher_->msg_.process_value_dot = joint_state_->velocity_;
+    controller_state_publisher_->msg_.error = error;
+    controller_state_publisher_->msg_.time_step = dt.toSec();
+    controller_state_publisher_->msg_.command = effort;
+
+    double dummy;
+    pid_.getGains(controller_state_publisher_->msg_.p,
+                  controller_state_publisher_->msg_.i,
+                  controller_state_publisher_->msg_.d,
+                  controller_state_publisher_->msg_.i_clamp,
+                  dummy);
+    controller_state_publisher_->unlockAndPublish();
   }
   loop_count_++;
 
