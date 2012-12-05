@@ -130,9 +130,6 @@ private:
   double getGripperForceFromTendonForce(double tendon_force, double gap_size);
   double getTendonForceFromGripperForce(double gripper_force, double gap_size);
 
-  double getMotorTorqueFromEffort(double motor_effort);
-  double getMotorEffortFromTorque(double motor_torque);
-
   double getMotorQtyFromEncoderQty(double encQty);
   double getEncoderQtyFromMotorQty(double motorQty);
 
@@ -179,6 +176,7 @@ private:
   double theta_closed_;
   double gap_open_;
   double gap_closed_;
+  double tendon_open_;
   double theta0_;
 
   double spring_x_;

@@ -13,7 +13,4 @@
    
   <rosparam file="/etc/ros/robot.yaml"/>
 
-  <rosparam ns="l_gripper_joint" file="$(find gripper_control)/lcg_transmission_params.yaml"/>
-  <rosparam ns="r_gripper_joint" file="$(find gripper_control)/lcg_transmission_params.yaml"/>
-
 </launch> 

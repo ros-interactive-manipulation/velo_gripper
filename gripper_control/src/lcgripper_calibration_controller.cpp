@@ -198,13 +198,14 @@ void LCGripperCalibrationController::update()
 
   int settleCount = 600;
 
-  double LCGCC_MTtop     =  0.0165;    // FULL TRAVEL is 0.0162
-  double LCGCC_empty     =  0.0150;    // More travel than this indicates Missing Gripper (or broken tendon)
-  double LCGCC_open      =  0.0113;    // Open gripper
-  double LCGCC_BOinstall =  0.0006;    // "BackOff install" AMOUNT TO RETRACT FROM TOP TO installation point
-  double LCGCC_wrong     =  0.0090;    // Travel must be more than this to be engaged with tendon interlock (0.0075 minimum)
-  double LCGCC_BObottom  =  0.0030;    // "BackOff from Bottom"
-  double LCGCC_MTclosed  = -0.0040;    // "More Than Closed"  (After moving coords to bottom)
+  // BALLSCREW DISTANCE CONSTANTS (in meters)
+  const double LCGCC_MTtop     =  0.0165;    // FULL TRAVEL is 0.0162
+  const double LCGCC_empty     =  0.0150;    // More travel than this indicates Missing Gripper (or broken tendon)
+  const double LCGCC_open      =  0.0113;    // Open gripper
+  const double LCGCC_BOinstall =  0.0006;    // "BackOff install" AMOUNT TO RETRACT FROM TOP TO installation point
+  const double LCGCC_wrong     =  0.0090;    // Travel must be more than this to be engaged with tendon interlock (0.0075 minimum)
+  const double LCGCC_BObottom  =  0.0030;    // "BackOff from Bottom"
+  const double LCGCC_MTclosed  = -0.0040;    // "More Than Closed"  (After moving coords to bottom)
   double LCGCC_MTbottom  = -0.0170;    // "More Than Bottom"  (Starting from anywhere)
 
   switch (state_)

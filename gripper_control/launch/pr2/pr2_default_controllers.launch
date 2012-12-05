@@ -14,6 +14,8 @@
   <rosparam command="load" file="$(find pr2_controller_configuration)/pr2_arm_controllers.yaml" />
 
   <!-- Gripper -->
+  <rosparam ns="l_gripper_joint" file="$(find gripper_control)/lcg_transmission_params.yaml"/>
+  <rosparam ns="r_gripper_joint" file="$(find gripper_control)/lcg_transmission_params.yaml"/>
   <rosparam command="load" file="$(find gripper_control)/pr2_lcgripper_controllers.yaml" />
 
   <!-- Tilt Laser -->
