@@ -28,8 +28,8 @@ spring:
   k:  1050  # N/m
   x0: 0.015   # m
 limits:
-  theta_open:   20  # degrees, proximal joint angle when fully open
-  theta_closed: 101.5 # degrees, proximal joint angle when fully closed
+  theta_open_deg:   20    # degrees, proximal joint angle when fully open
+  theta_closed_deg: 101.5 # degrees, proximal joint angle when fully closed
   max_torque: 0.02 # Maximum motor torque output from the transmission to the MCB
   gap_closed: 0.0   # Gap size when gripper is fully closed
 #  position_holding:
