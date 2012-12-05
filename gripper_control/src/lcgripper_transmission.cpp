@@ -526,17 +526,11 @@ void LCGripperTransmission::propagatePosition(std::vector<Actuator*>& as, std::v
   ROS_ASSERT(as.size() == 1); // Only one actuator
   // js has passive joints and 1 gap joint and 1 screw joint
   if (use_simulated_actuated_joint_ && has_simulated_passive_actuated_joint_)
-  {
-    ROS_ASSERT(js.size() == 1 + passive_joints_.size() + 2);
-  }
+  { ROS_ASSERT(js.size() == 1 + passive_joints_.size() + 2); }
   else if (use_simulated_actuated_joint_)
-  {
-    ROS_ASSERT(js.size() == 1 + passive_joints_.size() + 1);
-  }
+  { ROS_ASSERT(js.size() == 1 + passive_joints_.size() + 1); }
   else
-  {
-    ROS_ASSERT(js.size() == 1 + passive_joints_.size());
-  }
+  { ROS_ASSERT(js.size() == 1 + passive_joints_.size()); }
 
   double tendon_length  = as[0]->state_.position_ * motorGeom2TendonGeom();
   double tendon_vel     = as[0]->state_.velocity_ * motorGeom2TendonGeom();
@@ -627,17 +621,11 @@ void LCGripperTransmission::propagatePositionBackwards(std::vector<JointState*>&
   ROS_ASSERT(as.size() == 1); // Only one actuator
   // js has passive joints and 1 gap joint and 1 screw joint
   if (use_simulated_actuated_joint_ && has_simulated_passive_actuated_joint_)
-  {
-    ROS_ASSERT(js.size() == 1 + passive_joints_.size() + 2);
-  }
+  { ROS_ASSERT(js.size() == 1 + passive_joints_.size() + 2); }
   else if (use_simulated_actuated_joint_)
-  {
-    ROS_ASSERT(js.size() == 1 + passive_joints_.size() + 1);
-  }
+  { ROS_ASSERT(js.size() == 1 + passive_joints_.size() + 1); }
   else
-  {
-    ROS_ASSERT(js.size() == 1 + passive_joints_.size());
-  }
+  { ROS_ASSERT(js.size() == 1 + passive_joints_.size());  }
 
   //ROS_WARN("Read js[0]: %f, js[1]: %f, js[2]: %f, js[3] %f, js[4] %f", js[0]->position_, js[1]->position_*RAD2DEG, js[2]->position_*RAD2DEG, js[3]->position_*RAD2DEG, js[4]->position_*RAD2DEG);
 
@@ -853,37 +841,29 @@ double LCGripperTransmission::motorTorque2TendonForce()
 double LCGripperTransmission::getGapFromTheta(double theta)
 { // NB: theta = radians
   // The gap spacing is defined by proximal joint angle theta, the width of the palm (from j0x), and the thickness of the distal link.
-  double gap = 2.0 * (l1_*cos(theta) + fabs(j0x_)/2.0 - thickness_);
+  double gap = 2.0 * (l0_ + l1_*cos(theta) - thickness_);
   return gap;
 }
 
 double LCGripperTransmission::getThetaFromGap(double gap)
 {
-  static int count = 1;
+  static int count = 0;
 
   // The inverse of getGapFromTheta.
-  double inner_part = (gap/2.0 - fabs(j0x_)/2.0 + thickness_)/l1_;
+  double x   = gap/2.0 + thickness_- l0_;
+  double arg = x/l1_;
 
-  if (inner_part > 1.0)
+  if ( fabs(arg) > 1.0 )
   {
-    if ( !count ) {
-    ROS_ERROR("GetThetaFromGap invalid - trying to get acos of %.1g", inner_part);
-    ROS_WARN("gap: %f \tj0x_: %.1g \tthickness: %.1g \tl1: %.1g \tinner: %.1g", gap, j0x_, thickness_, l1_, inner_part);
+    if ( ++count % 1000 == 0 ) {
+    ROS_ERROR("GetThetaFromGap invalid - trying to get acos of %.1g", arg);
+    ROS_WARN("gap: %f \tj0x_: %.1g \tthickness: %.1g \tl1: %.1g \tinner: %.1g", gap, j0x_, thickness_, l1_, arg);
+    count=0;
     }
-    inner_part = 1.0;
+    arg = copysign(1.0,arg);
   }
-  else if (inner_part < -1.0)
-  {
-    if ( !count ) {
-    ROS_ERROR("GetThetaFromGap invalid - trying to get acos of %.1g", inner_part);
-    ROS_WARN("gap: %f \tj0x_: %f \tthickness: %f \tl1: %f \tinner: %f", gap, j0x_, thickness_, l1_, inner_part);
-    }
-    inner_part = -1.0;
-  }
-  double theta = acos(inner_part);
+  double theta = acos(arg);
   return theta; // NB: radians
-
-  if ( ++count % 1000 == 0 ) count = 0.0;
 }
 
 double LCGripperTransmission::getTendonLengthFromGap(double gap)
@@ -911,14 +891,12 @@ double LCGripperTransmission::getGapVelFromTendonLengthVel(double length, double
   double gap_vel = 0.0;
   double dGap_dLength = 0.0;
 
-  // dGap/dTime = dGap/dLength * dLength/dTime
-  // Calculates dGap/dLength
+  // Calculate dGap/dLength
   for (int i = 1; i < (int)length_to_gap_coeffs_.size(); i++)
   {
     dGap_dLength += i * (length_to_gap_coeffs_[i] * pow(length, i-1));
   }
-  // Calculate dGap/dTime
-//  ROS_WARN("getGapVelFromTendonLengthVel: dGap_dLength: %f , length_vel %f", dGap_dLength, length);
+  // dGap/dt = dGap/dLen * dLen/dt
   gap_vel = dGap_dLength * length_vel;
 
   return gap_vel;
@@ -930,13 +908,12 @@ double LCGripperTransmission::getTendonLengthVelFromGapVel(double gap_vel, doubl
   double length_vel = 0.0;
   double dLength_dGap = 0.0;
 
-  // dLength/dTime = dLength/dGap * dGap/dTime
-  // Calculates dLength/dGap
+  // Calculate dLength/dGap
   for (int i = 1; i < (int)gap_to_length_coeffs_.size(); i++)
   {
     dLength_dGap += i * gap_to_length_coeffs_[i] * pow(gap, i-1);
   }
-  // Calculate dLength/dTime
+  // dLen/dt = dLen/dGap * dGap/dt
   length_vel = dLength_dGap * gap_vel;
 
   return length_vel;
@@ -966,8 +943,8 @@ double LCGripperTransmission::getGripperForceFromTendonForce(double tendon_force
 
   double t1 = getThetaFromGap(gap_size);
   double Fe = getExtensorTendonForce(t1);
-  if (tendon_force <= 0.0)
-    Fe = 0.0;
+//  if (tendon_force > 0.0)
+//    Fe = 0.0;
   double Ff = tendon_force/2.0; // Divided by 2 as the tendon force is split between the two fingers.
   r_f0_ = getFlexorMomentArm(gap_size);
   r_g0_ = l2_/2.0 + l1_*sin(t1); // Assume force applied to the middle of the distal link.
@@ -986,12 +963,12 @@ double LCGripperTransmission::getTendonForceFromGripperForce(double gripper_forc
   double theta2 = M_PI/2.0 - theta1; // theta2 is 90-theta1.
   double force_j1 = gripper_force / (cos(theta2));
 
-  double torque = force_j1 * l1_; // l1 is in mm
+  double torque = force_j1 * l1_; // l1 is in m
 
   double t1 = getThetaFromGap(gap_size);
   double Fe = getExtensorTendonForce(t1);
-  if (gripper_force <= 0.0) // Positive force = close gripper
-    Fe = 0.0;
+//  if (gripper_force > 0.0) // Negative force = close gripper
+//    Fe = 0.0;
   double Fg = gripper_force;
 
   r_f0_ = getFlexorMomentArm(gap_size);

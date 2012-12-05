@@ -1,23 +1,23 @@
 gripper_version: 1.58 # Version number of the gripper this data is based on.
 joints:
-  j0x:  -0.035  # m
-  j0y:  0.0 # m
-  j1x:  -0.060  # m
-  j1y:  0.0 # m
+  j0x:  0.0175  # m
+  j0y:  0.0     # m
+  j1x:  0.060   # m
+  j1y:  0.0     # m
 tendon_routing:
-  p0x:  -0.025  # m
-  p0y:  0.002 # m
-  p1x:  -0.045  # m
-  p1y:  0.0 # m
-  p2x:  -0.0084 # m
-  p2y:  0.0023  # m
-  p3x:  -0.044  # m
-  p3y:  -0.005  # m
+  p0x:  0.025  # m
+  p0y:  0.002  # m
+  p1x:  0.045  # m
+  p1y:  0.0    # m
+  p2x:  0.0084 # m
+  p2y:  0.0023 # m
+  p3x:  0.044  # m
+  p3y: -0.005  # m
 links:
-  l0:   0.035 # m
-  l1:   0.060 # m
-  l2:   0.050 # m
-  thickness:  0.006 # m
+  l0:   0.0175 # m
+  l1:   0.060  # m
+  l2:   0.050  # m
+  thickness:  0.0069 m
 radii:
   r_c0: 0.005 # m
   r_c1: 0.005 # m
