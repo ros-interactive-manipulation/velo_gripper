@@ -200,6 +200,7 @@ void LCGripperCalibrationController::update()
 
   double LCGCC_MTtop     =  0.0165;    // FULL TRAVEL is 0.0162
   double LCGCC_empty     =  0.0150;    // More travel than this indicates Missing Gripper (or broken tendon)
+  double LCGCC_open      =  0.0113;    // Open gripper
   double LCGCC_BOinstall =  0.0006;    // "BackOff install" AMOUNT TO RETRACT FROM TOP TO installation point
   double LCGCC_wrong     =  0.0090;    // Travel must be more than this to be engaged with tendon interlock (0.0075 minimum)
   double LCGCC_BObottom  =  0.0030;    // "BackOff from Bottom"
@@ -287,10 +288,14 @@ void LCGripperCalibrationController::update()
         ROS_ERROR("Gripper \"%s\" NOT installed!  Please install and recalibrate.  (pos=%6.4fm)",
                   joint_name_.c_str(),joint_->position_);
         goalCommand( joint_->position_ - LCGCC_BOinstall ); // Gripper installation/fully-open position.
-
-        // Ballscrew could get jammed at top end of travel.  Watch for it...
-        odometer_last_ = joint_->joint_statistics_.odometer_;
       }
+      else
+      {
+        goalCommand( LCGCC_open ); // Gripper open, ready to go.
+      }
+
+      // Ballscrew could get jammed at top end of travel.  Watch for it...
+      odometer_last_ = joint_->joint_statistics_.odometer_;
       state_ = HOME;
     }
     break;

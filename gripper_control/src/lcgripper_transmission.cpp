@@ -205,15 +205,16 @@ bool LCGripperTransmission::getItems(ParamFetcher *itemFetcher)
 
   std::cout << "Init Parameters" << std::endl;
 
-  itemFetcher->getParam("joints/j0x", j0x_);
-  itemFetcher->getParam("joints/j0y", j0y_);
-  itemFetcher->getParam("joints/j1x", j1x_);
-  itemFetcher->getParam("joints/j1y", j1y_);
+  // itemFetcher->getParam("joints/j0x", j0x_);
+  // itemFetcher->getParam("joints/j0y", j0y_);
+  // itemFetcher->getParam("joints/j1x", j1x_);
+  // itemFetcher->getParam("joints/j1y", j1y_);
 
   // Links
   itemFetcher->getParam("links/l0", l0_);
   itemFetcher->getParam("links/l1", l1_);
   itemFetcher->getParam("links/l2", l2_);
+  itemFetcher->getParam("links/thickness", thickness_);
 
   // Radii
   itemFetcher->getParam("radii/r_c0", r_c0_);
@@ -224,7 +225,6 @@ bool LCGripperTransmission::getItems(ParamFetcher *itemFetcher)
 
   //itemFetcher->getParam("p0_radius", p0_radius_);
   //itemFetcher->getParam("j1_radius", j1_radius_);
-  //itemFetcher->getParam("thickness", thickness_);
 
   // Spring
   itemFetcher->getParam("spring/k",  spring_k_);
@@ -233,9 +233,11 @@ bool LCGripperTransmission::getItems(ParamFetcher *itemFetcher)
   // Limits
   itemFetcher->getParam("limits/theta_open",   theta_open_);
   itemFetcher->getParam("limits/theta_closed",  theta_closed_);
-  itemFetcher->getParam("limits/gap_open",  gap_open_);
   itemFetcher->getParam("limits/gap_closed",  gap_closed_);
   itemFetcher->getParam("limits/max_torque",  max_torque_);
+
+  // COMPUTE THIS SO THAT EVERYTHING STAYS CONSISTENT
+  gap_open_ = 2.0 *(l0_ + l1_*cos(theta_open_*DEG2RAD) - thickness_);
 
   // Actuator
   itemFetcher->getParam("actuator/screw_lead",    screw_lead_);
@@ -445,8 +447,8 @@ bool LCGripperTransmission::initXml(TiXmlElement *config)
   }
 
   // Print all coefficients
-  //ROS_DEBUG("LCGripper transmission parameters for %s: j0x=%f, j0y=%f, j1x=%f, j1y=%f, p0x=%f, p0y=%f, p1x=%f, p1y=%f, p2x=%f, p2y=%f, p3x=%f, p3y=%f, l0=%f, l1=%f, l2=%f, p0_radius=%f, j1_radius=%f, thickness=%f, theta_open=%f, theta_closed=%f, gear_reduction=%f",
-  //name_.c_str(), j0x_, j0y_, j1x_, j1y_, p0x_, p0y_, p1x_, p1y_, p2x_, p2y_, p3x_, p3y_, l0_, l1_, l2_, p0_radius_, j1_radius_, thickness_, theta_open_, theta_closed_, gear_reduction_);
+  //ROS_DEBUG("LCGripper transmission parameters for %s: l0=%f, l1=%f, l2=%f, thickness=%f, theta_open=%f, theta_closed=%f, gear_reduction=%f",
+  //name_.c_str(), l0_, l1_, l2_, thickness_, theta_open_, theta_closed_, gear_reduction_);
 
   // Get passive joint informations
   for (TiXmlElement *j = config->FirstChildElement("passive_joint"); j; j = j->NextSiblingElement("passive_joint"))
@@ -840,7 +842,7 @@ double LCGripperTransmission::motorTorque2TendonForce()
 
 double LCGripperTransmission::getGapFromTheta(double theta)
 { // NB: theta = radians
-  // The gap spacing is defined by proximal joint angle theta, the width of the palm (from j0x), and the thickness of the distal link.
+  // The gap spacing is defined by proximal joint angle theta, the width of the palm (from l0), and the thickness of the distal link.
   double gap = 2.0 * (l0_ + l1_*cos(theta) - thickness_);
   return gap;
 }
@@ -848,6 +850,9 @@ double LCGripperTransmission::getGapFromTheta(double theta)
 double LCGripperTransmission::getThetaFromGap(double gap)
 {
   static int count = 0;
+
+  // IF gap IS "LARGER", THEN TENDONS ARE SLACK, BUT THETA IS theta_open_
+  gap = std::min(gap,gap_open_);
 
   // The inverse of getGapFromTheta.
   double x   = gap/2.0 + thickness_- l0_;
@@ -857,10 +862,10 @@ double LCGripperTransmission::getThetaFromGap(double gap)
   {
     if ( ++count % 1000 == 0 ) {
     ROS_ERROR("GetThetaFromGap invalid - trying to get acos of %.1g", arg);
-    ROS_WARN("gap: %f \tj0x_: %.1g \tthickness: %.1g \tl1: %.1g \tinner: %.1g", gap, j0x_, thickness_, l1_, arg);
+    ROS_WARN("gap: %.3f \tl0_: %.4f \tgap_open: %.4f \tl1: %.4f \targ: %f", gap, l0_, gap_open_, l1_, arg);
     count=0;
     }
-    arg = copysign(1.0,arg);
+    arg = copysign(0.999999,arg);
   }
   double theta = acos(arg);
   return theta; // NB: radians

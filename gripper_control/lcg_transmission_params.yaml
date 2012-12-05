@@ -17,7 +17,7 @@ links:
   l0:   0.0175 # m
   l1:   0.060  # m
   l2:   0.050  # m
-  thickness:  0.0069 m
+  thickness:  0.0069 # m
 radii:
   r_c0: 0.005 # m
   r_c1: 0.005 # m
@@ -31,7 +31,6 @@ limits:
   theta_open:   20  # degrees, proximal joint angle when fully open
   theta_closed: 101.5 # degrees, proximal joint angle when fully closed
   max_torque: 0.02 # Maximum motor torque output from the transmission to the MCB
-  gap_open: 0.135763  # Gap size when the gripper is fully open
   gap_closed: 0.0   # Gap size when gripper is fully closed
 #  position_holding:
 #    stall_timeout: 3.0 # seconds
