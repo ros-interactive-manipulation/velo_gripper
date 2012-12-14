@@ -25,8 +25,8 @@ radii:
   r_e1: 0.0032  # m
   r_f1: 0.0032  # m
 spring:
-  k:  1050  # N/m
-  x0: 0.015   # m
+  k:  875     # N/m
+  x0: 0.010   # m
 limits:
   theta_open_deg:   20    # degrees, proximal joint angle when fully open
   theta_closed_deg: 101.5 # degrees, proximal joint angle when fully closed
@@ -54,8 +54,8 @@ polynomials:
   g2l_4: -78.48807206
 
   g2ed_0: 1.33852307e-02
-  g2ed_1: -1.50212267e-02
-  g2ed_2: -4.00341247e-01
-  g2ed_3: 4.45724019e+00
-  g2ed_4: -2.30064782e+01
+  g2ed_1: 0.0
+  g2ed_2: 0.0
+  g2ed_3: 0.0
+  g2ed_4: 0.0
   

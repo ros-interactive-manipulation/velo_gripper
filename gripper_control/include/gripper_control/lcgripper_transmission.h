@@ -124,7 +124,9 @@ private:
   double tendonForce2MotorTorque();
   double motorTorque2TendonForce();
 
+  double dLength_dGap(double gap);
   double getTendonLengthVelFromGapVel(double gap_vel, double gap);
+  double dGap_dLength(double length);
   double getGapVelFromTendonLengthVel(double length, double length_vel);
 
   double getGripperForceFromTendonForce(double tendon_force, double gap_size);
@@ -134,8 +136,6 @@ private:
   double getEncoderQtyFromMotorQty(double motorQty);
 
   double getThetaVelFromGapVel(double gap_vel, double gap);
-
-  double getFlexorMomentArm(double gap_size);
 
   double getExtensorTendonForce(double theta1);
 
@@ -197,7 +197,7 @@ private:
   // FITTED POLYNOMIALS:
   std::vector<double> length_to_gap_coeffs_;
   std::vector<double> gap_to_length_coeffs_;
-  std::vector<double> gap_to_effective_dist_coeffs_;
+  // std::vector<double> gap_to_effective_dist_coeffs_;
 
   // Drivetrain parameters
   double gear_reduction_; // gear reduction from motor to ball screw shaft: MotorSpeed/GearReduction -> BallScrewSpeed

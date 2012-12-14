@@ -154,14 +154,14 @@ void Pr2LCGripperController::update()
 
   joint_state_->commanded_effort_ = effort;
 
-  if( loop_count_ % 1650 == 0 )
-  {
-    ROS_INFO("pos=%.4g, effort=%.4g, cmd=%.4g, maxE=%.4g",
-             joint_state_->position_,
-             effort,
-             command->position,
-             command->max_effort);
-  }
+  // if( loop_count_ % 1650 == 0 )
+  // {
+  //   ROS_INFO("pos=%.4f, effort=%.4f, cmd=%6.2f, maxE=%.1f",
+  //            joint_state_->position_,
+  //            effort,
+  //            command->position,
+  //            command->max_effort);
+  // }
 
   // Publish controller state info
   if(loop_count_ % 10 == 0 &&

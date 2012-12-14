@@ -237,6 +237,7 @@ bool LCGripperTransmission::getItems(ParamFetcher *itemFetcher)
   theta_closed_ *= DEG2RAD;  // CONVERT TO SI
   itemFetcher->getParam("limits/gap_closed",  gap_closed_);
   itemFetcher->getParam("limits/max_torque",  max_torque_);
+  max_torque_ = fabs(max_torque_);
 
   // Actuator
   itemFetcher->getParam("actuator/screw_lead",    screw_lead_);
@@ -263,17 +264,18 @@ bool LCGripperTransmission::getItems(ParamFetcher *itemFetcher)
   itemFetcher->getParam("polynomials/g2l_3", tmp);  gap_to_length_coeffs_[3] = tmp;
   itemFetcher->getParam("polynomials/g2l_4", tmp);  gap_to_length_coeffs_[4] = tmp;
 
-  gap_to_effective_dist_coeffs_.resize(5);
-  itemFetcher->getParam("polynomials/g2ed_0", tmp);  gap_to_effective_dist_coeffs_[0] = tmp;
-  itemFetcher->getParam("polynomials/g2ed_1", tmp);  gap_to_effective_dist_coeffs_[1] = tmp;
-  itemFetcher->getParam("polynomials/g2ed_2", tmp);  gap_to_effective_dist_coeffs_[2] = tmp;
-  itemFetcher->getParam("polynomials/g2ed_3", tmp);  gap_to_effective_dist_coeffs_[3] = tmp;
-  itemFetcher->getParam("polynomials/g2ed_4", tmp);  gap_to_effective_dist_coeffs_[4] = tmp;
+  // gap_to_effective_dist_coeffs_.resize(5);
+  // itemFetcher->getParam("polynomials/g2ed_0", tmp);  gap_to_effective_dist_coeffs_[0] = tmp;
+  // itemFetcher->getParam("polynomials/g2ed_1", tmp);  gap_to_effective_dist_coeffs_[1] = tmp;
+  // itemFetcher->getParam("polynomials/g2ed_2", tmp);  gap_to_effective_dist_coeffs_[2] = tmp;
+  // itemFetcher->getParam("polynomials/g2ed_3", tmp);  gap_to_effective_dist_coeffs_[3] = tmp;
+  // itemFetcher->getParam("polynomials/g2ed_4", tmp);  gap_to_effective_dist_coeffs_[4] = tmp;
 
   // INITIALIZE MAX GAP AND CORRESPONDING TENDON POSITION, CONSISTENT WITH theta_open_
   // gap_open_ USED IN getGapFromTendonLength(), MUST COMPUTE HARD-CODED HERE TO INITIALIZE IT.
   gap_open_    = 2.0 *(l0_ + l1_*cos(theta_open_) - thickness_);
   tendon_open_ = getTendonLengthFromGap( gap_open_ );
+  ROS_WARN("gap_open_=%.4lf,  theta_open_d=%.2lf, tendon_open=%.4lf",gap_open_,theta_open_*RAD2DEG,tendon_open_);
 
   if ( itemFetcher->error_count_ > 0 )
   {
@@ -623,13 +625,16 @@ void LCGripperTransmission::propagatePositionBackwards(std::vector<JointState*>&
   else
   { ROS_ASSERT(js.size() == 1 + passive_joints_.size());  }
 
-  // ROS_WARN("Read js[0]: %f, js[1]: %f, js[2]: %f, js[3] %f, js[4] %f", 
-  //           js[0]->position_, js[1]->position_*RAD2DEG, js[2]->position_*RAD2DEG, 
-  //           js[3]->position_*RAD2DEG, js[4]->position_*RAD2DEG);
+  // if(loop_count_ % 1650 == 0)
+  // {
+  //   ROS_WARN("Read js[0]: %f, js[1]: %f, js[2]: %f, js[3] %f, js[4] %f", 
+  //             js[0]->position_, js[1]->position_*RAD2DEG, js[2]->position_*RAD2DEG, 
+  //             js[3]->position_*RAD2DEG, js[4]->position_*RAD2DEG);
+  // }
 
   if ( js[0]->calibrated_ )
   {
-    double theta1       = -js[2]->position_ + theta_closed_; // Proximal joint angle, radians
+    double theta1       = -js[2]->position_ - theta_closed_; // Proximal joint angle, radians
     double theta1_vel   =  js[2]->velocity_;
     //  double torqueJ1     = js[3]->commanded_effort_; // Joints 3/4 are the distal joints.
     double gap_force    =  js[0]->commanded_effort_;
@@ -711,12 +716,9 @@ void LCGripperTransmission::propagateEffort(
     double tendon_length = getTendonLengthFromGap(gap_size);
     double motor_pos     = tendon_length * tendonGeom2MotorGeom();
 
-  //  ROS_INFO("PropagateEffort(): Gap Pos = %f ; Gap Effort = %f ; Tendon Force %f ; Motor Torque %f", gap_size, gap_effort, tendon_force, motor_torque);
+    //  ROS_INFO("PropagateEffort(): Gap Pos = %f ; Gap Effort = %f ; Tendon Force %f ; Motor Torque %f", gap_size, gap_effort, tendon_force, motor_torque);
 
-    if (max_torque_ >= 0.0)
-    {
-      motor_torque = std::max(-max_torque_, std::min(motor_torque, max_torque_));
-    }
+    motor_torque = std::max(-max_torque_, std::min(motor_torque, max_torque_));
 
     as[0]->command_.enable_ = true;
     as[0]->command_.effort_ = tqSign_ * motor_torque;
@@ -752,6 +754,7 @@ void LCGripperTransmission::propagateEffort(
     as[0]->command_.enable_ = true;
     as[0]->command_.effort_ = tqSign_ * js[0]->commanded_effort_ * tendonForce2MotorTorque();
   }
+
 }
 
 void LCGripperTransmission::propagateEffortBackwards(
@@ -777,7 +780,7 @@ void LCGripperTransmission::propagateEffortBackwards(
   {
     // gap_size is required to compute the effective distance from the tendon to the J0 joint
     double tendon_length = as[0]->state_.position_ * motorGeom2TendonGeom();
-    double gap_size    = getGapFromTendonLength(tendon_length);
+    double gap_size       = getGapFromTendonLength(tendon_length);
 
     double motor_torque   = tqSign_ * as[0]->command_.effort_;
     double tendon_force   = motor_torque * gripper_efficiency_ * motorTorque2TendonForce();
@@ -842,7 +845,7 @@ double LCGripperTransmission::getThetaFromGap(double gap)
 {
   static int count = 0;
 
-  // IF gap IS "LARGER", THEN TENDONS ARE SLACK, BUT THETA IS theta_open_
+  // IF gap IS "LARGER", THEN TENDONS ARE SLACK, BUT SET THETA --> theta_open_
   gap = std::min(gap,gap_open_);
   double x   = gap/2.0 + thickness_- l0_;
   double arg = x/l1_;
@@ -863,7 +866,7 @@ double LCGripperTransmission::getThetaFromGap(double gap)
 double LCGripperTransmission::getTendonLengthFromGap(double gap)
 {
   double length = 0.0;
-  if ( gap < gap_open_ )  // USE POLYNOMIAL FIT WHERE VALID
+  if ( gap <= gap_open_ )  // USE POLYNOMIAL FIT WHERE VALID
   {
     for (int i = 0; i < (int)gap_to_length_coeffs_.size(); i++)
     {
@@ -881,7 +884,7 @@ double LCGripperTransmission::getTendonLengthFromGap(double gap)
 double LCGripperTransmission::getGapFromTendonLength(double length)
 {
   double gap = 0.0;
-  if ( length < tendon_open_ )  // USE POLYNOMIAL FIT WHERE VALID
+  if ( length <= tendon_open_ )  // USE POLYNOMIAL FIT WHERE VALID
   {
     for (int i = 0; i < (int)length_to_gap_coeffs_.size(); i++)
     {
@@ -896,52 +899,53 @@ double LCGripperTransmission::getGapFromTendonLength(double length)
   return gap;
 }
 
-double LCGripperTransmission::getGapVelFromTendonLengthVel(double length, double length_vel)
+double LCGripperTransmission::dGap_dLength(double length)
 {
-  double gap_vel = 0.0;
-  double dGap_dLength = 0.0;
+  double dG_dL = 0.0;
 
-  if ( length < tendon_open_ )  // USE POLYNOMIAL FIT WHERE VALID
+  if ( 0 < length && length <= tendon_open_ )  // USE POLYNOMIAL FIT WHERE VALID
   {
     // Calculate dGap/dLength
     for (int i = 1; i < (int)length_to_gap_coeffs_.size(); i++)
-    {
-      dGap_dLength += i * (length_to_gap_coeffs_[i] * pow(length, i-1));
-    }
+      dG_dL += i * (length_to_gap_coeffs_[i] * pow(length, i-1));
   }
   else   // LINEARIZE BEYOND MAX GAP
   {
-    dGap_dLength = gap_open_/tendon_open_;
+    dG_dL = gap_open_/tendon_open_;
   }
 
-  // dGap/dt = dGap/dLen * dLen/dt
-  gap_vel = dGap_dLength * length_vel;
+  return dG_dL;
+}
 
+double LCGripperTransmission::getGapVelFromTendonLengthVel(double length, double length_vel)
+{
+  // dGap/dt = dGap/dLen * dLen/dt
+  double gap_vel = dGap_dLength(length) * length_vel;
   return gap_vel;
+}
+
+double LCGripperTransmission::dLength_dGap(double gap)
+{
+  double dL_dG = 0.0;
+
+  if ( 0 < gap && gap <= gap_open_ )  // USE POLYNOMIAL FIT WHERE VALID
+  {
+    // Calculate dLength/dGap
+    for (int i = 1; i < (int)gap_to_length_coeffs_.size(); i++)
+      dL_dG += i * gap_to_length_coeffs_[i] * pow(gap, i-1);
+  }
+  else   // LINEARIZE BEYOND MAX GAP
+  {
+    dL_dG = tendon_open_/gap_open_;
+  } 
+
 }
 
 double LCGripperTransmission::getTendonLengthVelFromGapVel(double gap_vel, double gap)
 {
-
-  double length_vel = 0.0;
-  double dLength_dGap = 0.0;
-
-  if ( gap < gap_open_ )  // USE POLYNOMIAL FIT WHERE VALID
-  {
-    // Calculate dLength/dGap
-    for (int i = 1; i < (int)gap_to_length_coeffs_.size(); i++)
-    {
-      dLength_dGap += i * gap_to_length_coeffs_[i] * pow(gap, i-1);
-    }
-  }
-  else   // LINEARIZE BEYOND MAX GAP
-  {
-    dLength_dGap = tendon_open_/gap_open_;
-  } 
-
   // dLen/dt = dLen/dGap * dGap/dt
-  length_vel = dLength_dGap * gap_vel;
-
+  double length_vel = 
+ * gap_vel;
   return length_vel;
 }
 
@@ -954,63 +958,42 @@ double LCGripperTransmission::getThetaVelFromGapVel(double gap_vel, double gap_s
   return theta_vel;
 }
 
-
 double LCGripperTransmission::getGripperForceFromTendonForce(double tendon_force, double gap_size)
 {
-  double t1 = getThetaFromGap(gap_size);
-  double Fe = getExtensorTendonForce(t1);
-  double Ff = tendon_force/2.0; // Divided by 2 as the tendon force is split between the two fingers.
-  r_f0_ = getFlexorMomentArm(gap_size);
-  r_g0_ = l2_/2.0 + l1_*sin(t1); // Assume force applied to the middle of the distal link.
-  r_g1_ = l2_/2.0;
-
-  double Fg = (Ff * (r_f1_ - (r_c1_/r_c0_)*r_f0_) - Fe*(r_e1_ - (r_c1_/r_c0_)*r_e0_)) / (r_g1_ - (r_c1_/r_c0_)*r_g0_);
-
-  // ROS_INFO("getFGfromFF: input Ft: %f, Gap %f, t1 %f;  Fe: %f, Fg %f", tendon_force, gap_size, t1, Fe, Fg);
+  // Subtract force from extensor spring
+  double Fs = getExtensorTendonForce(getThetaFromGap(gap_size));
+  // Extensor tension projected to grip point force
+  double Fe = Fs * r_e1_/(l2_/2.0);
+  // Using virtual work to compute
+  // Per finger combine: dL/dG_left*Ft/2 and dG/dL=2dG_left
+  double Fg = dLength_dGap(gap_size)*tendon_force - Fe;    // Per Finger
   return Fg;
-
 }
 
 double LCGripperTransmission::getTendonForceFromGripperForce(double gripper_force, double gap_size)
 {
-  // Convert tendon force to gripper force.
-  double theta1 = getThetaFromGap(gap_size);
-  double theta2 = M_PI_2 - theta1; // theta2 is 90-theta1.
-  double force_j1 = gripper_force / (cos(theta2));
-
-  double torque = force_j1 * l1_; // l1 is in m
-
-  double t1 = getThetaFromGap(gap_size);
-  double Fe = getExtensorTendonForce(t1);
-  double Fg = gripper_force;
-
-  r_f0_ = getFlexorMomentArm(gap_size);
-  r_g0_ = l2_/2.0 + l1_*sin(t1); // Assume force applied to the middle of the distal link.
-  r_g1_ = l2_/2.0;
-
-  double Ff = 2.0* (Fg*(r_g1_ - (r_c1_/r_c0_)*r_g0_) + Fe*(r_e1_ - (r_c1_/r_c0_)*r_e0_)) / (r_f1_ - (r_c1_/r_c0_)*r_f0_);
-  // ROS_INFO("getFFfromFG: Fg: %f, gap %f, t1 %f;    Fe %f, Ff %f ", Fg, gap_size, t1, Fe, Ff);
-  return Ff; // Double the result as the motor force is split between the two tendons
+  // Add force from extensor spring
+  double Fs = getExtensorTendonForce(getThetaFromGap(gap_size));
+  // Extensor tension projected to grip point force
+  double Fe = Fs * r_e1_/(l2_/2.0);
+  // Using virtual work to compute
+  double len = getTendonLengthFromGap(gap_size);
+  // dG_dL is for double distance already, so two tendons are baked-in.
+  double Ft = dGap_dLength(len) * (gripper_force + 2.0*Fe); // Two fingers
+  return Ft;   
 }
 
 double LCGripperTransmission::getExtensorTendonForce(double theta1)
 {
+  static int count=0;
+  theta1 = std::max(theta1,theta_open_);  // Don't let current theta1 go less than open_
+  //if (count++%200==0) {ROS_WARN("to=%.1f,  theta1=%.1f",theta_open_*RAD2DEG,theta1*RAD2DEG);}
   double delta_theta = theta1 - theta_open_; // change in angle from the start pose, ie angle at fully open.
-  theta1 = std::max(theta1,0.0);
-  double spring_x = fabs(delta_theta) * (r_e0_ - r_e1_) + spring_x0_; // spring extension, nominal.
+  double spring_x = delta_theta * (r_e0_ - r_e1_) + spring_x0_; // spring extension, nominal.
   double ext_force = spring_k_ * spring_x; // extensor tendon force at the current pose.
 
+  ext_force=0;
   return ext_force;
-}
-
-double LCGripperTransmission::getFlexorMomentArm(double gap_size)
-{
-  double effective_distance = 0.0;
-  for (int i = 0; i < (int)gap_to_effective_dist_coeffs_.size(); i++)
-  {
-    effective_distance += gap_to_effective_dist_coeffs_[i] * pow(gap_size,i);
-  }
-  return effective_distance;
 }
 
 double LCGripperTransmission::getMotorQtyFromEncoderQty(double encQty)

@@ -13,4 +13,16 @@
    
   <rosparam file="/etc/ros/robot.yaml"/>
 
+
+  <node name="plot_cal"
+        pkg="rxtools" type="rxplot"
+        args="-b 60 -p 20 /cal_l_gripper/state/process_value /cal_l_gripper/state/command"
+        respawn="false" output="screen" />
+
+  <node name="plot_stuff"
+        pkg="rxtools" type="rxplot"
+        args="-b 60 -p 20 /l_gripper_joint/state/gap_size,/r_gripper_joint/state/gap_size /l_gripper_joint/state/tendon_position,/r_gripper_joint/state/tendon_position /l_gripper_joint/state/tendon_force,/r_gripper_joint/state/tendon_force /l_gripper_joint/state/motor_torque,/r_gripper_joint/state/motor_torque"
+        respawn="false" output="screen" />
+
+
 </launch> 

@@ -202,7 +202,7 @@ void LCGripperCalibrationController::update()
   const double LCGCC_MTtop     =  0.0165;    // FULL TRAVEL is 0.0162
   const double LCGCC_empty     =  0.0150;    // More travel than this indicates Missing Gripper (or broken tendon)
   const double LCGCC_open      =  0.0113;    // Open gripper
-  const double LCGCC_BOinstall =  0.0006;    // "BackOff install" AMOUNT TO RETRACT FROM TOP TO installation point
+  const double LCGCC_BOinstall =  0.0007;    // "BackOff install" AMOUNT TO RETRACT FROM TOP TO installation point
   const double LCGCC_wrong     =  0.0090;    // Travel must be more than this to be engaged with tendon interlock (0.0075 minimum)
   const double LCGCC_BObottom  =  0.0030;    // "BackOff from Bottom"
   const double LCGCC_MTclosed  = -0.0040;    // "More Than Closed"  (After moving coords to bottom)
@@ -240,14 +240,14 @@ void LCGripperCalibrationController::update()
       if ( ++close_count_ < 2 )
       {
         // BACK OFF A TIME OR TWO TO MAKE SURE WE ARE AT THE END OF TRAVEL
-//        ROS_INFO("FOUND Bottom, now heading to BACKOFF");
+        // ROS_INFO("FOUND Bottom, now heading to BACKOFF");
         goalCommand( LCGCC_BObottom); // Bump out from our new zero
         state_ = BACK_OFF;
       }
       else
       {
         // FOUND THE BOTTOM OF TRAVEL
-//        ROS_INFO("FOUND Bottom, now heading to TOP");
+        // ROS_INFO("FOUND Bottom, now heading to TOP");
 
         // Set the actuator zero once.
         actuator_->state_.zero_offset_ = actuator_->state_.position_;

@@ -78,12 +78,14 @@
       </inertial>
     </link>
 
-    <joint name="${side}_gripper_l_finger_joint" type="revolute">
+    <joint name="${side}_gripper_l_finger_joint" type="continuous">
       <parent link="${side}_gripper_palm_link"/>
       <child link="${side}_gripper_l_finger_link"/>
       <origin rpy="0 0 -${M_PI/2.0}" xyz="0 -0.01750 0.0"/>
+<!--
      <limit effort="300.0" velocity = "10000" lower = "0" upper = "${gripper_max_angle}"/>
       <safety_controller k_position="100" k_velocity="1" soft_lower_limit = "0" soft_upper_limit = "1.4224433403753787"/>
+-->
       <axis xyz="0 0 1"/>
       <dynamics damping="0.01"/>
     </joint>
@@ -111,13 +113,15 @@
       </inertial>
     </link>
 
-    <joint name="${side}_gripper_l_finger_tip_joint" type="revolute">
+    <joint name="${side}_gripper_l_finger_tip_joint" type="continuous">
       <parent link="${side}_gripper_l_finger_link"/>
       <child link="${side}_gripper_l_finger_tip_link"/>
       <mimic joint="${side}_gripper_l_finger_joint" multiplier="-1" offset="0"/>
       <origin rpy="0 0 ${M_PI/2.0}" xyz="0.060 0 0"/>
+<!--
       <limit effort="300.0" velocity = "10000" lower = "${-gripper_max_angle}" upper = "${gripper_max_angle}"/>
       <safety_controller k_position="100" k_velocity="1" soft_lower_limit = "0" soft_upper_limit = "1.4224433403753787"/>
+-->
       <axis xyz="0 0 1"/>
       <dynamics damping="0.01"/>
     </joint>
@@ -145,13 +149,15 @@
       </inertial>
     </link>
 
-    <joint name="${side}_gripper_r_finger_joint" type="revolute">
+    <joint name="${side}_gripper_r_finger_joint" type="continuous">
       <parent link="${side}_gripper_palm_link"/>
       <child link="${side}_gripper_r_finger_link"/>
       <mimic joint="${side}_gripper_l_finger_joint" multiplier="1" offset="0"/>
       <origin rpy="0 ${M_PI} -${M_PI/2.0}" xyz="0 0.0175 0"/>
+<!--
      <limit effort="300.0" velocity = "10000" lower = "${-gripper_max_angle}" upper = "${gripper_max_angle}"/>
       <safety_controller k_position="100" k_velocity="1" soft_lower_limit = "0" soft_upper_limit = "1.4224433403753787"/>
+-->
       <axis xyz="0 0 1"/>
       <dynamics damping="0.01"/>
     </joint>
@@ -179,14 +185,15 @@
       </inertial>
     </link>
 
-    <joint name="${side}_gripper_r_finger_tip_joint" type="revolute">
+    <joint name="${side}_gripper_r_finger_tip_joint" type="continuous">
       <parent link="${side}_gripper_r_finger_link"/>
       <child link="${side}_gripper_r_finger_tip_link"/>
       <mimic joint="${side}_gripper_l_finger_joint" multiplier="-1" offset="0"/>
       <origin rpy="0 0 ${M_PI/2.0}" xyz="0.060 0 0"/>
+<!--
       <limit effort="300.0" velocity = "10000" lower = "${-gripper_max_angle}" upper = "${gripper_max_angle}"/>
       <safety_controller k_position="100" k_velocity="1" soft_lower_limit = "0" soft_upper_limit = "1.4224433403753787"/>
-      <axis xyz="0 0 1"/>
+-->
       <dynamics damping="0.01"/>
     </joint>
 
@@ -250,7 +257,9 @@
       <axis xyz="1 0 0"/>
       <parent link="${side}_gripper_palm_link"/>
       <child link="${side}_gripper_motor_slider_link"/>
+<!--
       <limit effort="1000.0" velocity="0.2" lower="-0.135" upper="0.135" />
+-->
     </joint>
     <link name="${side}_gripper_motor_screw_link">
       <inertial>
