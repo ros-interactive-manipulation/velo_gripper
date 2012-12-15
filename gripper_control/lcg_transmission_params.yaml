@@ -26,7 +26,7 @@ radii:
   r_f1: 0.0032  # m
 spring:
   k:  875     # N/m
-  x0: 0.010   # m
+  x0: 0.015   # m
 limits:
   theta_open_deg:   20    # degrees, proximal joint angle when fully open
   theta_closed_deg: 101.5 # degrees, proximal joint angle when fully closed
@@ -41,21 +41,20 @@ actuator:
   gear_reduction: 15.0  # 15:1 reduction
   efficiency: 0.4 # Overall efficiency coefficient (including gripper + actuator)
 polynomials:
-  l2g_0:  0.0
-  l2g_1:  3.85967649
-  l2g_2:  1886.81169
-  l2g_3: -141680.258
-  l2g_4:  3259847.98
+  l2g_0:  -0.000655359
+  l2g_1:  10.019957576
+  l2g_2:  799.03010689
+  l2g_3: -70983.900184
+  l2g_4:  1729405.0628
 
-  g2l_0:   0.0
-  g2l_1:   0.18264328
-  g2l_2:  -2.67180971
-  g2l_3:  25.00650584
-  g2l_4: -78.48807206
+  g2l_0:  0.000054298770
+  g2l_1:  0.097594704184
+  g2l_2: -0.46537557155
+  g2l_3:  3.3776098694
+  g2l_4: -6.6643179571
 
-  g2ed_0: 1.33852307e-02
-  g2ed_1: 0.0
-  g2ed_2: 0.0
-  g2ed_3: 0.0
-  g2ed_4: 0.0
-  
+  g2fma_0:  0.013021055202
+  g2fma_1: -0.020767789082
+  g2fma_2: -0.41359925158
+  g2fma_3:  4.8190129478
+  g2fma_4: -26.74286852

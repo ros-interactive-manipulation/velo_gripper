@@ -129,6 +129,7 @@ private:
   double dGap_dLength(double length);
   double getGapVelFromTendonLengthVel(double length, double length_vel);
 
+  double getFlexorMomentArm(double gap);
   double getGripperForceFromTendonForce(double tendon_force, double gap_size);
   double getTendonForceFromGripperForce(double gripper_force, double gap_size);
 
@@ -197,7 +198,7 @@ private:
   // FITTED POLYNOMIALS:
   std::vector<double> length_to_gap_coeffs_;
   std::vector<double> gap_to_length_coeffs_;
-  // std::vector<double> gap_to_effective_dist_coeffs_;
+  std::vector<double> gap_to_fma_coeffs_;
 
   // Drivetrain parameters
   double gear_reduction_; // gear reduction from motor to ball screw shaft: MotorSpeed/GearReduction -> BallScrewSpeed

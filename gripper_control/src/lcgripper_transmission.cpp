@@ -264,12 +264,12 @@ bool LCGripperTransmission::getItems(ParamFetcher *itemFetcher)
   itemFetcher->getParam("polynomials/g2l_3", tmp);  gap_to_length_coeffs_[3] = tmp;
   itemFetcher->getParam("polynomials/g2l_4", tmp);  gap_to_length_coeffs_[4] = tmp;
 
-  // gap_to_effective_dist_coeffs_.resize(5);
-  // itemFetcher->getParam("polynomials/g2ed_0", tmp);  gap_to_effective_dist_coeffs_[0] = tmp;
-  // itemFetcher->getParam("polynomials/g2ed_1", tmp);  gap_to_effective_dist_coeffs_[1] = tmp;
-  // itemFetcher->getParam("polynomials/g2ed_2", tmp);  gap_to_effective_dist_coeffs_[2] = tmp;
-  // itemFetcher->getParam("polynomials/g2ed_3", tmp);  gap_to_effective_dist_coeffs_[3] = tmp;
-  // itemFetcher->getParam("polynomials/g2ed_4", tmp);  gap_to_effective_dist_coeffs_[4] = tmp;
+  gap_to_fma_coeffs_.resize(5);
+  itemFetcher->getParam("polynomials/g2fma_0", tmp);  gap_to_fma_coeffs_[0] = tmp;
+  itemFetcher->getParam("polynomials/g2fma_1", tmp);  gap_to_fma_coeffs_[1] = tmp;
+  itemFetcher->getParam("polynomials/g2fma_2", tmp);  gap_to_fma_coeffs_[2] = tmp;
+  itemFetcher->getParam("polynomials/g2fma_3", tmp);  gap_to_fma_coeffs_[3] = tmp;
+  itemFetcher->getParam("polynomials/g2fma_4", tmp);  gap_to_fma_coeffs_[4] = tmp;
 
   // INITIALIZE MAX GAP AND CORRESPONDING TENDON POSITION, CONSISTENT WITH theta_open_
   // gap_open_ USED IN getGapFromTendonLength(), MUST COMPUTE HARD-CODED HERE TO INITIALIZE IT.
@@ -869,9 +869,7 @@ double LCGripperTransmission::getTendonLengthFromGap(double gap)
   if ( gap <= gap_open_ )  // USE POLYNOMIAL FIT WHERE VALID
   {
     for (int i = 0; i < (int)gap_to_length_coeffs_.size(); i++)
-    {
       length += gap_to_length_coeffs_[i] * pow(gap,i);
-    }
   }
   else   // LINEARIZE BEYOND MAX GAP
   {
@@ -887,9 +885,7 @@ double LCGripperTransmission::getGapFromTendonLength(double length)
   if ( length <= tendon_open_ )  // USE POLYNOMIAL FIT WHERE VALID
   {
     for (int i = 0; i < (int)length_to_gap_coeffs_.size(); i++)
-    {
       gap += length_to_gap_coeffs_[i] * pow(length,i);
-    }
   }
   else   // LINEARIZE BEYOND MAX GAP
   {
@@ -937,62 +933,83 @@ double LCGripperTransmission::dLength_dGap(double gap)
   else   // LINEARIZE BEYOND MAX GAP
   {
     dL_dG = tendon_open_/gap_open_;
-  } 
+  }
 
+  return dL_dG;
 }
 
 double LCGripperTransmission::getTendonLengthVelFromGapVel(double gap_vel, double gap)
 {
   // dLen/dt = dLen/dGap * dGap/dt
-  double length_vel = 
- * gap_vel;
+  double length_vel = dLength_dGap(gap) * gap_vel;
   return length_vel;
 }
 
-double LCGripperTransmission::getThetaVelFromGapVel(double gap_vel, double gap_size)
+double LCGripperTransmission::getThetaVelFromGapVel(double gap_vel, double gap)
 {
   double v = gap_vel/2.0;
-  double theta = getThetaFromGap(gap_size);
+  double theta = getThetaFromGap(gap);
   double theta_vel = v * sin(theta) / l1_;
 
   return theta_vel;
 }
 
-double LCGripperTransmission::getGripperForceFromTendonForce(double tendon_force, double gap_size)
+double LCGripperTransmission::getFlexorMomentArm(double gap)
 {
-  // Subtract force from extensor spring
-  double Fs = getExtensorTendonForce(getThetaFromGap(gap_size));
-  // Extensor tension projected to grip point force
-  double Fe = Fs * r_e1_/(l2_/2.0);
-  // Using virtual work to compute
-  // Per finger combine: dL/dG_left*Ft/2 and dG/dL=2dG_left
-  double Fg = dLength_dGap(gap_size)*tendon_force - Fe;    // Per Finger
+  double fma = 0.0;
+  if ( gap <= gap_open_ )  // USE POLYNOMIAL FIT WHERE VALID
+  {
+    for (int i = 0; i < (int)gap_to_fma_coeffs_.size(); i++)
+      fma += gap_to_fma_coeffs_[i] * pow(gap,i);
+  }
+  else   // GOES TO ZERO BEYOND MAX GAP
+  {
+    fma = 0.0;
+  } 
+
+  return fma;
+}
+
+double LCGripperTransmission::getGripperForceFromTendonForce(double tendon_force, double gap)
+{
+  double c = r_c1_/r_c0_; // Ratio of contraint radii.  Usually 1.0
+  double theta = getThetaFromGap(gap);
+  double Fe = getExtensorTendonForce(theta);
+  double Ff = tendon_force/2.0; // Tendon force is split between two fingers.
+  r_f0_ = getFlexorMomentArm(gap);
+  r_g0_ = l2_/2.0 + l1_*sin(theta); // Assume force applied to middle of distal link.
+  r_g1_ = l2_/2.0;
+  
+  double Fg = (Ff * (r_f1_-c*r_f0_) - Fe*(r_e1_-c*r_e0_)) / (r_g1_-c*r_g0_);
+//  ROS_INFO("getFGfromFF: input Ft: %f, Gap %f, theta %f;  Fe: %f, Fg %f", tendon_force, gap, theta, Fe, Fg);
   return Fg;
 }
 
-double LCGripperTransmission::getTendonForceFromGripperForce(double gripper_force, double gap_size)
+double LCGripperTransmission::getTendonForceFromGripperForce(double gripper_force, double gap)
 {
-  // Add force from extensor spring
-  double Fs = getExtensorTendonForce(getThetaFromGap(gap_size));
-  // Extensor tension projected to grip point force
-  double Fe = Fs * r_e1_/(l2_/2.0);
-  // Using virtual work to compute
-  double len = getTendonLengthFromGap(gap_size);
-  // dG_dL is for double distance already, so two tendons are baked-in.
-  double Ft = dGap_dLength(len) * (gripper_force + 2.0*Fe); // Two fingers
-  return Ft;   
+  double c = r_c1_/r_c0_; // Ratio of contraint radii.  Usually 1.0
+  double theta = getThetaFromGap(gap);
+  double Fe = getExtensorTendonForce(theta);
+  double Fg = gripper_force;
+
+  r_f0_ = getFlexorMomentArm(gap);
+  r_g0_ = l2_/2.0 + l1_*sin(theta); // Assume force applied to the middle of the distal link.
+  r_g1_ = l2_/2.0;
+
+  double Ff = 2.0* (Fg*(r_g1_-c*r_g0_) + Fe*(r_e1_-c*r_e0_)) / (r_f1_-c*r_f0_);
+//  ROS_INFO("getFFfromFG: Fg: %f, gap %f, theta %f;    Fe %f, Ff %f ", Fg, gap, theta, Fe, Ff);
+  return Ff; // Double the result as the motor force is split between the two tendons
 }
 
-double LCGripperTransmission::getExtensorTendonForce(double theta1)
+double LCGripperTransmission::getExtensorTendonForce(double theta)
 {
-  static int count=0;
-  theta1 = std::max(theta1,theta_open_);  // Don't let current theta1 go less than open_
+  theta = std::max(theta,theta_open_);  // Don't let current theta1 go less than open_
+  //static int count=0;
   //if (count++%200==0) {ROS_WARN("to=%.1f,  theta1=%.1f",theta_open_*RAD2DEG,theta1*RAD2DEG);}
-  double delta_theta = theta1 - theta_open_; // change in angle from the start pose, ie angle at fully open.
+  double delta_theta = theta - theta_open_; // change in angle from the start pose, ie angle at fully open.
   double spring_x = delta_theta * (r_e0_ - r_e1_) + spring_x0_; // spring extension, nominal.
   double ext_force = spring_k_ * spring_x; // extensor tendon force at the current pose.
 
-  ext_force=0;
   return ext_force;
 }
 
@@ -1008,8 +1025,8 @@ double LCGripperTransmission::getEncoderQtyFromMotorQty(double motorQty)
   return encQty;
 }
 
-double LCGripperTransmission::validateGapSize(double gap_size)
+double LCGripperTransmission::validateGapSize(double gap)
 {
-  gap_size = std::max(gap_closed_,std::min(gap_size,gap_open_));
-  return gap_size;
+  gap = std::max(gap_closed_,std::min(gap,gap_open_));
+  return gap;
 }

@@ -1,4 +1,4 @@
-# Install script for directory: /u/bholmberg/ros/gripper_controller
+# Install script for directory: /wg/stor1a/bholmberg/ros_f/gripper_control
 
 # Set the install prefix
 IF(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -38,7 +38,7 @@ ELSE(CMAKE_INSTALL_COMPONENT)
   SET(CMAKE_INSTALL_MANIFEST "install_manifest.txt")
 ENDIF(CMAKE_INSTALL_COMPONENT)
 
-FILE(WRITE "/u/bholmberg/ros/gripper_controller/${CMAKE_INSTALL_MANIFEST}" "")
+FILE(WRITE "/wg/stor1a/bholmberg/ros_f/gripper_control/${CMAKE_INSTALL_MANIFEST}" "")
 FOREACH(file ${CMAKE_INSTALL_MANIFEST_FILES})
-  FILE(APPEND "/u/bholmberg/ros/gripper_controller/${CMAKE_INSTALL_MANIFEST}" "${file}\n")
+  FILE(APPEND "/wg/stor1a/bholmberg/ros_f/gripper_control/${CMAKE_INSTALL_MANIFEST}" "${file}\n")
 ENDFOREACH(file)
