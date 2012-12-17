@@ -264,12 +264,14 @@ bool LCGripperTransmission::getItems(ParamFetcher *itemFetcher)
   itemFetcher->getParam("polynomials/g2l_3", tmp);  gap_to_length_coeffs_[3] = tmp;
   itemFetcher->getParam("polynomials/g2l_4", tmp);  gap_to_length_coeffs_[4] = tmp;
 
+  // NOTE, FOR HISTORICAL REASONS, ceoffs g2fma are called g2ed 
+  // (Flexor Moment Arm aka. Effective Distance)
   gap_to_fma_coeffs_.resize(5);
-  itemFetcher->getParam("polynomials/g2fma_0", tmp);  gap_to_fma_coeffs_[0] = tmp;
-  itemFetcher->getParam("polynomials/g2fma_1", tmp);  gap_to_fma_coeffs_[1] = tmp;
-  itemFetcher->getParam("polynomials/g2fma_2", tmp);  gap_to_fma_coeffs_[2] = tmp;
-  itemFetcher->getParam("polynomials/g2fma_3", tmp);  gap_to_fma_coeffs_[3] = tmp;
-  itemFetcher->getParam("polynomials/g2fma_4", tmp);  gap_to_fma_coeffs_[4] = tmp;
+  itemFetcher->getParam("polynomials/g2ed_0", tmp);  gap_to_fma_coeffs_[0] = tmp;
+  itemFetcher->getParam("polynomials/g2ed_1", tmp);  gap_to_fma_coeffs_[1] = tmp;
+  itemFetcher->getParam("polynomials/g2ed_2", tmp);  gap_to_fma_coeffs_[2] = tmp;
+  itemFetcher->getParam("polynomials/g2ed_3", tmp);  gap_to_fma_coeffs_[3] = tmp;
+  itemFetcher->getParam("polynomials/g2ed_4", tmp);  gap_to_fma_coeffs_[4] = tmp;
 
   // INITIALIZE MAX GAP AND CORRESPONDING TENDON POSITION, CONSISTENT WITH theta_open_
   // gap_open_ USED IN getGapFromTendonLength(), MUST COMPUTE HARD-CODED HERE TO INITIALIZE IT.
@@ -962,9 +964,9 @@ double LCGripperTransmission::getFlexorMomentArm(double gap)
     for (int i = 0; i < (int)gap_to_fma_coeffs_.size(); i++)
       fma += gap_to_fma_coeffs_[i] * pow(gap,i);
   }
-  else   // GOES TO ZERO BEYOND MAX GAP
-  {
-    fma = 0.0;
+  else // AVOID DISCONTINUITY.  AVOID SIGN CHANGE OF (r_f1_-r_f0_).
+  {    // MAKE CONSTANT BEYOND FULLY OPEN.
+    fma = getFlexorMomentArm(gap_open_);
   } 
 
   return fma;
@@ -976,6 +978,7 @@ double LCGripperTransmission::getGripperForceFromTendonForce(double tendon_force
   double theta = getThetaFromGap(gap);
   double Fe = getExtensorTendonForce(theta);
   double Ff = tendon_force/2.0; // Tendon force is split between two fingers.
+
   r_f0_ = getFlexorMomentArm(gap);
   r_g0_ = l2_/2.0 + l1_*sin(theta); // Assume force applied to middle of distal link.
   r_g1_ = l2_/2.0;

@@ -236,14 +236,16 @@ for i in range(n):  print("  l2g_%d: % .11g"%(i,cl2g[n-i-1]))
 print("")
 for i in range(n):  print("  g2l_%d: % .11g"%(i,cg2l[n-i-1]))
 print("")
-for i in range(n):  print("  g2fma_%d: % .11g"%(i,cg2fma[n-i-1]))
+for i in range(n):  print("  g2ed_%d: % .11g"%(i,cg2fma[n-i-1]))
 print("")
 print("")
 for i in range(n):  print('      l2g_coeffs_%d="${%0.11g}"'%(i,cl2g[n-i-1]))
 print("")
 for i in range(n):  print('      g2l_coeffs_%d="${%0.11g}"'%(i,cg2l[n-i-1]))
 print("")
-for i in range(n):  print('      g2fma_coeffs_%d="${%0.11g}"'%(i,cg2fma[n-i-1]))
+# NOTE, FOR HISTORICAL REASONS, ceoffs g2fma are called g2ed 
+# (Flexor Moment Arm aka. Effective Distance)
+for i in range(n):  print('      g2ed_coeffs_%d="${%0.11g}"'%(i,cg2fma[n-i-1]))
 print("")
 
 

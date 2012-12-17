@@ -254,16 +254,7 @@
   <transmission name="l_gripper_trans" type="gripper_control/LCGripperTransmission"  >
     <!-- CHANGE ACTUATOR NAME ON NEXT LINE -->
     <actuator name="r_velo_gripper_motor"/>
-    <gap_joint g2ed_coeffs_0="0.0133852307" 
-			   g2ed_coeffs_1="-0.0150212267" 
-			   g2ed_coeffs_2="-0.400341247" 
-			   g2ed_coeffs_3="4.45724019" 
-			   g2ed_coeffs_4="-23.0064782" 
-			   g2l_coeffs_0="0.0" 
-			   g2l_coeffs_1="0.18264328" 
-			   g2l_coeffs_2="-2.67180971" 
-			   g2l_coeffs_3="25.00650584" 
-			   g2l_coeffs_4="-78.48807206" 
+    <gap_joint name="l_gripper_joint"
 			   gear_efficiency="1.0" 
 			   gear_reduction="15.0"
                j0x="-0.035"
@@ -274,12 +265,6 @@
                l0="0.035"
                l1="0.06"
                l2="0.05"
-               l2g_coeffs_0="0.0"
-               l2g_coeffs_1="3.85967649"
-               l2g_coeffs_2="1886.81169"
-               l2g_coeffs_3="-141680.258"
-               l2g_coeffs_4="3259847.98"
-               name="l_gripper_joint"
                p0_radius="0.004"
                p0x="-0.025"
                p0y="0.002"
@@ -293,7 +278,23 @@
                screw_lead="0.00325"
                theta_closed="101.5"
                theta_open="20.0"
-               thickness="0.006"/>
+               thickness="0.006"
+			   l2g_coeffs_0="-0.00065535931852"
+			   l2g_coeffs_1="10.019957576"
+			   l2g_coeffs_2="799.03010689"
+			   l2g_coeffs_3="-70983.900184"
+			   l2g_coeffs_4="1729405.0628"
+			   g2l_coeffs_0=".00005429877018"
+			   g2l_coeffs_1="0.097594704184"
+			   g2l_coeffs_2="-0.46537557155"
+			   g2l_coeffs_3="3.3776098694"
+			   g2l_coeffs_4="-6.6643179571"
+			   g2ed_coeffs_0="0.013021055202"
+			   g2ed_coeffs_1="-0.020767789082"
+			   g2ed_coeffs_2="-0.41359925158"
+			   g2ed_coeffs_3="4.8190129478"
+			   g2ed_coeffs_4="-26.74286852"
+			   />
     <!-- if a gazebo joint exists as [l|r]_gripper_joint, use this tag to have
            gripper transmission apply torque directly to prismatic joint
            this should be the default behavior in diamondback, deprecating this flag -->
