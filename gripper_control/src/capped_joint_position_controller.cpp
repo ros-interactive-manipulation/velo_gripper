@@ -183,11 +183,11 @@ void CappedJointPositionController::update()
   }
   else //prismatic
   {
-    error = joint_state_->position_ - command_via_;
+    error = command_via_ - joint_state_->position_ ;
   }
 
   double velocity_desired = fabs(error) < fabs(error_max_) ? 0.0 : copysign(velocity_,error);
-  double capped_vError = joint_state_->velocity_ - velocity_desired;
+  double capped_vError = velocity_desired - joint_state_->velocity_;
 
   double capped_pError = error;
   double commanded_effort = pid_controller_.updatePid(capped_pError, capped_vError, dt_);
@@ -197,7 +197,7 @@ void CappedJointPositionController::update()
   joint_state_->commanded_effort_ += commanded_effort; // Safety and Joint controllers can also run.
 
 #ifdef DEBUG_VELO_GRIPPER
-  if(loop_count_++ % 200 == 0)
+  if(loop_count_++ % 800 == 0)
   {
     ROS_DEBUG("p= %5.1lf,  via= %5.1lf,  cmd= %5.1lf,  v= %5.1lf,  CE= %7.1lf",
              1000*joint_state_->position_, 

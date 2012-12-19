@@ -755,6 +755,12 @@ void LCGripperTransmission::propagateEffort(
     /* WHEN CALIBRATING, THE TRANSMISSION IS TO TENDON ie BALLSCREW */
     as[0]->command_.enable_ = true;
     as[0]->command_.effort_ = tqSign_ * js[0]->commanded_effort_ * tendonForce2MotorTorque();
+    // if(loop_count_ % 1650 == 0)
+    // {
+    //   ROS_INFO("js0ce=%g,  mtq=%g,",
+    //            js[0]->commanded_effort_,
+    //            as[0]->command_.effort_);
+    // }
   }
 
 }
@@ -967,6 +973,7 @@ double LCGripperTransmission::getFlexorMomentArm(double gap)
   else // AVOID DISCONTINUITY.  AVOID SIGN CHANGE OF (r_f1_-r_f0_).
   {    // MAKE CONSTANT BEYOND FULLY OPEN.
     fma = getFlexorMomentArm(gap_open_);
+    //fma = 0.0;
   } 
 
   return fma;
@@ -982,9 +989,10 @@ double LCGripperTransmission::getGripperForceFromTendonForce(double tendon_force
   r_f0_ = getFlexorMomentArm(gap);
   r_g0_ = l2_/2.0 + l1_*sin(theta); // Assume force applied to middle of distal link.
   r_g1_ = l2_/2.0;
-  
-  double Fg = (Ff * (r_f1_-c*r_f0_) - Fe*(r_e1_-c*r_e0_)) / (r_g1_-c*r_g0_);
-//  ROS_INFO("getFGfromFF: input Ft: %f, Gap %f, theta %f;  Fe: %f, Fg %f", tendon_force, gap, theta, Fe, Fg);
+
+  double Fg = ( Ff * (r_f1_-c*r_f0_) + Fe*(c*r_e0_-r_e1_)) / (r_g1_ - c*r_g0_);
+  //static int count=0;
+  //if(count++%2000==0){ROS_INFO("getFGfromFF: input Ft: %f, Gap %f, theta %f;  Fe: %f, Fg %f", tendon_force, gap, theta, Fe, Fg);}
   return Fg;
 }
 
@@ -999,8 +1007,9 @@ double LCGripperTransmission::getTendonForceFromGripperForce(double gripper_forc
   r_g0_ = l2_/2.0 + l1_*sin(theta); // Assume force applied to the middle of the distal link.
   r_g1_ = l2_/2.0;
 
-  double Ff = 2.0* (Fg*(r_g1_-c*r_g0_) + Fe*(r_e1_-c*r_e0_)) / (r_f1_-c*r_f0_);
-//  ROS_INFO("getFFfromFG: Fg: %f, gap %f, theta %f;    Fe %f, Ff %f ", Fg, gap, theta, Fe, Ff);
+  double Ff = 2.0* (Fg*(r_g1_-c*r_g0_) + Fe*(r_e1_-c*r_e0_)) / (r_f1_ - c*r_f0_);
+  // static int count=0;
+  // if(count++%2000==0){ROS_INFO("getFFfromFG: Fg: %f, gap %f, theta %f;    Fe %f, Ff %f ", Fg, gap, theta, Fe, Ff);}
   return Ff; // Double the result as the motor force is split between the two tendons
 }
 

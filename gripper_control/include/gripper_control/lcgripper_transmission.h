@@ -72,7 +72,7 @@ public:
   LCGripperTransmission():
          use_simulated_actuated_joint_(false),
          has_simulated_passive_actuated_joint_(false),
-         tqSign_(1.0) {};
+         tqSign_(-1.0) {};
   virtual ~LCGripperTransmission() {/*myfile.close();*/}
 
   bool initXml(TiXmlElement *config, Robot *robot);
