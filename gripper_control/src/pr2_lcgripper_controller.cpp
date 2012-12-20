@@ -117,10 +117,10 @@ void Pr2LCGripperController::update()
   assert(command);
 
   // Computes the position error
-  error = joint_state_->position_ - command->position;
+  error = command->position - joint_state_->position_;
 
   // TODO: FILTER VELOCITY HERE.
-  double error_dot = joint_state_->velocity_;
+  double error_dot = 0.0 - joint_state_->velocity_;
 
   // Sets the effort (limited)
   double effort = pid_.updatePid(error, error_dot, dt);
