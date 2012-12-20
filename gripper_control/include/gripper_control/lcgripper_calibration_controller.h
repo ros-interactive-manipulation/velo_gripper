@@ -84,6 +84,7 @@ protected:
   double search_velocity_;
   double stopped_velocity_tolerance_;
   double error_max_;
+  int post_cal_count_;
 
   controller::CappedJointPositionController vc_; /** The joint position controller used to move the joint.*/
 
