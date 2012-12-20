@@ -47,7 +47,7 @@ namespace controller
 {
 
 LCGripperCalibrationController::LCGripperCalibrationController()
-  : last_publish_time_(0), joint_(NULL), zero_offset_(0.0)
+  : last_publish_time_(0), joint_(NULL), zero_offset_(0.0), post_cal_count_(0)
 {
 }
 
@@ -206,7 +206,7 @@ void LCGripperCalibrationController::update()
   const double LCGCC_wrong     =  0.0090;    // Travel must be more than this to be engaged with tendon interlock (0.0075 minimum)
   const double LCGCC_BObottom  =  0.0030;    // "BackOff from Bottom"
   const double LCGCC_MTclosed  = -0.0040;    // "More Than Closed"  (After moving coords to bottom)
-  double LCGCC_MTbottom  = -0.0170;    // "More Than Bottom"  (Starting from anywhere)
+  const double LCGCC_MTbottom  = -0.0170;    // "More Than Bottom"  (Starting from anywhere)
 
   switch (state_)
   {
@@ -310,19 +310,25 @@ void LCGripperCalibrationController::update()
       joint_->calibrated_ = true;
       for (size_t i = 0; i < other_joints_.size(); ++i)
         other_joints_[i]->calibrated_ = true;
-      vc_.setGains(0.0,0.0,0.0,0.0,0.0);
+
+      double p,i,d,i_max,i_min;
+      vc_.getGains(p, i, d, i_max, i_min);
+      p = 10000.0; // Coord change: tendon --> grip
+      d =   300.0; // So backoff gains to keep things stable.
+      vc_.setGains(p ,0.0, d ,0.0,0.0);
+
       vc_.update();
+      post_cal_count_=0;
       state_ = CALIBRATED;
     }
     break;
 
   case CALIBRATED:
+    if ( post_cal_count_++ < 2 )
+      goalCommand( joint_->position_ );
+
     vc_.update();
-    // if ( last_publish_time_ + ros::Duration(0.5) < robot_->getTime() )
-    // {
-    //    last_publish_time_ = robot_->getTime();
-    //    ROS_INFO("jp= %7.4lf",joint_->position_);
-    // }
+
     if ( pub_calibrated_ && 
          last_publish_time_ + ros::Duration(0.5) < robot_->getTime() &&
          pub_calibrated_->trylock() )
