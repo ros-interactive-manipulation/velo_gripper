@@ -88,8 +88,11 @@ public:
     using namespace pr2_controllers_msgs;
     Pr2GripperCommandPtr c(new Pr2GripperCommand);
     c->position = joint_state_->position_;
-    ROS_INFO("STARTING at posn: %.4lf",c->position);
-    c->max_effort = 0.0;
+    // SET SOME max_effort TO ALLOW HOLDING POSITION. 
+    // USEFUL WHEN THERE IS NO GRIPPER INSTALLED, SO THAT COMPENSATION 
+    // FOR (absent) SPRING FORCE DOES NOT CAUSE POSITION DRIFT.
+    c->max_effort = 2.0;
+    ROS_INFO("STARTING at posn: %.4lf, max_effort: %.1f",c->position,c->max_effort);
     command_box_.set(c);
   }
 
