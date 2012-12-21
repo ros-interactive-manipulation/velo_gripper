@@ -311,11 +311,13 @@ void LCGripperCalibrationController::update()
       for (size_t i = 0; i < other_joints_.size(); ++i)
         other_joints_[i]->calibrated_ = true;
 
-      double p,i,d,i_max,i_min;
-      vc_.getGains(p, i, d, i_max, i_min);
-      p = 10000.0; // Coord change: tendon --> grip
-      d =   300.0; // So backoff gains to keep things stable.
-      vc_.setGains(p ,0.0, d ,0.0,0.0);
+      /* IMPLEMENTED DIFFERENT SOLUTION THAT mutes TRANSMISSION OUTPUT COMPLETELY
+       */
+      // double p,i,d,i_max,i_min;
+      // vc_.getGains(p, i, d, i_max, i_min);
+      // p = 10000.0; // Coord change about to happen: tendon --> grip
+      // d =   300.0; // So backoff gains to keep things stable.
+      // vc_.setGains(p ,0.0, d ,0.0,0.0);
 
       vc_.update();
       post_cal_count_=0;
@@ -324,8 +326,14 @@ void LCGripperCalibrationController::update()
     break;
 
   case CALIBRATED:
-    if ( post_cal_count_++ < 2 )
-      goalCommand( joint_->position_ );
+
+    /* After transmission has run in CALIBRATED state, the joint position will
+       be updated to be in "gap" coordinates.  Now we want to hold position in
+       these coords until the cal controller is stopped/unloaded. */
+    /* IMPLEMENTED DIFFERENT SOLUTION THAT mutes TRANSMISSION OUTPUT COMPLETELY
+     */
+    //if ( post_cal_count_++ < 2 )
+    //  goalCommand( joint_->position_ );
 
     vc_.update();
 

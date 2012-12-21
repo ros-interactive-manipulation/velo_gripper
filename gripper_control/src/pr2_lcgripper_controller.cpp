@@ -124,10 +124,7 @@ void Pr2LCGripperController::update()
 
   // Sets the effort (limited)
   double effort = pid_.updatePid(error, error_dot, dt);
-  if (command->max_effort >= 0.0)
-  {
-    effort = std::max(-command->max_effort, std::min(effort, command->max_effort));
-  }
+  effort = std::max(-command->max_effort, std::min(effort, command->max_effort));
 
   // Check for stall. If the gripper position hasn't moved by less than a threshold for at greater than some timeout, limit the output to a holding torque.
   double delta_position = joint_state_->position_ - stall_start_position_;

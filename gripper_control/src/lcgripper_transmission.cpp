@@ -136,7 +136,6 @@ public:
     return joint_name_;
   }
 
-
   // ERROR-CHECKING PARAM GETTER WITH CUSTOM MESSAGE.
   bool getParam(const char *key, double &value)
   {
@@ -195,6 +194,17 @@ public:
     }
   }
 
+  bool setParam(const char *key, double &value)
+  {
+    if ( nh_!=NULL ) // GET INFO FROM PARAMETER SERVER
+    {
+      if ( nh_->setParam(key,value) )
+        return true;
+      else
+        return false;
+    }
+  }
+
 };
 
 
@@ -204,11 +214,6 @@ bool LCGripperTransmission::getItems(ParamFetcher *itemFetcher)
   // Joints
 
   std::cout << "Init Parameters" << std::endl;
-
-  // itemFetcher->getParam("joints/j0x", j0x_);
-  // itemFetcher->getParam("joints/j0y", j0y_);
-  // itemFetcher->getParam("joints/j1x", j1x_);
-  // itemFetcher->getParam("joints/j1y", j1y_);
 
   // Links
   itemFetcher->getParam("links/l0", l0_);
@@ -223,17 +228,14 @@ bool LCGripperTransmission::getItems(ParamFetcher *itemFetcher)
   itemFetcher->getParam("radii/r_e1", r_e1_);
   itemFetcher->getParam("radii/r_f1", r_f1_);
 
-  //itemFetcher->getParam("p0_radius", p0_radius_);
-  //itemFetcher->getParam("j1_radius", j1_radius_);
-
   // Spring
   itemFetcher->getParam("spring/k",  spring_k_);
-  itemFetcher->getParam("spring/x0",  spring_x0_);
+  itemFetcher->getParam("spring/x0", spring_x0_);
 
   // Limits
   itemFetcher->getParam("limits/theta_open_deg",   theta_open_);
   theta_open_ *= DEG2RAD;    // CONVERT TO SI
-  itemFetcher->getParam("limits/theta_closed_deg",  theta_closed_);
+  itemFetcher->getParam("limits/theta_closed_deg", theta_closed_);
   theta_closed_ *= DEG2RAD;  // CONVERT TO SI
   itemFetcher->getParam("limits/gap_closed",  gap_closed_);
   itemFetcher->getParam("limits/max_torque",  max_torque_);
@@ -241,7 +243,7 @@ bool LCGripperTransmission::getItems(ParamFetcher *itemFetcher)
 
   // Actuator
   itemFetcher->getParam("actuator/screw_lead",    screw_lead_);
-  itemFetcher->getParam("actuator/gear_reduction",   gear_reduction_);
+  itemFetcher->getParam("actuator/gear_reduction",gear_reduction_);
   itemFetcher->getParam("actuator/efficiency",    gripper_efficiency_);
   // ERROR-CHECK efficiency
   if (gripper_efficiency_ <= 0.0 || gripper_efficiency_ > 1.0)
@@ -277,6 +279,9 @@ bool LCGripperTransmission::getItems(ParamFetcher *itemFetcher)
   // gap_open_ USED IN getGapFromTendonLength(), MUST COMPUTE HARD-CODED HERE TO INITIALIZE IT.
   gap_open_    = 2.0 *(l0_ + l1_*cos(theta_open_) - thickness_);
   tendon_open_ = getTendonLengthFromGap( gap_open_ );
+  itemFetcher->setParam("gap_open",    gap_open_);
+  itemFetcher->setParam("tendon_open", tendon_open_);
+  
 
   if ( itemFetcher->error_count_ > 0 )
   {
@@ -528,21 +533,29 @@ bool LCGripperTransmission::initXml(TiXmlElement *config)
   return true;
 }
 
+
+void LCGripperTransmission::assertJointConfig( size_t as_size, size_t js_size )
+{
+  // TODO - CHECK THESE. Suspect that the screw joint should be removed. Leave passive joints + gap joint.
+
+  ROS_ASSERT(as_size == 1); // Only one actuator
+  // js has passive joints and 1 gap joint and 1 screw joint
+  if (use_simulated_actuated_joint_ && has_simulated_passive_actuated_joint_)
+  { ROS_ASSERT(js_size == 1 + passive_joints_.size() + 2); }
+  else if (use_simulated_actuated_joint_)
+  { ROS_ASSERT(js_size == 1 + passive_joints_.size() + 1); }
+  else
+  { ROS_ASSERT(js_size == 1 + passive_joints_.size()); }
+  //ROS_ASSERT(simulated_reduction_>0.0);
+}
+
+
 ///////////////////////////////////////////////////////////
 /// assign joint position, velocity, effort from actuator state; ie, Tendon length -> gripper gap.
 /// all passive joints are assigned by single actuator state through mimic?
 void LCGripperTransmission::propagatePosition(std::vector<Actuator*>& as, std::vector<JointState*>& js)
 {
-
-  // TODO - CHECK THESE. Suspect that the screw joint should be removed. Leave passive joints + gap joint.
-  ROS_ASSERT(as.size() == 1); // Only one actuator
-  // js has passive joints and 1 gap joint and 1 screw joint
-  if (use_simulated_actuated_joint_ && has_simulated_passive_actuated_joint_)
-  { ROS_ASSERT(js.size() == 1 + passive_joints_.size() + 2); }
-  else if (use_simulated_actuated_joint_)
-  { ROS_ASSERT(js.size() == 1 + passive_joints_.size() + 1); }
-  else
-  { ROS_ASSERT(js.size() == 1 + passive_joints_.size()); }
+  assertJointConfig( as.size(),js.size() );
 
   double tendon_length  = as[0]->state_.position_ * motorGeom2TendonGeom();
   double tendon_vel     = as[0]->state_.velocity_ * motorGeom2TendonGeom();
@@ -617,14 +630,7 @@ void LCGripperTransmission::propagatePosition(std::vector<Actuator*>& as, std::v
 // Use joint positions to generate an actuator position.
 void LCGripperTransmission::propagatePositionBackwards(std::vector<JointState*>& js, std::vector<Actuator*>& as)
 {
-  ROS_ASSERT(as.size() == 1); // Only one actuator
-  // js has passive joints and 1 gap joint and 1 screw joint
-  if (use_simulated_actuated_joint_ && has_simulated_passive_actuated_joint_)
-  { ROS_ASSERT(js.size() == 1 + passive_joints_.size() + 2); }
-  else if (use_simulated_actuated_joint_)
-  { ROS_ASSERT(js.size() == 1 + passive_joints_.size() + 1); }
-  else
-  { ROS_ASSERT(js.size() == 1 + passive_joints_.size());  }
+  assertJointConfig( as.size(),js.size() );
 
   // if(loop_count_ % 1650 == 0)
   // {
@@ -690,48 +696,60 @@ void LCGripperTransmission::propagatePositionBackwards(std::vector<JointState*>&
 void LCGripperTransmission::propagateEffort(
     std::vector<JointState*>& js, std::vector<Actuator*>& as)
 {
+  assertJointConfig( as.size(),js.size() );
+
   double gap_effort, gap_size;
   double tendon_force, motor_torque;
   double tendon_length, motor_pos;
 
-  ROS_ASSERT(as.size() == 1); // Only one actuator
-  // js has passive joints and 1 gap joint and 1 screw joint
-  if (use_simulated_actuated_joint_ && has_simulated_passive_actuated_joint_)
-  {
-    ROS_ASSERT(js.size() == 1 + passive_joints_.size() + 2);
-  }
-  else if (use_simulated_actuated_joint_)
-  {
-    ROS_ASSERT(js.size() == 1 + passive_joints_.size() + 1);
-  }
-  else
-  {
-    ROS_ASSERT(js.size() == 1 + passive_joints_.size());
-  }
-
   if ( js[0]->calibrated_ )
   {
-    gap_effort = -js[0]->commanded_effort_; // Negative effort makes gap smaller.
+    if ( mode_ != RUNNING )
+    { if ( mode_ == CALIBRATING )
+      { /* Mute the actuator output of the transmission when switching from a
+           calibration-controller to joint-controller since there can be a 1-2
+           second gap between the end of the calibration-controller and
+           starting of the joint-controller.
+         */
+        mute_timeout_ = ros::Time::now() + ros::Duration(2.5);
+        mode_ = MUTE;
+      }
+      if ( mute_timeout_ < ros::Time::now() )
+      { mode_ = RUNNING;
+      }
+    }
+    /* A user wants to specify gap_effort such that positive means "squeezing".
+       We apropriately use the "controls" sense here (in the controller);
+       such that positive gap_effort increases the gap and negative gap_effort
+       makes the gap smaller
+    */ 
+    gap_effort = -js[0]->commanded_effort_; // user's positive command means reduce gap.
     gap_size   =  js[0]->position_;
 
-    tendon_force   = getTendonForceFromGripperForce(gap_effort, gap_size);
+    tendon_force  = getTendonForceFromGripperForce(gap_effort, gap_size);
 
     tendon_length = getTendonLengthFromGap(gap_size);
     motor_pos     = tendon_length * tendonGeom2MotorGeom();
   }
   else
   {
-    /* FILL OUT ALL, SO WE CAN PLOT DURING CALIBRATION */
-    gap_effort    = js[0]->commanded_effort_;
-    /* WHEN CALIBRATING, THE TRANSMISSION IS TO TENDON ie BALLSCREW */
-    tendon_force  = js[0]->commanded_effort_; // <-- IMPORTANT FOR CAL-CONTROLLER
-    gap_size      = js[0]->position_;
-    tendon_length = js[0]->position_;
-    motor_pos     = as[0]->state_.position_;
+    /* NOTE: When calibrating, the transmission is to tendon ie ballscrew */
+    tendon_force  =  js[0]->commanded_effort_; // <-- USED TO SET motor_torque
+
+    /* Fill out the unused, so we can publish/plot during calibration too */
+    gap_effort    =  js[0]->commanded_effort_;
+    gap_size      =  js[0]->position_;
+    tendon_length =  js[0]->position_;
+    motor_pos     =  as[0]->state_.position_;
+    mode_         =  CALIBRATING;
   }
 
   /* SET ACTUATOR VALUES */
-  motor_torque = tendon_force * tendonForce2MotorTorque();
+  if ( mode_ == MUTE )
+    motor_torque = 0.0;
+  else
+    motor_torque = tendon_force * tendonForce2MotorTorque();
+
   motor_torque = std::max(-max_torque_, std::min(motor_torque, max_torque_));
   as[0]->command_.enable_ = true;
   as[0]->command_.effort_ = tqSign_ * motor_torque;
@@ -753,24 +771,11 @@ void LCGripperTransmission::propagateEffort(
 
 }
 
+
 void LCGripperTransmission::propagateEffortBackwards(
   std::vector<Actuator*>& as, std::vector<JointState*>& js)
 {
-  ROS_ASSERT(as.size() == 1); // Only one actuator
-  // js has passive joints and 1 gap joint and 1 screw joint
-  if (use_simulated_actuated_joint_ && has_simulated_passive_actuated_joint_)
-  {
-    ROS_ASSERT(js.size() == 1 + passive_joints_.size() + 2);
-  }
-  else if (use_simulated_actuated_joint_)
-  {
-    ROS_ASSERT(js.size() == 1 + passive_joints_.size() + 1);
-  }
-  else
-  {
-    ROS_ASSERT(js.size() == 1 + passive_joints_.size());
-  }
-  //ROS_ASSERT(simulated_reduction_>0.0);
+  assertJointConfig( as.size(),js.size() );
 
   if ( js[0]->calibrated_ )
   {
@@ -978,10 +983,7 @@ double LCGripperTransmission::getGripperForceFromTendonForce(double tendon_force
   r_g0_ = l2_/2.0 + l1_*sin(theta); // Assume force applied to middle of distal link.
   r_g1_ = l2_/2.0;
 
-  //double Fg = ( Ff * (r_f1_-c*r_f0_) + Fe*(c*r_e0_-r_e1_)) / (r_g1_ - c*r_g0_);
   double Fg = ( Fe*(r_e1_-c*r_e0_) + Ff*(c*r_f0_-r_f1_) ) / (r_g1_ - c*r_g0_);
-  //static int count=0;
-  //if(count++%2000==0){ROS_INFO("getFGfromFF: input Ft: %f, Gap %f, theta %f;  Fe: %f, Fg %f", tendon_force, gap, theta, Fe, Fg);}
   return Fg;
 }
 
@@ -997,10 +999,7 @@ double LCGripperTransmission::getTendonForceFromGripperForce(double gripper_forc
   r_g0_ = l2_/2.0 + l1_*sin(theta); // Assume force applied to the middle of the distal link.
   r_g1_ = l2_/2.0;
 
-  //double Ff = 2.0* (Fg*(r_g1_-c*r_g0_) + Fe*(r_e1_-c*r_e0_)) / (r_f1_ - c*r_f0_);
   double Ff = 2.0* (Fe*(r_e1_-c*r_e0_) + Fg*(c*r_g0_-r_g1_)) / (r_f1_ - c*r_f0_);
-  // static int count=0;
-  // if(count++%2000==0){ROS_INFO("getFFfromFG: Fg: %f, gap %f, theta %f;    Fe %f, Ff %f ", Fg, gap, theta, Fe, Ff);}
   return Ff; // Double the result as the motor force is split between the two tendons
 }
 
@@ -1009,9 +1008,8 @@ double LCGripperTransmission::getExtensorTendonForce(double theta)
   theta = std::max(theta,theta_open_);  // Don't let current theta go less than open_
   double delta_theta = theta - theta_open_; // change in angle from fully open
   double spring_x = delta_theta*(r_e0_ - r_e1_) + spring_x0_; // spring extension + preload
-  double ext_force = -spring_k_*spring_x; // TENSION on links is negative, by convention.
+  double ext_force = spring_k_*spring_x;
 
-  //ext_force = 0.0;
   return ext_force;
 }
 

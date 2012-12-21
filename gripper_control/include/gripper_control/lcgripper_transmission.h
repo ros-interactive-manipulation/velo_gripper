@@ -72,11 +72,15 @@ public:
   LCGripperTransmission():
          use_simulated_actuated_joint_(false),
          has_simulated_passive_actuated_joint_(false),
-         tqSign_(-1.0) {};
+         tqSign_(-1.0),
+         mode_(CALIBRATING),
+         mute_timeout_(ros::Time(0)) {};
   virtual ~LCGripperTransmission() {/*myfile.close();*/}
 
   bool initXml(TiXmlElement *config, Robot *robot);
   bool initXml(TiXmlElement *config);
+
+  void assertJointConfig( size_t as_size, size_t js_size );
 
   void propagatePosition(std::vector<pr2_hardware_interface::Actuator*>&,
              std::vector<pr2_mechanism_model::JointState*>&);
@@ -201,13 +205,15 @@ private:
   std::vector<double> gap_to_fma_coeffs_;
 
   // Drivetrain parameters
-  double gear_reduction_; // gear reduction from motor to ball screw shaft: MotorSpeed/GearReduction -> BallScrewSpeed
+  double gear_reduction_; // MotorSpeed/gear_reduction_ -> BallScrewSpeed
   double gripper_efficiency_;
   double screw_lead_;
 
   bool use_simulated_gripper_joint;
 
-  int loop_count_; // RT Publisher frequency (ie publish every X cycles).
+  int loop_count_; // Used by RT Publisher to publish every X cycles.
+  enum {CALIBRATING, MUTE, RUNNING} mode_;
+  ros::Time mute_timeout_;
 
   int simulated_actuator_timestamp_initialized_;
   ros::Time simulated_actuator_start_time_;
