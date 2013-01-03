@@ -198,11 +198,9 @@ public:
   {
     if ( nh_!=NULL ) // GET INFO FROM PARAMETER SERVER
     {
-      if ( nh_->setParam(key,value) )
-        return true;
-      else
-        return false;
+      nh_->setParam(key,value);
     }
+    return true;
   }
 
 };
