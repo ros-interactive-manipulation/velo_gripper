@@ -40,8 +40,8 @@
  * Author: John Hsu
  */
 
-#ifndef NEW_GRIPPER_TRANSMISSION_H
-#define NEW_GRIPPER_TRANSMISSION_H
+#ifndef VELO2G_GRIPPER_TRANSMISSION_H
+#define VELO2G_GRIPPER_TRANSMISSION_H
 
 #include <vector>
 #include <tinyxml.h>
@@ -224,4 +224,4 @@ private:
 
 } // namespace pr2_mechanism_model
 
-#endif
+#endif //VELO2G_GRIPPER_TRANSMISSION_H
