@@ -12,7 +12,7 @@
 
   <!-- PR2 Calibration -->
   <node name="calibrate_pr2" pkg="pr2_bringup" type="calibrate_pr2.py" output="screen" 
-        args="$(find gripper_control)/pr2_lcg_calibration_controllers.yaml $(find pr2_controller_configuration)/pr2_joint_position_controllers.yaml"/>
+        args="$(find gripper_control)/pr2_lcg_calibration_controllers.yaml $(find gripper_control)/pr2_lcgripper_controllers.yaml"/>
 
   <!-- Controller Manager -->
   <include file="$(find pr2_controller_manager)/controller_manager.launch" />
