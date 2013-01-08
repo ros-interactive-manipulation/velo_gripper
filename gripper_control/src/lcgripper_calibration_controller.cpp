@@ -315,11 +315,12 @@ void LCGripperCalibrationController::update()
        */
       // double p,i,d,i_max,i_min;
       // vc_.getGains(p, i, d, i_max, i_min);
-      // p = 10000.0; // Coord change about to happen: tendon --> grip
-      // d =   300.0; // So backoff gains to keep things stable.
+      // p = 5000.0; // Coord change about to happen: tendon --> grip
+      // d =  100.0; // So backoff gains to keep things stable.
+      // i =    1.0;
       // vc_.setGains(p ,0.0, d ,0.0,0.0);
+      // vc_.update();
 
-      vc_.update();
       post_cal_count_=0;
       state_ = CALIBRATED;
     }
@@ -328,14 +329,13 @@ void LCGripperCalibrationController::update()
   case CALIBRATED:
 
     /* After transmission has run in CALIBRATED state, the joint position will
-       be updated to be in "gap" coordinates.  Now we want to hold position in
-       these coords until the cal controller is stopped/unloaded. */
-    /* IMPLEMENTED DIFFERENT SOLUTION THAT mutes TRANSMISSION OUTPUT COMPLETELY
-     */
-    //if ( post_cal_count_++ < 2 )
-    //  goalCommand( joint_->position_ );
-
-    vc_.update();
+       be updated to be in "gap" coordinates.  Now we want target in "gap"
+       coords to hold position until the cal controller is stopped/unloaded. */
+     if ( post_cal_count_++ == 0 )
+     {
+       vc_.setCommand( joint_->position_ );
+       vc_.update();
+     }
 
     if ( pub_calibrated_ && 
          last_publish_time_ + ros::Duration(0.5) < robot_->getTime() &&

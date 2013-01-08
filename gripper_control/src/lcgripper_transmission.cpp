@@ -702,6 +702,7 @@ void LCGripperTransmission::propagateEffort(
 
   if ( js[0]->calibrated_ )
   {
+   
     if ( mode_ != RUNNING )
     { if ( mode_ == CALIBRATING )
       { /* Mute the actuator output of the transmission when switching from a
@@ -709,10 +710,10 @@ void LCGripperTransmission::propagateEffort(
            second gap between the end of the calibration-controller and
            starting of the joint-controller.
          */
-        mute_timeout_ = ros::Time::now() + ros::Duration(2.5);
+        mute_timeout_ = ros::Time::now() + ros::Duration(8.5);
         mode_ = MUTE;
       }
-      if ( mute_timeout_ < ros::Time::now() )
+      else if ( mute_timeout_ < ros::Time::now() )
       { mode_ = RUNNING;
       }
     }
