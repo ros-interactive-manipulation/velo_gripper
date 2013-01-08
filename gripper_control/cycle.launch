@@ -1,7 +1,14 @@
 <launch>
-  <node name="controller_manager" launch-prefix="pr2-grant" 
+  <!-- WHEN ON A DESKTOP -->
+  <node if="0" name="controller_manager" launch-prefix="pr2-grant" 
         pkg="pr2_etherCAT" type="pr2_etherCAT"
         args="-i eth1 -x $(find gripper_control)/cycle.xml" 
+        output="screen"/>
+
+  <!-- WHEN ON A PR2 -->
+  <node name="controller_manager" launch-prefix="pr2-grant" 
+        pkg="pr2_etherCAT" type="pr2_etherCAT"
+        args="-i ecat0 -x $(find gripper_control)/cycle.xml" 
         output="screen"/>
 
   <rosparam file="$(find gripper_control)/cycle_controllers.yaml" command="load" />
@@ -12,7 +19,7 @@
         respawn="false" output="screen" />
 
   <node name="glueEmpty2Bool"
-        pkg="gripper_control" type="glueEmpty2Bool.py"
+        pkg="gripper_control" type="glueEmpty2Bool.py" args="-i calibration_controller/calibrated"
         respawn="false" output="screen" />
 
   <node name="cycle_controller"
