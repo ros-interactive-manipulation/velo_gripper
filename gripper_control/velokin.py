@@ -97,6 +97,7 @@ def  q2tg( q ):
         qp1  = twoDang(TP) + p.pi - p.arccos(rp/p.norm(TP))
         sP   = rp*(qp1-qp2)
         fz   = fTP + sP + fBD
+        # OUTPUT INFO ABOUT START POINT
         print ("t0=%.4f, TPz=[%.4f,%.4f], fTPz=%.4f, qp1=%.1f, fz=%.4f"%(t0,TP[0],TP[1],fTP,qp1*R2D,fz))
 
     # APPROX qp1 as constant
@@ -110,11 +111,10 @@ def  q2tg( q ):
     fTPy = hypleg(fTP,fTPx)
     t = P[1] + t0 + slack + P1y - fTPy
 
-    # PLOT THE "SKELETON"
-    if False:
-        skel = propkin([[0.0,0.0],P,PA,AB,BC,CD,DE])
-        p.figure(10); p.axis("equal")
-        p.plot(skel[0,:],skel[1,:])
+    # PLOT THE "SKELETON" OF IMPORTANT POINTS TO SANITY CHECK 
+    skel = propkin([[0.0,t-t0],P+p.array([0.0,t0-t]),PA,AB,BC,CD,DE])
+    p.figure(10); p.axis("equal")
+    p.plot(skel[0,:],skel[1,:])
 
 #    ####################
 #    # FORCES FOR SPRING
@@ -151,20 +151,25 @@ def  q2tg( q ):
 
     return (t,q,g, mF)
 
+
 aa = (p.arange(83.0)+20.0) * D2R
-#aa = (p.arange(3.0)*83/2.0+20.0) * D2R
+
 u = p.amap(q2tg,aa)
 
 ut = u[:,0]
 uq = u[:,1]; uqd = uq*R2D
 ug = u[:,2]
-#us = u[:,3];
 ufma= u[:,3]
 
 dt0 = ut[1]-ut[0]
 dt1 = ut[-1]-ut[-2]
 dg0 = ug[1]-ug[0]
 dg1 = ug[-1]-ug[-2]
+
+##############
+# label Skeleton Plot
+p.figure(10); p.grid(True)
+p.title('Skeleton of Important Points')
 
 ut_step = .0005
 ut_lin = p.arange(ut[0]+ut_step,0.020,ut_step)
@@ -182,10 +187,12 @@ gg2l = p.arange(-19.0,226.1,1.0)/1000.0
 tg2l = p.polyval(cg2l,gg2l)
 
 ##############
-# vs. Angle
+# tendon vs. Angle
 p.figure(0); p.grid(True)
 p.plot(uqd,1000*ut)
 p.title('Tendon (mm) vs. Proximal angle (deg)')
+##############
+# gap vs. Angle
 p.figure(1); p.grid(True)
 p.plot(uqd,1000*ug)
 p.title('Gap (mm) vs. Proximal angle (deg)')
@@ -194,28 +201,14 @@ p.title('Gap (mm) vs. Proximal angle (deg)')
 # tendon vs. gap and polyfits
 p.figure(2); p.grid(True)
 p.plot(1000*ut,1000*ug,label='kin theory')
-p.plot(1000*ut_lin,1000*ug_lin,label='lin')
+p.plot(1000*ut_lin,1000*ug_lin,label='linear extension')
 p.plot(1000*tl2g,1000*gl2g,label='l2g polynomial')
 p.plot(1000*tg2l,1000*gg2l,label='g2l polynomial')
 p.legend(loc=4)
 p.title('Gap (mm) vs. Tendon (mm)')
 
-#cg2s = p.polyfit(ug,us,4)
-#gg2s = p.arange(-19.0,160.1,1.0)/1000.0
-#sg2s = p.polyval(cg2s,gg2s)
-
-#p.figure(11); p.grid(True)
-#p.plot(uqd,us)
-#p.title('Ft_per_Fs (ratio) vs. Proximal angle (deg)')
-
-#p.figure(12); p.grid(True)
-#p.plot(1000*ug,us,label='kin theory')
-#p.plot(1000*gg2s,sg2s,label='g2s polynomial')
-#p.legend(loc=2)
-#p.title('Tendon_Force-per-Spring_Force (ratio) vs. Gap (mm)')
-
 ##############
-# Flexor Moment Arm
+# Flexor Moment Arm vs. gap
 cg2fma = p.polyfit(ug,ufma,4)
 gg2fma = p.arange(-19.0,160.1,1.0)/1000.0
 sg2fma = p.polyval(cg2fma,gg2fma)
@@ -227,21 +220,21 @@ p.legend(loc=3)
 p.title('Flexor Moment Arm (mm) vs. Gap (mm)')
 
 
-print("t_range=[%.4fmm, %.4fmm]"%(1000*p.interp(0.0,ug,ut),1000*ut[0]))
-
+##############
+# OUTPUT COEFFS IN yaml AND urdf FORMATS FOR CUT/PASTE TO WHERE NEEDED
 n=len(cl2g)
 print("")
 print("polynomials:")
 for i in range(n):  print("  l2g_%d: % .11g"%(i,cl2g[n-i-1]))
 print("")
-for i in range(n):  print("  g2l_%d: % .11g"%(i,cg2l[n-i-1]))
+for i in range(n):  print("  g2l_%d: % .11f"%(i,cg2l[n-i-1]))
 print("")
 for i in range(n):  print("  g2ed_%d: % .11g"%(i,cg2fma[n-i-1]))
 print("")
 print("")
 for i in range(n):  print('      l2g_coeffs_%d="${%0.11g}"'%(i,cl2g[n-i-1]))
 print("")
-for i in range(n):  print('      g2l_coeffs_%d="${%0.11g}"'%(i,cg2l[n-i-1]))
+for i in range(n):  print('      g2l_coeffs_%d="${%0.11f}"'%(i,cg2l[n-i-1]))
 print("")
 # NOTE, FOR HISTORICAL REASONS, ceoffs g2fma are called g2ed 
 # (Flexor Moment Arm aka. Effective Distance)
