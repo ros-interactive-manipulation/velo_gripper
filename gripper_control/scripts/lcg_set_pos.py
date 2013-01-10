@@ -10,11 +10,14 @@ import os
 
 def setLCGPosition(desired_position, force, name_prefix):
 	print "LCGPosition"
-	pub = rospy.Publisher('/%s_gripper_controller/command'%name_prefix, pr2_controllers_msgs.msg.Pr2GripperCommand, latch=True)
-	rospy.init_node('lcg_setpoint')
-	rospy.sleep(0.3)	
-	pub.publish(position = desired_position, max_effort=force)
-	print "LCG set position: %.04f m, force %.02f N" % (desired_position, force)
+	if name_prefix == 'b': name_prefix = ['l','r']
+	else:                  name_prefix = [name_prefix]
+	for n in name_prefix:
+		pub = rospy.Publisher('/%s_gripper_controller/command'%n, pr2_controllers_msgs.msg.Pr2GripperCommand, latch=True)
+		rospy.init_node('lcg_setpoint')
+		rospy.sleep(0.3)	
+		pub.publish(position = desired_position, max_effort=force)
+		print "LCG set position: %.04f m, force %.02f N" % (desired_position, force)
 
 
 if __name__ == '__main__':
