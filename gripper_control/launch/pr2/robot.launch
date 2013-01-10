@@ -14,21 +14,14 @@
   <rosparam file="/etc/ros/robot.yaml"/>
 
 
-  <node name="plot_cal"
+  <node if="0" name="plot_left"
         pkg="rxtools" type="rxplot"
-        args="-b 60 -p 20 /cal_l_gripper/state/process_value /cal_l_gripper/state/command"
+        args="-b 100 -p 30 /l_gripper_joint/state/gap_size /l_gripper_joint/state/gap_force /l_gripper_controller/state/process_value_dot /l_gripper_joint/state/tendon_position /l_gripper_joint/state/tendon_force /l_gripper_joint/state/motor_torque"
         respawn="false" output="screen" />
 
-  <node name="plot_left"
+  <node if="0" name="plot_right"
         pkg="rxtools" type="rxplot"
-        args="-b 60 -p 20 /l_gripper_joint/state/gap_size /l_gripper_joint/state/gap_force /l_gripper_joint/state/tendon_position /l_gripper_joint/state/tendon_force /l_gripper_joint/state/motor_torque"
+        args="-b 100 -p 30 /r_gripper_joint/state/gap_size /r_gripper_joint/state/gap_force /r_gripper_controller/state/process_value_dot /r_gripper_joint/state/tendon_position /r_gripper_joint/state/tendon_force /r_gripper_joint/state/motor_torque"
         respawn="false" output="screen" />
-
-  <node name="plot_right"
-        pkg="rxtools" type="rxplot"
-        args="-b 60 -p 20 /r_gripper_joint/state/gap_size /r_gripper_joint/state/gap_force /r_gripper_joint/state/tendon_position /r_gripper_joint/state/tendon_force /r_gripper_joint/state/motor_torque"
-        respawn="false" output="screen" />
-
-
 
 </launch> 
