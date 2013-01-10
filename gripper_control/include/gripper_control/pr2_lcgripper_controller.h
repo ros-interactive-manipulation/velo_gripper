@@ -109,7 +109,8 @@ private:
   // Velocity filter parameters
   double filtered_velocity_;
   double lambda_;
-  double v_thres_;
+  int use_v_thresh_;  // Binary Boolean
+  double  v_thresh_;  // max closing speed
 
   // Parameters for the holding torque applied to the motor once stalled
   double stall_threshold_;

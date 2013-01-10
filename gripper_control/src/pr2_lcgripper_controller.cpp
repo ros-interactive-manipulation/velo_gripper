@@ -87,6 +87,13 @@ bool Pr2LCGripperController::init(pr2_mechanism_model::RobotState *robot, ros::N
 
   ros::NodeHandle pid_node(node_, "pid");
 
+  /* v_thresh used as a HACK to limit the closing speed of the gripper
+     to help limit the kinetic windup so that closing force is more 
+     controllable and linear vs. max_effort */
+  pid_node.getParam("use_v_thresh", use_v_thresh_); // Binary Boolean
+  pid_node.getParam("v_thresh", v_thresh_); // m/s
+  v_thresh_ = copysign(v_thresh_,-1.0); // NEGATIVE TO LIMIT CLOSING SPEED
+
   // Position holding parameters for the control loop
   pid_node.getParam("position_holding/stall_timeout", stall_timeout_); // seconds
   pid_node.getParam("position_holding/stall_threshold", stall_threshold_); // metres
@@ -122,8 +129,19 @@ void Pr2LCGripperController::update()
   // TODO: FILTER VELOCITY HERE.
   double error_dot = 0.0 - joint_state_->velocity_;
 
-  // Sets the effort (limited)
   double effort = pid_.updatePid(error, error_dot, dt);
+
+  /* v_thresh used as a HACK to limit the closing speed of the gripper to help
+     limit the kinetic windup so that closing force is more controllable and
+     linear vs. max_effort.  This controller scheme should be replaced using a
+     controller that is better-architected for both speed and force control,
+     such as a trajectory-following position controller with force limiting.*/
+  if ( use_v_thresh_ && 
+       joint_state_->velocity_ < v_thresh_ )  // NOTE: Closing speeds are NEGATIVE
+  { effort = 0.0;
+  }
+
+  // Set the effort (limited)
   effort = std::max(-command->max_effort, std::min(effort, command->max_effort));
 
   // Check for stall. If the gripper position hasn't moved by less than a threshold for at greater than some timeout, limit the output to a holding torque.
