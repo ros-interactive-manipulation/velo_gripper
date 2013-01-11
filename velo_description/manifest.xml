@@ -1,0 +1,16 @@
+<package>
+  <description brief="velo_urdf">
+
+     velo_urdf
+
+  </description>
+  <author>Matei Ciocarlie</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/velo_urdf</url>
+  <depend package="urdf"/>
+  <depend package="xacro"/>
+
+</package>
+
+
