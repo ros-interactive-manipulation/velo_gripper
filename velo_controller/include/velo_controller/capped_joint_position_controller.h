@@ -36,7 +36,7 @@
 #define CAPPED_JOINT_POSITION_CONTROLLER_H
 
 /**
-   @class gripper_control::CappedJointPositionController
+   @class velo_controller::CappedJointPositionController
    @brief Capped Joint Position Controller
 
    This class controls positon using a pid loop with limits on the velocity and effort.
@@ -61,7 +61,6 @@
 #include <ros/node_handle.h>
 
 #include <pr2_controller_interface/controller.h>
-//#include <gripper_control/capped_pid.h>
 #include <control_toolbox/pid.h>
 #include <boost/scoped_ptr.hpp>
 #include <boost/thread/condition.hpp>
@@ -69,7 +68,7 @@
 #include <std_msgs/Float64.h>
 #include <pr2_controllers_msgs/JointControllerState.h>
 
-namespace controller
+namespace velo_controller
 {
 
 class CappedJointPositionController : public pr2_controller_interface::Controller

@@ -28,7 +28,10 @@ rosbuild_genmsg()
 #rosbuild_link_boost(${PROJECT_NAME} thread)
 #rosbuild_add_executable(example examples/example.cpp)
 #target_link_libraries(example ${PROJECT_NAME})
-rosbuild_add_library(lcgripper_transmission src/lcgripper_transmission.cpp)
-rosbuild_add_library(pr2_lcgripper_controller src/pr2_lcgripper_controller.cpp src/lcgripper_calibration_controller.cpp src/capped_joint_position_controller.cpp)
-rosbuild_add_executable(${PROJECT_NAME} src/lcgripper_trans_tests.cpp)
-target_link_libraries(${PROJECT_NAME} lcgripper_transmission)
+rosbuild_add_library(velo_transmission src/velo_transmission.cpp)
+rosbuild_add_library(velo_controller 
+                     src/velo_controller.cpp 
+		     src/velo_calibration_controller.cpp 
+		     src/capped_joint_position_controller.cpp)
+rosbuild_add_executable(${PROJECT_NAME} src/velo_trans_tests.cpp)
+target_link_libraries(${PROJECT_NAME} velo_transmission)

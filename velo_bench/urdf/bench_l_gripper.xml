@@ -15,7 +15,7 @@
   <link name="l_gripper_palm_link">
     <visual>
       <geometry>
-        <mesh filename="package://gripper_control/meshes/lcg_actuator_palm_mesh_v1-55.STL"  />
+        <mesh filename="package://velo_description/meshes/lcg_actuator_palm_mesh_v1-55.STL"  />
       </geometry>
       <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
       <material name="l_palm-11_color">
@@ -24,7 +24,7 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://gripper_control/meshes/lcg_actuator_palm_mesh_v1-55.STL"  />
+        <mesh filename="package://velo_description/meshes/lcg_actuator_palm_mesh_v1-55.STL"  />
       </geometry>
       <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
     </collision>
@@ -42,7 +42,7 @@
   <link name="l_gripper_l_finger_link">
     <visual>
       <geometry>
-        <mesh filename="package://gripper_control/meshes/lcg_proximal_mesh_v1-55.STL"  />
+        <mesh filename="package://velo_description/meshes/lcg_proximal_mesh_v1-55.STL"  />
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <material name="l_l_finger-11_color">
@@ -51,7 +51,7 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://gripper_control/meshes/lcg_proximal_mesh_v1-55.STL"/>
+        <mesh filename="package://velo_description/meshes/lcg_proximal_mesh_v1-55.STL"/>
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0"/>
     </collision>
@@ -73,7 +73,7 @@
   <link name="l_gripper_l_finger_tip_link">
     <visual>
       <geometry>
-        <mesh filename="package://gripper_control/meshes/lcg_distal_mesh_v1-55.STL"  />
+        <mesh filename="package://velo_description/meshes/lcg_distal_mesh_v1-55.STL"  />
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <material name="l_l_finger_tip-11_color">
@@ -82,7 +82,7 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://gripper_control/meshes/lcg_distal_mesh_v1-55.STL"  />
+        <mesh filename="package://velo_description/meshes/lcg_distal_mesh_v1-55.STL"  />
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0"/>
     </collision>
@@ -105,7 +105,7 @@
   <link name="l_gripper_r_finger_link">
     <visual>
       <geometry>
-        <mesh filename="package://gripper_control/meshes/lcg_proximal_mesh_v1-55.STL"/>
+        <mesh filename="package://velo_description/meshes/lcg_proximal_mesh_v1-55.STL"/>
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <material name="l_gripper_r_finger-11_color"  >
@@ -114,7 +114,7 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://gripper_control/meshes/lcg_proximal_mesh_v1-55.STL"  />
+        <mesh filename="package://velo_description/meshes/lcg_proximal_mesh_v1-55.STL"  />
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0"/>
     </collision>
@@ -137,7 +137,7 @@
   <link name="l_gripper_r_finger_tip_link">
     <visual>
       <geometry>
-        <mesh filename="package://gripper_control/meshes/lcg_distal_mesh_v1-55.STL"/>
+        <mesh filename="package://velo_description/meshes/lcg_distal_mesh_v1-55.STL"/>
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <material name="l_r_finger_tip-11_color"  >
@@ -146,7 +146,7 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://gripper_control/meshes/lcg_distal_mesh_v1-55.STL"  />
+        <mesh filename="package://velo_description/meshes/lcg_distal_mesh_v1-55.STL"  />
       </geometry>
       <origin rpy="0 0 0" xyz="0 0 0"/>
     </collision>
@@ -251,7 +251,7 @@
     <dynamics damping="10.0"/>
   </joint>
 
-  <transmission name="l_gripper_trans" type="gripper_control/LCGripperTransmission"  >
+  <transmission name="l_gripper_trans" type="velo_controller/VeloTransmission"  >
     <!-- CHANGE ACTUATOR NAME ON NEXT LINE -->
     <actuator name="l_velo_gripper_motor"/>
     <gap_joint name="l_gripper_joint"

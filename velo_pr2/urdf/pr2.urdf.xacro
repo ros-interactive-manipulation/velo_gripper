@@ -14,7 +14,8 @@
   <include filename="$(find pr2_description)/urdf/forearm_v0/forearm.urdf.xacro" />
   <!-- PR2 gripper -->
   <include filename="$(find pr2_description)/urdf/gripper_v0/gripper.urdf.xacro" />
-  <include filename="$(find gripper_control)/urdf/gripper_v0/lcgripper_combined.urdf.xacro" />
+  <!-- Velo gripper -->
+  <include filename="$(find velo_description)/urdf/velo_v0/velo.urdf.xacro" />
   <!-- PR2 head -->
   <include filename="$(find pr2_description)/urdf/head_v0/head.urdf.xacro" />
   <!-- PR2 tilting laser mount -->

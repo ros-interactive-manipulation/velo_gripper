@@ -59,7 +59,7 @@ def rosInfra():
        return
 
     # DIDN'T FIND THE RIGHT SERVICES, SO LAUNCH cycle_controller
-    p_launch = pexpect.spawn('roslaunch gripper_control cycle.launch')
+    p_launch = pexpect.spawn('roslaunch velo_bench cycle.launch')
     msg = 'Started controllers: cycle_controller'
     ans = 2
     while ans == 2:

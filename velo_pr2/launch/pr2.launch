@@ -12,7 +12,7 @@
 
   <!-- PR2 Calibration -->
   <node name="calibrate_pr2" pkg="pr2_bringup" type="calibrate_pr2.py" output="screen"
-        args="$(find gripper_control)/pr2_lcg_calibration_controllers.yaml $(find gripper_control)/pr2_lcg_hold_controllers.yaml"/>
+        args="$(find velo_pr2)/config/pr2_velo_calibration_controllers.yaml $(find velo_pr2)/config/pr2_velo_hold_controllers.yaml"/>
 
   <!-- Controller Manager -->
   <include file="$(find pr2_controller_manager)/controller_manager.launch" />
@@ -144,7 +144,7 @@
         respawn="false" output="screen" />
 
   <!-- Default controllers -->
-  <include file="$(find gripper_control)/launch/pr2/pr2_default_controllers.launch" />
+  <include file="$(find velo_pr2)/launch/pr2_default_controllers.launch" />
 
   <!-- Robot pose ekf -->
   <node pkg="robot_pose_ekf" type="robot_pose_ekf" name="robot_pose_ekf" output="screen">

@@ -1,23 +1,23 @@
 <launch>
 
   <!-- Robot Description --> 
-  <!-- <param name="robot_description" command="$(find xacro)/xacro.py '$(find gripper_control)/urdf/pr2.urdf.xacro'" /> -->
+  <!-- <param name="robot_description" command="$(find xacro)/xacro.py '$(find velo_pr2)/urdf/pr2.urdf.xacro'" /> -->
 
   <!-- WHEN ON A DESKTOP -->
   <node if="0" name="controller_manager" launch-prefix="pr2-grant" 
         pkg="pr2_etherCAT" type="pr2_etherCAT"
-        args="-i eth1 -x $(find gripper_control)/bench_r_gripper.xml"
+        args="-i eth1 -x $(find velo_bench)/urdf/bench_r_gripper.xml"
         output="screen"/>
 
   <!-- WHEN ON A PR2 -->
   <node name="controller_manager" launch-prefix="pr2-grant" 
         pkg="pr2_etherCAT" type="pr2_etherCAT"
-        args="-i ecat0 -x $(find gripper_control)/bench_r_gripper.xml"
+        args="-i ecat0 -x $(find velo_bench)/urdf/bench_r_gripper.xml"
         output="screen"/>
 
-  <rosparam ns="r_gripper_joint" file="$(find gripper_control)/lcg_transmission_params.yaml"/>
+  <rosparam ns="r_gripper_joint" file="$(find velo_controller)/config/velo_transmission_params.yaml"/>
 
-  <rosparam file="$(find gripper_control)/bench_r_controllers.yaml" command="load" />
+  <rosparam file="$(find velo_bench)/config/bench_r_controllers.yaml" command="load" />
 
   <node if="0" name="dashboard" 
         pkg="pr2_dashboard" type="pr2_dashboard"
@@ -38,7 +38,7 @@
         respawn="false" output="screen" />
 
   <node name="glueEmpty2Bool"
-        pkg="gripper_control" type="glueEmpty2Bool.py" args="-i cal_r_gripper/calibrated"
+        pkg="velo_bench" type="glueEmpty2Bool.py" args="-i cal_r_gripper/calibrated"
         respawn="false" output="screen" />
 
   <!-- Controllers that come up started -->

@@ -32,28 +32,29 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#include "gripper_control/pr2_lcgripper_controller.h"
+#include "velo_controller/velo_controller.h"
 #include "angles/angles.h"
 #include "pluginlib/class_list_macros.h"
 
-PLUGINLIB_DECLARE_CLASS(gripper_control, Pr2LCGripperController, controller::Pr2LCGripperController, pr2_controller_interface::Controller)
+PLUGINLIB_DECLARE_CLASS(velo_controller, VeloController, 
+                        velo_controller::VeloController, pr2_controller_interface::Controller)
 
 using namespace std;
 
-namespace controller {
+namespace velo_controller {
 
-Pr2LCGripperController::Pr2LCGripperController()
+VeloController::VeloController()
 : joint_state_(NULL),
   loop_count_(0), robot_(NULL), last_time_(0)
 {
 }
 
-Pr2LCGripperController::~Pr2LCGripperController()
+VeloController::~VeloController()
 {
   sub_command_.shutdown();
 }
 
-bool Pr2LCGripperController::init(pr2_mechanism_model::RobotState *robot, ros::NodeHandle &n)
+bool VeloController::init(pr2_mechanism_model::RobotState *robot, ros::NodeHandle &n)
 {
   assert(robot);
   node_ = n;
@@ -104,11 +105,11 @@ bool Pr2LCGripperController::init(pr2_mechanism_model::RobotState *robot, ros::N
     (node_, "state", 1));
 
   sub_command_ = node_.subscribe<pr2_controllers_msgs::Pr2GripperCommand>(
-    "command", 1, &Pr2LCGripperController::commandCB, this);
+    "command", 1, &VeloController::commandCB, this);
   return true;
 }
 
-void Pr2LCGripperController::update()
+void VeloController::update()
 {
   if (!joint_state_->calibrated_)
     return;
@@ -146,12 +147,12 @@ void Pr2LCGripperController::update()
 
   // Check for stall. If the gripper position hasn't moved by less than a threshold for at greater than some timeout, limit the output to a holding torque.
   double delta_position = joint_state_->position_ - stall_start_position_;
-  //ROS_INFO("LCGCtrl: delta_pos = %f", delta_position);
+  //ROS_INFO("VELOCtrl: delta_pos = %f", delta_position);
   if ( fabs(delta_position) < stall_threshold_ && command->position == last_setpoint_ && command->max_effort == last_max_effort_)
   {
     // Reset the stall check if the position or max effort changes ... ie, a new command was sent.
     ros::Duration stall_length = time - stall_start_time_;
-//    ROS_INFO("LCGCtrl: stall_length = %f", stall_length.toSec());
+//    ROS_INFO("VELOCtrl: stall_length = %f", stall_length.toSec());
     if (stall_length.toSec() > stall_timeout_ && fabs(effort) > holding_torque_) // Don't increase the torque if the controller is requesting a lower torque.
     {
       // ROS_INFO("Stalled for %f seconds", stall_length.toSec());
@@ -204,7 +205,7 @@ void Pr2LCGripperController::update()
   last_time_ = time;
 }
 
-void Pr2LCGripperController::commandCB(const pr2_controllers_msgs::Pr2GripperCommandConstPtr& msg)
+void VeloController::commandCB(const pr2_controllers_msgs::Pr2GripperCommandConstPtr& msg)
 {
   command_box_.set(msg);
 }

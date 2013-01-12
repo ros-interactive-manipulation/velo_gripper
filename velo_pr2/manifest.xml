@@ -1,10 +1,10 @@
 <package>
   <description brief="velo_pr2">
 
-     velo_pr2
+     Launch files, configuration files, and urdf for the Velo gripper on PR2.
 
   </description>
-  <author>Matei Ciocarlie</author>
+  <author>Bob Holmberg, Jeff Hawke, Matei Ciocarlie</author>
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/velo_pr2</url>

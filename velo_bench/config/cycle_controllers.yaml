@@ -2,7 +2,7 @@ fake_controller:
     type: pr2_calibration_controllers/FakeCalibrationController
     joint: gripper_joint
 calibration_controller:
-    type: gripper_control/LCGripperCalibrationController
+    type: velo_controller/VeloCalibrationController
     joint: gripper_joint
     actuator: l_velo_gripper_motor
     velocity:  0.002

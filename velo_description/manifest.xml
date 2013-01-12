@@ -1,13 +1,13 @@
 <package>
-  <description brief="velo_urdf">
+  <description brief="velo_description">
 
-     velo_urdf
+     URDF and other description files for Velo gripper
 
   </description>
-  <author>Matei Ciocarlie</author>
+  <author>Bob Holmberg, Jeff Hawke, Matei Ciocarlie</author>
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
-  <url>http://ros.org/wiki/velo_urdf</url>
+  <url>http://ros.org/wiki/velo_description</url>
   <depend package="urdf"/>
   <depend package="xacro"/>
 

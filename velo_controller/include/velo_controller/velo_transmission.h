@@ -40,8 +40,8 @@
  * Author: John Hsu
  */
 
-#ifndef VELO2G_GRIPPER_TRANSMISSION_H
-#define VELO2G_GRIPPER_TRANSMISSION_H
+#ifndef VELO_TRANSMISSION_H
+#define VELO_TRANSMISSION_H
 
 #include <vector>
 #include <tinyxml.h>
@@ -56,28 +56,27 @@
 #include "pr2_mechanism_model/robot.h"
 #include "pr2_mechanism_model/joint_calibration_simulator.h"
 
-#include "gripper_control/LCGTransmissionState.h"
+#include "velo_controller/VeloTransmissionState.h"
 
 #define REV2RAD (2.0*M_PI)    // convert revolutions to radians
 #define RAD2REV (1.0/REV2RAD) // convert radians to revolutions
 #define RAD2DEG (180.0/M_PI)  // convert radians to degrees
 #define DEG2RAD (1.0/RAD2DEG) // convert degrees to radians
 
+namespace velo_controller {
 
-namespace pr2_mechanism_model {
-
-class LCGripperTransmission : public Transmission
+class VeloTransmission : public pr2_mechanism_model::Transmission
 {
 public:
-  LCGripperTransmission():
+  VeloTransmission():
          use_simulated_actuated_joint_(false),
          has_simulated_passive_actuated_joint_(false),
          tqSign_(-1.0),
          mode_(CALIBRATING),
          mute_timeout_(ros::Time(0)) {};
-  virtual ~LCGripperTransmission() {/*myfile.close();*/}
+  virtual ~VeloTransmission() {/*myfile.close();*/}
 
-  bool initXml(TiXmlElement *config, Robot *robot);
+  bool initXml(TiXmlElement *config, pr2_mechanism_model::Robot *robot);
   bool initXml(TiXmlElement *config);
 
   void assertJointConfig( size_t as_size, size_t js_size );
@@ -108,13 +107,13 @@ public:
 
   boost::shared_ptr<
       realtime_tools::RealtimePublisher<
-        gripper_control::LCGTransmissionState> > lcg_state_publisher_ ;
+        velo_controller::VeloTransmissionState> > velo_state_publisher_ ;
 
-  friend class LCGripperTransmissionTest;
+  friend class VeloTransmissionTest;
 
 private:
 
-  bool initParametersFromURDF(TiXmlElement *j, Robot *robot);
+  bool initParametersFromURDF(TiXmlElement *j, pr2_mechanism_model::Robot *robot);
   bool initParametersFromServer(TiXmlElement *j);
 
   // Mapping motor states to tendon states and to gripper states (and backwards).
@@ -218,10 +217,10 @@ private:
   int simulated_actuator_timestamp_initialized_;
   ros::Time simulated_actuator_start_time_;
 
-  JointCalibrationSimulator joint_calibration_simulator_;
+  pr2_mechanism_model::JointCalibrationSimulator joint_calibration_simulator_;
 
 };
 
-} // namespace pr2_mechanism_model
+}
 
 #endif //VELO2G_GRIPPER_TRANSMISSION_H

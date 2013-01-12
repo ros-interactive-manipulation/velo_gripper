@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import argparse
 import roslib
-roslib.load_manifest('gripper_control')
+roslib.load_manifest('velo_controller')
 import rospy
 import pr2_controllers_msgs.msg
 
@@ -10,7 +10,7 @@ import os
 
 controller_name = 'l_gripper_controller'
 
-def setLCGGains(p, i, d, i_clamp):
+def setVELOGains(p, i, d, i_clamp):
 	if p != None:
 		rospy.set_param('/l_gripper_controller/pid/p', p)	
 	if i != None:
@@ -20,7 +20,7 @@ def setLCGGains(p, i, d, i_clamp):
 	if i_clamp != None:
 		rospy.set_param('/l_gripper_controller/pid/i_clamp', i_clamp)
 
-	rospy.init_node('lcg_setgains')
+	rospy.init_node('velo_setgains')
 	rospy.sleep(0.2)	
 	
 	os.system('rosrun pr2_controller_manager pr2_controller_manager kill %s' % controller_name)
@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
 	args = parser.parse_args()
 	try:
-		setLCGGains(args.p, args.i, args.d, args.ic)
+		setVELOGains(args.p, args.i, args.d, args.ic)
 	except rospy.ROSInterruptException: 
 		print "ROSInterruptException"
 		pass

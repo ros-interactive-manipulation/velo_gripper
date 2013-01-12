@@ -1,11 +1,11 @@
 cal_l_gripper:
-  type: gripper_control/LCGripperCalibrationController
+  type: velo_controller/VeloCalibrationController
   joint: l_gripper_joint
   actuator: l_velo_gripper_motor
   velocity:  0.003
   error_max: 0.001
   stopped_velocity_tolerance: 0.0005
-  pid: &lcgripper_l_calibration_gains
+  pid:
     p: 360000.0
     d: 36000.0
     i: 50000.0
@@ -17,9 +17,9 @@ cal_l_gripper:
     - l_gripper_r_finger_tip_joint
 
 l_gripper_controller:
-  type: gripper_control/Pr2LCGripperController
+  type: velo_controller/VeloController
   joint: l_gripper_joint
-  pid: &lcgripper_l_position_gains
+  pid:
     p: 5000.0
     d: 100.0
     i: 1.0

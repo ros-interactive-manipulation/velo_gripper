@@ -2,16 +2,16 @@
   <!-- WHEN ON A DESKTOP -->
   <node if="0" name="controller_manager" launch-prefix="pr2-grant" 
         pkg="pr2_etherCAT" type="pr2_etherCAT"
-        args="-i eth1 -x $(find gripper_control)/cycle.xml" 
+        args="-i eth1 -x $(find velo_bench)/urdf/cycle.xml" 
         output="screen"/>
 
   <!-- WHEN ON A PR2 -->
   <node name="controller_manager" launch-prefix="pr2-grant" 
         pkg="pr2_etherCAT" type="pr2_etherCAT"
-        args="-i ecat0 -x $(find gripper_control)/cycle.xml" 
+        args="-i ecat0 -x $(find velo_bench)/urdf/cycle.xml" 
         output="screen"/>
 
-  <rosparam file="$(find gripper_control)/cycle_controllers.yaml" command="load" />
+  <rosparam file="$(find velo_bench)/cycle_controllers.yaml" command="load" />
 
   <node name="calibration_controller"
         pkg="pr2_controller_manager" type="spawner"
@@ -19,7 +19,7 @@
         respawn="false" output="screen" />
 
   <node name="glueEmpty2Bool"
-        pkg="gripper_control" type="glueEmpty2Bool.py" args="-i calibration_controller/calibrated"
+        pkg="velo_bench" type="glueEmpty2Bool.py" args="-i calibration_controller/calibrated"
         respawn="false" output="screen" />
 
   <node name="cycle_controller"

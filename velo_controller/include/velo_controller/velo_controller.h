@@ -32,31 +32,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#ifndef PR2_LCGRIPPER_CONTROLLER_H__
-#define PR2_LCGRIPPER_CONTROLLER_H__
-
-/**
-   @class pr2_controller_interface::Pr2GripperController
-   @brief Joint Position Controller
-
-   This class controls positon using a pid loop.
-
-   @section ROS ROS interface
-
-   @param type Must be "Pr2GripperController"
-   @param joint Name of the joint to control.
-   @param pid Contains the gains for the PID loop around position.  See: control_toolbox::Pid
-
-   Subscribes to:
-
-   - @b command (std_msgs::Float64) : The joint position to achieve.
-
-   Publishes:
-
-   - @b state (pr2_controllers_msgs::JointControllerState) :
-     Current state of the controller, including pid error and gains.
-
-*/
+#ifndef VELO_CONTROLLER_H
+#define VELO_CONTROLLER_H
 
 #include <ros/node_handle.h>
 
@@ -72,15 +49,15 @@
 #include <pr2_controllers_msgs/JointControllerState.h>
 #include <pr2_controllers_msgs/Pr2GripperCommand.h>
 
-namespace controller
+namespace velo_controller
 {
 
-class Pr2LCGripperController : public pr2_controller_interface::Controller
+class VeloController : public pr2_controller_interface::Controller
 {
 public:
 
-  Pr2LCGripperController();
-  ~Pr2LCGripperController();
+  VeloController();
+  ~VeloController();
 
   bool init(pr2_mechanism_model::RobotState *robot, ros::NodeHandle &n);
 

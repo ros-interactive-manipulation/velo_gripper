@@ -1,9 +1,17 @@
 <package>
-  <description brief="gripper_control">Controller code and config files for the gripper project</description>
-  <author>Matei Ciocarlie</author>
+  <description brief="velo_controller">
+    
+    Controller and transmission code and config files for the Velo Gripper.
+  
+  </description>
+  <author>Bob Holmberg, Jeff Hawke, Matei Ciocarlie</author>
+  
   <license>BSD</license>
+  
   <review status="unreviewed" notes=""/>
-  <url>https://kforge.ros.org/gripperdesign/svn</url>
+
+  <url>http://ros.org/wiki/velo_controller</url>
+
   <depend package="roscpp"/>
   <depend package="rospy"/>
   <depend package="actionlib"/>

@@ -1,5 +1,5 @@
 r_gripper_controller:
-  type: gripper_control/Pr2LCGripperController
+  type: velo_controller/VeloController
   joint: r_gripper_joint
   pid: 
     p: 10000.0
@@ -14,7 +14,7 @@ r_gripper_controller:
       stall_threshold: 0.001 # metres of gap travel
       holding_torque: 5.0 # Newtons of gap force
 l_gripper_controller:
-  type: gripper_control/Pr2LCGripperController
+  type: velo_controller/VeloController
   joint: l_gripper_joint
   pid:
     p: 10000.0

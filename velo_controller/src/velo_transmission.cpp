@@ -49,7 +49,8 @@
  *   non-passive js->commanded_effort_ is 1to1 with MT
  *   passive js->commanded_effort_ is 1/2?? of MT converted to joint torques
  */
-#include "gripper_control/lcgripper_transmission.h"
+
+#include "velo_controller/velo_transmission.h"
 #include <pluginlib/class_list_macros.h>
 #include <algorithm>
 #include <numeric>
@@ -63,13 +64,13 @@
 using namespace pr2_hardware_interface;
 using namespace pr2_mechanism_model;
 
-PLUGINLIB_DECLARE_CLASS(gripper_control, LCGripperTransmission,
-                         pr2_mechanism_model::LCGripperTransmission,
-                         pr2_mechanism_model::Transmission)
+PLUGINLIB_DECLARE_CLASS(velo_controller, VeloTransmission,
+                        velo_controller::VeloTransmission,
+                        pr2_mechanism_model::Transmission)
 
+namespace velo_controller {
 
-
-class LCGripperTransmission::ParamFetcher
+class VeloTransmission::ParamFetcher
 {
 
 private:
@@ -95,7 +96,7 @@ public:
     if (!joint_name_)
     {
       error_count_++;
-      ROS_ERROR("LCGripperTransmission did not specify joint name");
+      ROS_ERROR("VeloTransmission did not specify joint name");
       return;
     }
 
@@ -104,7 +105,7 @@ public:
     if (!nh_->ok())
     {
       error_count_++;
-      ROS_ERROR("LCG Transmission: node handle does not exist/is shutdown");
+      ROS_ERROR("VELO Transmission: node handle does not exist/is shutdown");
       return;
     }
 
@@ -118,7 +119,7 @@ public:
       if (!joint)
       {
         error_count_++;
-        ROS_ERROR("LCGripperTransmission could not find joint named \"%s\"", joint_name_);
+        ROS_ERROR("VeloTransmission could not find joint named \"%s\"", joint_name_);
         return;
       }
     }
@@ -148,7 +149,7 @@ public:
       else
       {
         error_count_++;
-        ROS_WARN("LCG Transmission: Couldn't load \"%s\" from parameter server, joint %s.", key, joint_name_);
+        ROS_WARN("VELO Transmission: Couldn't load \"%s\" from parameter server, joint %s.", key, joint_name_);
         return false;
       }
     }
@@ -158,7 +159,7 @@ public:
       if ( attrib==NULL )
       {
         error_count_++;
-        ROS_WARN("LCGripperTransmission joint \"%s\" has no attribute: %s.", joint_name_, key);
+        ROS_WARN("VeloTransmission joint \"%s\" has no attribute: %s.", joint_name_, key);
       }
       else
       {
@@ -184,7 +185,7 @@ public:
   {
     if ( !getParam(key,value) )
     {
-      ROS_WARN("LCGripperTransmission joint \"%s\", attribute \"%s\" using default value: %f.", joint_name_, key, defaultValue);
+      ROS_WARN("VeloTransmission joint \"%s\", attribute \"%s\" using default value: %f.", joint_name_, key, defaultValue);
       value = defaultValue;
       return false;
     }
@@ -206,7 +207,7 @@ public:
 };
 
 
-bool LCGripperTransmission::getItems(ParamFetcher *itemFetcher)
+bool VeloTransmission::getItems(ParamFetcher *itemFetcher)
 {
   // Load parameters from server that is initialized at instantiation of "itemFetcher" object.
   // Joints
@@ -289,7 +290,7 @@ bool LCGripperTransmission::getItems(ParamFetcher *itemFetcher)
 }
 
 
-bool LCGripperTransmission::initParametersFromServer(TiXmlElement *j)
+bool VeloTransmission::initParametersFromServer(TiXmlElement *j)
 {
   itemFetcher_ = new ParamFetcher(j);
   if ( !getItems(itemFetcher_) )
@@ -300,7 +301,7 @@ bool LCGripperTransmission::initParametersFromServer(TiXmlElement *j)
   return true;
 }
 
-bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot)
+bool VeloTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot)
 {
   itemFetcher_ = new ParamFetcher(j,robot);
   if ( !getItems(itemFetcher_) )
@@ -313,18 +314,18 @@ bool LCGripperTransmission::initParametersFromURDF(TiXmlElement *j, Robot *robot
   joint_names_.push_back(joint_name);  // The first joint is the gap joint
 
   int argc = 0;
-  char** argv;
+  char** argv = NULL;
 
   ros::init(argc, argv, gap_joint_);
 
-  lcg_state_publisher_.reset(
-      new realtime_tools::RealtimePublisher<gripper_control::LCGTransmissionState>
+  velo_state_publisher_.reset(
+      new realtime_tools::RealtimePublisher<velo_controller::VeloTransmissionState>
         (*(itemFetcher_->nh_), "state", 1));
 
   return true;
 }
 
-bool LCGripperTransmission::initXml(TiXmlElement *config, Robot *robot)
+bool VeloTransmission::initXml(TiXmlElement *config, Robot *robot)
 {
   const char *name = config->Attribute("name");
   name_ = name ? name : "";
@@ -333,7 +334,7 @@ bool LCGripperTransmission::initXml(TiXmlElement *config, Robot *robot)
   const char *actuator_name = ael ? ael->Attribute("name") : NULL;
   if (!actuator_name || !robot->getActuator(actuator_name))
   {
-    ROS_ERROR("LCGripperTransmission could not find actuator named \"%s\"", actuator_name);
+    ROS_ERROR("VeloTransmission could not find actuator named \"%s\"", actuator_name);
     return false;
   }
   robot->getActuator(actuator_name)->command_.enable_ = true;
@@ -435,7 +436,7 @@ bool LCGripperTransmission::initXml(TiXmlElement *config, Robot *robot)
   return true;
 }
 
-bool LCGripperTransmission::initXml(TiXmlElement *config)
+bool VeloTransmission::initXml(TiXmlElement *config)
 {
   const char *name = config->Attribute("name");
   name_ = name ? name : "";
@@ -446,7 +447,7 @@ bool LCGripperTransmission::initXml(TiXmlElement *config)
 
   if (!actuator_name)
   {
-    ROS_ERROR("LCGripperTransmission could not find actuator named \"%s\"", actuator_name);
+    ROS_ERROR("VeloTransmission could not find actuator named \"%s\"", actuator_name);
     return false;
   }
   actuator_names_.push_back(actuator_name);
@@ -460,7 +461,7 @@ bool LCGripperTransmission::initXml(TiXmlElement *config)
   }
 
   // Print all coefficients
-  //ROS_DEBUG("LCGripper transmission parameters for %s: l0=%f, l1=%f, l2=%f, thickness=%f, theta_open=%f, theta_closed=%f, gear_reduction=%f",
+  //ROS_DEBUG("Velo transmission parameters for %s: l0=%f, l1=%f, l2=%f, thickness=%f, theta_open=%f, theta_closed=%f, gear_reduction=%f",
   //name_.c_str(), l0_, l1_, l2_, thickness_, theta_open_, theta_closed_, gear_reduction_);
 
   // Get passive joint informations
@@ -469,7 +470,7 @@ bool LCGripperTransmission::initXml(TiXmlElement *config)
     const char *joint_name = j->Attribute("name");
     if (!joint_name)
     {
-      ROS_ERROR("LCGripperTransmission did not specify joint name");
+      ROS_ERROR("VeloTransmission did not specify joint name");
       return false;
     }
 
@@ -484,7 +485,7 @@ bool LCGripperTransmission::initXml(TiXmlElement *config)
     const char *joint_name = j->Attribute("name");
     if (!joint_name)
     {
-      ROS_ERROR("LCGripperTransmission screw joint did not specify joint name");
+      ROS_ERROR("VeloTransmission screw joint did not specify joint name");
       use_simulated_actuated_joint_=false;
     }
     else
@@ -496,7 +497,7 @@ bool LCGripperTransmission::initXml(TiXmlElement *config)
       const char *simulated_reduction = j->Attribute("simulated_reduction");
       if (!simulated_reduction)
       {
-        ROS_ERROR("LCGripperTransmission's joint \"%s\" has no coefficient: simulated_reduction.", joint_name);
+        ROS_ERROR("VeloTransmission's joint \"%s\" has no coefficient: simulated_reduction.", joint_name);
         return false;
       }
       try
@@ -532,7 +533,7 @@ bool LCGripperTransmission::initXml(TiXmlElement *config)
 }
 
 
-void LCGripperTransmission::assertJointConfig( size_t as_size, size_t js_size )
+void VeloTransmission::assertJointConfig( size_t as_size, size_t js_size )
 {
   // TODO - CHECK THESE. Suspect that the screw joint should be removed. Leave passive joints + gap joint.
 
@@ -551,7 +552,7 @@ void LCGripperTransmission::assertJointConfig( size_t as_size, size_t js_size )
 ///////////////////////////////////////////////////////////
 /// assign joint position, velocity, effort from actuator state; ie, Tendon length -> gripper gap.
 /// all passive joints are assigned by single actuator state through mimic?
-void LCGripperTransmission::propagatePosition(std::vector<Actuator*>& as, std::vector<JointState*>& js)
+void VeloTransmission::propagatePosition(std::vector<Actuator*>& as, std::vector<JointState*>& js)
 {
   assertJointConfig( as.size(),js.size() );
 
@@ -626,7 +627,7 @@ void LCGripperTransmission::propagatePosition(std::vector<Actuator*>& as, std::v
 
 // this is needed for simulation, so we can recover encoder value given joint angles
 // Use joint positions to generate an actuator position.
-void LCGripperTransmission::propagatePositionBackwards(std::vector<JointState*>& js, std::vector<Actuator*>& as)
+void VeloTransmission::propagatePositionBackwards(std::vector<JointState*>& js, std::vector<Actuator*>& as)
 {
   assertJointConfig( as.size(),js.size() );
 
@@ -691,7 +692,7 @@ void LCGripperTransmission::propagatePositionBackwards(std::vector<JointState*>&
   this->joint_calibration_simulator_.simulateJointCalibration(js[0],as[0]);
 }
 
-void LCGripperTransmission::propagateEffort(
+void VeloTransmission::propagateEffort(
     std::vector<JointState*>& js, std::vector<Actuator*>& as)
 {
   assertJointConfig( as.size(),js.size() );
@@ -754,24 +755,24 @@ void LCGripperTransmission::propagateEffort(
   as[0]->command_.effort_ = tqSign_ * motor_torque;
 
   if(++loop_count_ % 10 == 0 &&
-     lcg_state_publisher_ &&
-     lcg_state_publisher_->trylock() )
+     velo_state_publisher_ &&
+     velo_state_publisher_->trylock() )
   {
-    lcg_state_publisher_->msg_.header.stamp = ros::Time::now();
-    lcg_state_publisher_->msg_.gap_size = gap_size;
-    lcg_state_publisher_->msg_.tendon_position = tendon_length;
-    lcg_state_publisher_->msg_.motor_position = motor_pos;
-    lcg_state_publisher_->msg_.gap_force = gap_effort;
-    lcg_state_publisher_->msg_.tendon_force = tendon_force;
-    lcg_state_publisher_->msg_.motor_torque = motor_torque;
+    velo_state_publisher_->msg_.header.stamp = ros::Time::now();
+    velo_state_publisher_->msg_.gap_size = gap_size;
+    velo_state_publisher_->msg_.tendon_position = tendon_length;
+    velo_state_publisher_->msg_.motor_position = motor_pos;
+    velo_state_publisher_->msg_.gap_force = gap_effort;
+    velo_state_publisher_->msg_.tendon_force = tendon_force;
+    velo_state_publisher_->msg_.motor_torque = motor_torque;
 
-    lcg_state_publisher_->unlockAndPublish();
+    velo_state_publisher_->unlockAndPublish();
   }
 
 }
 
 
-void LCGripperTransmission::propagateEffortBackwards(
+void VeloTransmission::propagateEffortBackwards(
   std::vector<Actuator*>& as, std::vector<JointState*>& js)
 {
   assertJointConfig( as.size(),js.size() );
@@ -809,30 +810,30 @@ void LCGripperTransmission::propagateEffortBackwards(
   }
 }
 
-double LCGripperTransmission::motorGeom2TendonGeom()
+double VeloTransmission::motorGeom2TendonGeom()
 {
   double tendon_qty = RAD2REV / gear_reduction_ * screw_lead_;
   return tendon_qty;
 }
 
-double LCGripperTransmission::tendonGeom2MotorGeom()
+double VeloTransmission::tendonGeom2MotorGeom()
 {
   return 1.0/motorGeom2TendonGeom();
 }
 
-double LCGripperTransmission::tendonForce2MotorTorque()
+double VeloTransmission::tendonForce2MotorTorque()
 {
   return motorGeom2TendonGeom();
 }
 
-double LCGripperTransmission::motorTorque2TendonForce()
+double VeloTransmission::motorTorque2TendonForce()
 {
   return 1.0/motorGeom2TendonGeom();
 }
 
 
 
-double LCGripperTransmission::getGapFromTheta(double theta)
+double VeloTransmission::getGapFromTheta(double theta)
 { // The gap spacing is defined by proximal joint angle theta, 
   // the width of the palm (from l0), and thickness of the distal link.
   theta = std::max(theta,theta_open_);
@@ -840,7 +841,7 @@ double LCGripperTransmission::getGapFromTheta(double theta)
   return gap;
 }
 
-double LCGripperTransmission::getThetaFromGap(double gap)
+double VeloTransmission::getThetaFromGap(double gap)
 {
   static int count = 0;
 
@@ -862,7 +863,7 @@ double LCGripperTransmission::getThetaFromGap(double gap)
   return theta;
 }
 
-double LCGripperTransmission::getTendonLengthFromGap(double gap)
+double VeloTransmission::getTendonLengthFromGap(double gap)
 {
   double length = 0.0;
   if ( gap <= gap_open_ )  // USE POLYNOMIAL FIT WHERE VALID
@@ -878,7 +879,7 @@ double LCGripperTransmission::getTendonLengthFromGap(double gap)
   return length;
 }
 
-double LCGripperTransmission::getGapFromTendonLength(double length)
+double VeloTransmission::getGapFromTendonLength(double length)
 {
   double gap = 0.0;
   if ( length <= tendon_open_ )  // USE POLYNOMIAL FIT WHERE VALID
@@ -894,7 +895,7 @@ double LCGripperTransmission::getGapFromTendonLength(double length)
   return gap;
 }
 
-double LCGripperTransmission::dGap_dLength(double length)
+double VeloTransmission::dGap_dLength(double length)
 {
   double dG_dL = 0.0;
 
@@ -912,14 +913,14 @@ double LCGripperTransmission::dGap_dLength(double length)
   return dG_dL;
 }
 
-double LCGripperTransmission::getGapVelFromTendonLengthVel(double length, double length_vel)
+double VeloTransmission::getGapVelFromTendonLengthVel(double length, double length_vel)
 {
   // dGap/dt = dGap/dLen * dLen/dt
   double gap_vel = dGap_dLength(length) * length_vel;
   return gap_vel;
 }
 
-double LCGripperTransmission::dLength_dGap(double gap)
+double VeloTransmission::dLength_dGap(double gap)
 {
   double dL_dG = 0.0;
 
@@ -937,14 +938,14 @@ double LCGripperTransmission::dLength_dGap(double gap)
   return dL_dG;
 }
 
-double LCGripperTransmission::getTendonLengthVelFromGapVel(double gap_vel, double gap)
+double VeloTransmission::getTendonLengthVelFromGapVel(double gap_vel, double gap)
 {
   // dLen/dt = dLen/dGap * dGap/dt
   double length_vel = dLength_dGap(gap) * gap_vel;
   return length_vel;
 }
 
-double LCGripperTransmission::getThetaVelFromGapVel(double gap_vel, double gap)
+double VeloTransmission::getThetaVelFromGapVel(double gap_vel, double gap)
 {
   double v = gap_vel/2.0;
   double theta = getThetaFromGap(gap);
@@ -953,7 +954,7 @@ double LCGripperTransmission::getThetaVelFromGapVel(double gap_vel, double gap)
   return theta_vel;
 }
 
-double LCGripperTransmission::getFlexorMomentArm(double gap)
+double VeloTransmission::getFlexorMomentArm(double gap)
 {
   double fma = 0.0;
   if ( gap <= gap_open_ )  // USE POLYNOMIAL FIT WHERE VALID
@@ -970,7 +971,7 @@ double LCGripperTransmission::getFlexorMomentArm(double gap)
   return fma;
 }
 
-double LCGripperTransmission::getGripperForceFromTendonForce(double tendon_force, double gap)
+double VeloTransmission::getGripperForceFromTendonForce(double tendon_force, double gap)
 {
   double c = r_c1_/r_c0_; // Ratio of contraint radii.  Usually 1.0
   double theta = getThetaFromGap(gap);
@@ -986,7 +987,7 @@ double LCGripperTransmission::getGripperForceFromTendonForce(double tendon_force
   return Fg;
 }
 
-double LCGripperTransmission::getTendonForceFromGripperForce(double gripper_force, double gap)
+double VeloTransmission::getTendonForceFromGripperForce(double gripper_force, double gap)
 {
   double c = r_c1_/r_c0_; // Ratio of contraint radii.  Usually 1.0
   double theta = getThetaFromGap(gap);
@@ -1002,7 +1003,7 @@ double LCGripperTransmission::getTendonForceFromGripperForce(double gripper_forc
   return Ff; // Double the result as the motor force is split between the two tendons
 }
 
-double LCGripperTransmission::getExtensorTendonForce(double theta)
+double VeloTransmission::getExtensorTendonForce(double theta)
 {
   theta = std::max(theta,theta_open_);  // Don't let current theta go less than open_
   double delta_theta = theta - theta_open_; // change in angle from fully open
@@ -1012,20 +1013,22 @@ double LCGripperTransmission::getExtensorTendonForce(double theta)
   return ext_force;
 }
 
-double LCGripperTransmission::getMotorQtyFromEncoderQty(double encQty)
+double VeloTransmission::getMotorQtyFromEncoderQty(double encQty)
 {
   double motorQty = encQty*REV2RAD;
   return motorQty;
 }
 
-double LCGripperTransmission::getEncoderQtyFromMotorQty(double motorQty)
+double VeloTransmission::getEncoderQtyFromMotorQty(double motorQty)
 {
   double encQty = motorQty*RAD2REV;
   return encQty;
 }
 
-double LCGripperTransmission::validateGapSize(double gap)
+double VeloTransmission::validateGapSize(double gap)
 {
   gap = std::max(gap_closed_,std::min(gap,gap_open_));
   return gap;
+}
+
 }

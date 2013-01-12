@@ -5,8 +5,8 @@
        xmlns:interface="http://playerstage.sourceforge.net/gazebo/xmlschema/#interface"
        xmlns:xacro="http://ros.org/wiki/xacro">
 
-  <include filename="$(find gripper_control)/urdf/gripper_v0/lcgripper.gazebo.xacro" />
-  <include filename="$(find gripper_control)/urdf/gripper_v0/lcgripper.transmission.xacro" />
+  <include filename="$(find velo_description)/urdf/velo_v0/velo.gazebo.xacro" />
+  <include filename="$(find velo_description)/urdf/velo_v0/velo.transmission.xacro" />
 
   <property name="M_PI" value="3.1415926535897931" />
 
@@ -29,7 +29,7 @@
     <link name="${side}_gripper_palm_link">
       <visual>
         <geometry>
-          <mesh filename="package://gripper_control/meshes/lcg_actuator_palm_mesh_v1-55.STL"/>
+          <mesh filename="package://velo_description/meshes/velo_actuator_palm_mesh_v1-55.STL"/>
         </geometry>
         <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
         <material name="${side}_palm-11_color">
@@ -38,7 +38,7 @@
       </visual>
       <collision>
         <geometry>
-          <mesh filename="package://gripper_control/meshes/lcg_actuator_palm_mesh_v1-55.STL"/>
+          <mesh filename="package://velo_description/meshes/velo_actuator_palm_mesh_v1-55.STL"/>
         </geometry>
         <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
       </collision>
@@ -58,7 +58,7 @@
     <link name="${side}_gripper_l_finger_link">
       <visual>
         <geometry>
-          <mesh filename="package://gripper_control/meshes/lcg_proximal_mesh_v1-55.STL"/>
+          <mesh filename="package://velo_description/meshes/velo_proximal_mesh_v1-55.STL"/>
         </geometry>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <material name="${side}_l_finger-11_color">
@@ -67,7 +67,7 @@
       </visual>
       <collision>
         <geometry>
-          <mesh filename="package://gripper_control/meshes/lcg_proximal_mesh_v1-55.STL"/>
+          <mesh filename="package://velo_description/meshes/velo_proximal_mesh_v1-55.STL"/>
         </geometry>
         <origin rpy="0 0 0" xyz="0 0 0"/>
       </collision>
@@ -93,7 +93,7 @@
     <link name="${side}_gripper_l_finger_tip_link">
       <visual>
         <geometry>
-          <mesh filename="package://gripper_control/meshes/lcg_distal_mesh_v1-55.STL"/>
+          <mesh filename="package://velo_description/meshes/velo_distal_mesh_v1-55.STL"/>
         </geometry>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <material name="${side}_l_finger_tip-11_color">
@@ -102,7 +102,7 @@
       </visual>
       <collision>
         <geometry>
-          <mesh filename="package://gripper_control/meshes/lcg_distal_mesh_v1-55.STL"/>
+          <mesh filename="package://velo_description/meshes/velo_distal_mesh_v1-55.STL"/>
         </geometry>
         <origin rpy="0 0 0" xyz="0 0 0"/>
       </collision>
@@ -129,7 +129,7 @@
     <link name="${side}_gripper_r_finger_link">
       <visual>
         <geometry>
-          <mesh filename="package://gripper_control/meshes/lcg_proximal_mesh_v1-55.STL"/>
+          <mesh filename="package://velo_description/meshes/velo_proximal_mesh_v1-55.STL"/>
         </geometry>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <material name="${side}_gripper_r_finger-11_color">
@@ -138,7 +138,7 @@
       </visual>
       <collision>
         <geometry>
-          <mesh filename="package://gripper_control/meshes/lcg_proximal_mesh_v1-55.STL"/>
+          <mesh filename="package://velo_description/meshes/velo_proximal_mesh_v1-55.STL"/>
         </geometry>
         <origin rpy="0 0 0" xyz="0 0 0"/>
       </collision>
@@ -165,7 +165,7 @@
     <link name="${side}_gripper_r_finger_tip_link">
       <visual>
         <geometry>
-          <mesh filename="package://gripper_control/meshes/lcg_distal_mesh_v1-55.STL"/>
+          <mesh filename="package://velo_description/meshes/velo_distal_mesh_v1-55.STL"/>
         </geometry>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <material name="${side}_r_finger_tip-11_color">
@@ -174,7 +174,7 @@
       </visual>
       <collision>
         <geometry>
-          <mesh filename="package://gripper_control/meshes/lcg_distal_mesh_v1-55.STL"/>
+          <mesh filename="package://velo_description/meshes/velo_distal_mesh_v1-55.STL"/>
         </geometry>
         <origin rpy="0 0 0" xyz="0 0 0"/>
       </collision>

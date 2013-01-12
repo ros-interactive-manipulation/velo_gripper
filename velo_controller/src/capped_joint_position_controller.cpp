@@ -33,17 +33,17 @@
  *********************************************************************/
 
 #include <math.h>
-#include "gripper_control/capped_joint_position_controller.h"
+#include "velo_controller/capped_joint_position_controller.h"
 #include "angles/angles.h"
 #include "pluginlib/class_list_macros.h"
 
-PLUGINLIB_DECLARE_CLASS(gripper_control, CappedJointPositionController,
-                             controller::CappedJointPositionController, 
+PLUGINLIB_DECLARE_CLASS(velo_controller, CappedJointPositionController,
+                             velo_controller::CappedJointPositionController, 
                pr2_controller_interface::Controller);
 
 using namespace std;
 
-namespace controller {
+namespace velo_controller {
 
 CappedJointPositionController::CappedJointPositionController()
 : joint_state_(NULL), command_(0),

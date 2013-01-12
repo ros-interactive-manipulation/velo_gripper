@@ -2,7 +2,7 @@
 \mainpage
 \htmlinclude manifest.html
 
-\b velo_urdf 
+\b velo_description
 
 <!-- 
 Provide an overview of your package.

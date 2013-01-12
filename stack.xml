@@ -6,4 +6,8 @@
   <license>BSD</license>  
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/velo_gripper</url>
+
+  <depend stack="pr2_controllers" />
+  <depend stack="pr2_mechanism" />
+
 </stack>

@@ -35,19 +35,19 @@
 #pragma once
 
 #include "pr2_mechanism_model/robot.h"
-#include "gripper_control/capped_joint_position_controller.h"
+#include "velo_controller/capped_joint_position_controller.h"
 #include "realtime_tools/realtime_publisher.h"
 #include "std_msgs/Empty.h"
 #include "pr2_controllers_msgs/QueryCalibrationState.h"
 
-namespace controller
+namespace velo_controller
 {
 
-class LCGripperCalibrationController : public pr2_controller_interface::Controller
+class VeloCalibrationController : public pr2_controller_interface::Controller
 {
 public:
-  LCGripperCalibrationController();
-  ~LCGripperCalibrationController();
+  VeloCalibrationController();
+  ~VeloCalibrationController();
 
   virtual bool init(pr2_mechanism_model::RobotState *robot, ros::NodeHandle &n);
   virtual void starting();
@@ -86,7 +86,7 @@ protected:
   double error_max_;
   int post_cal_count_;
 
-  controller::CappedJointPositionController vc_; /** The joint position controller used to move the joint.*/
+  velo_controller::CappedJointPositionController vc_; /** The joint position controller used to move the joint.*/
 
 private:
 
