@@ -10,10 +10,8 @@
 <transmission type="pr2_mechanism_model/SimpleTransmission" name="gripper_trans">
   <actuator name="l_velo_gripper_motor"/>
   <joint name="gripper_joint"/>
-  <mechanicalReduction> 28999.317 </mechanicalReduction> 
+  <mechanicalReduction> -28999.317 </mechanicalReduction> 
+  <!--  -28999.317 using 15 : 1  -->
 </transmission>
 
 </robot>
-<!--  4461.5385 -->
-<!-- 28032.673 using 14.5 : 1 -->
-<!-- 28999.317 using 15 : 1   -->

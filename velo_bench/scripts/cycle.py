@@ -113,7 +113,7 @@ def main():
     global G_pv
 
     # SOME BASIC CONSTANTS 
-    gearSign  = -1    # +1 for no idler; -1 for idler in gear train.
+    gearSign  = 1    # Use to set calibration HOME direction
     depth_min = 0.0010
     depth_max = 0.0145
     # Absolute magnitude of stopping point randomization 
