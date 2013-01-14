@@ -4,47 +4,50 @@
   <!-- <param name="robot_description" command="$(find xacro)/xacro.py '$(find velo_pr2)/urdf/pr2.urdf.xacro'" /> -->
 
   <!-- WHEN ON A DESKTOP -->
-  <node if="0" name="controller_manager" launch-prefix="pr2-grant" 
+  <node name="controller_manager" launch-prefix="pr2-grant" 
         pkg="pr2_etherCAT" type="pr2_etherCAT"
         args="-i eth1 -x $(find velo_bench)/urdf/bench_l_gripper.xml"
         output="screen"/>
 
   <!-- WHEN ON A PR2 -->
-  <node name="controller_manager" launch-prefix="pr2-grant" 
+  <node if="0" name="controller_manager" launch-prefix="pr2-grant" 
         pkg="pr2_etherCAT" type="pr2_etherCAT"
         args="-i ecat0 -x $(find velo_bench)/urdf/bench_l_gripper.xml"
         output="screen"/>
 
-  <rosparam ns="l_gripper_joint" file="$(find velo_controller)/config/velo_transmission_params.yaml"/>
+  <!-- NOTE: namespaces are buried inside this yaml file. -->
+  <rosparam command="load" 
+			file="$(find velo_bench)/config/bench_l_controllers.yaml" />
 
-  <rosparam file="$(find velo_bench)/config/bench_l_controllers.yaml" command="load" />
+  <rosparam command="load" ns="l_gripper_joint" 
+			file="$(find velo_controller)/config/velo_transmission_params.yaml"/>
 
+  <!-- Dashboard NOT usually present on desktop systems. (No E-Stop there.)--> 
   <node if="0" name="dashboard" 
         pkg="pr2_dashboard" type="pr2_dashboard"
         respawn="false" output="screen" />
 
+  <!-- IF desired, but NOT PRESENT:  sudo apt-get install ros-fuerte-diagnostics-monitors -->
+  <node if="0" name="monitor" 
+        pkg="runtime_monitor" type="monitor"
+        respawn="false" output="screen" />
+
+  <!-- THE CALIBRATION CONTROLLER --> 
   <node name="cal_l_gripper"
         pkg="pr2_controller_manager" type="spawner"
         args="cal_l_gripper"
         respawn="false" output="screen" />
 
-  <node name="plot_cal"
-        pkg="rxtools" type="rxplot"
-        args="-b 60 -p 20 /cal_l_gripper/state/process_value /cal_l_gripper/state/command"
-        respawn="false" output="screen" />
-
-  <node name="monitor" 
-        pkg="runtime_monitor" type="monitor"
-        respawn="false" output="screen" />
-
+  <!-- SOME GLUE TO GET THE CALIBRATION CONTROLLER TO TALK TO THE RUNTIME CONTROLLER -->
   <node name="glueEmpty2Bool"
         pkg="velo_bench" type="glueEmpty2Bool.py" args="-i cal_l_gripper/calibrated"
         respawn="false" output="screen" />
 
-  <!-- Controllers that come up started -->
+  <!-- THE RUNTIME CONTROLLER -->
   <node name="default_controllers_spawner"
-        pkg="pr2_controller_manager" type="spawner" output="screen"
-        args="--wait=glueEmpty2Bool/calibratedBool l_gripper_controller" />
+        pkg="pr2_controller_manager" type="spawner"
+        args="--wait=glueEmpty2Bool/calibratedBool l_gripper_controller"
+        respawn="false" output="screen" />
 
   <!-- Nodes on top of the controllers -->
   <group ns="l_gripper_controller">
@@ -52,19 +55,10 @@
           pkg="pr2_gripper_action" type="pr2_gripper_action" />
   </group>
 
+  <!-- Plot info from the transmission -->
   <node name="plot_stuff"
         pkg="rxtools" type="rxplot"
-        args="-b 60 -p 20 /l_gripper_joint/state/gap_size /l_gripper_joint/state/tendon_position /l_gripper_joint/state/tendon_force /l_gripper_joint/state/motor_torque"
-        respawn="false" output="screen" />
-
-  <node if="0" name="plot_effort"
-        pkg="rxtools" type="rxplot"
-        args="-t EFFORT joint_states/effort[0]"
-        respawn="false" output="screen" />
-
-  <node if="0" name="plot_pos"
-        pkg="rxtools" type="rxplot"
-        args="-t POSITION joint_states/position[0]"
+        args="-b 100 -p 30 /l_gripper_joint/state/gap_size /l_gripper_joint/state/gap_force /l_gripper_joint/state/tendon_position /l_gripper_joint/state/tendon_force /l_gripper_joint/state/motor_torque"
         respawn="false" output="screen" />
 
 </launch>
