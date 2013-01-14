@@ -29,6 +29,14 @@
 # This script cycles the position of the Matei Gripper
 #
 # Author: Bob Holmberg
+#
+#
+# NOTE: Cycle controller uses simple, standard PR2 transmissions and controllers.
+#       Thus, this program can be used to exercise (burn-in) the actuator in
+#       a gripper-agnostic way.  We do not need to get a gripper transmission
+#       working in order to use this cycle controller.
+#
+#
 
 CONTROLLER_NAME = "cycle_controller"
 
@@ -93,8 +101,10 @@ def cb_pv(msg):
     global G_pv
     if   G_pv == 0: return
     elif G_pv == 1: print("pv = %5.1f mm"%msg.process_value*1000)
-    elif G_pv == 2:
-        print(" pv = %6.1f mm, e = %6.1f mm"%(msg.process_value*1000,msg.error*1000))
+    elif G_pv == 2: pass
+    elif G_pv == 3:
+        print(" pv = %6.1f mm, e = %6.1f mm"%
+              (msg.process_value*1000,msg.error*1000))
     G_pv = 0
 
 
@@ -103,9 +113,9 @@ def main():
     global G_pv
 
     # SOME BASIC CONSTANTS 
-    gearSign  = 1     # +1 for no idler; -1 for idler in gear train.
-    depth_min = 0.0018
-    depth_max = 0.0135
+    gearSign  = -1    # +1 for no idler; -1 for idler in gear train.
+    depth_min = 0.0010
+    depth_max = 0.0145
     # Absolute magnitude of stopping point randomization 
     # so we don't stop on exactly the same tooth each time.
     # 0.00325/15 = 0.0002167 = 1 motor rev (with 15 & 3.25mm pitch)
@@ -126,7 +136,11 @@ def main():
     parser.add_option("-t", dest="cycletime", metavar="cycletime",
                       type="float", default=6.0,
                       help="Time for one cycle" )
+    parser.add_option("-v", dest="verbose",
+                      action="store_true", default=False,
+                      help="Flag for verbose output" )
     (options, args) = parser.parse_args()
+
     # STANDARDIZE INPUT sign AND NORMALIZE TO SI UNITS
     depth_min = max( abs(options.depth_min), 2*epsilon_mag )
     if depth_min > 0.020:  depth_min /= 1000.0
@@ -153,18 +167,21 @@ def main():
 
     goal = depth_min
     for n in range(2*options.num_cycles):
-        G_pv = 2 ; rospy.sleep(0.010) # ALLOW Callback TO PRINT
+        if options.verbose: G_pv = 3
+        else:               G_pv = 2
+        rospy.sleep(0.010) # ALLOW Callback TO PRINT
         epsilon = epsilon_mag * (2*random.random()-1)
-        #pub.publish(msg_std.Float64(gearSign*abs(goal+epsilon)))
         pubGoal = gearSign*abs(goal)
         pub.publish(msg_std.Float64(pubGoal))
         if goal != depth_min:
             goal = depth_min
-            sys.stdout.write("\rCycle # %4d   goal= %7.4lf mm " % (n/2+1,pubGoal))
+            sys.stdout.write("\rCycle # %4d   goal= %7.4lf mm " % 
+                             (n/2+1,abs(pubGoal)))
             sys.stdout.flush()
         else:
             goal = depth_max
-            sys.stdout.write("\rCycle # %4d   goal= %7.4lf mm " % (n/2+1,pubGoal))
+            sys.stdout.write("\rCycle # %4d   goal= %7.4lf mm " % 
+                             (n/2+1,abs(pubGoal)))
             sys.stdout.flush()
         rospy.sleep(options.cycletime/2.0)
 

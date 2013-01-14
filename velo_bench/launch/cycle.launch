@@ -1,17 +1,23 @@
 <launch>
   <!-- WHEN ON A DESKTOP -->
-  <node if="0" name="controller_manager" launch-prefix="pr2-grant" 
+  <node name="controller_manager" launch-prefix="pr2-grant" 
         pkg="pr2_etherCAT" type="pr2_etherCAT"
         args="-i eth1 -x $(find velo_bench)/urdf/cycle.xml" 
         output="screen"/>
 
   <!-- WHEN ON A PR2 -->
-  <node name="controller_manager" launch-prefix="pr2-grant" 
+  <node if="0" name="controller_manager" launch-prefix="pr2-grant" 
         pkg="pr2_etherCAT" type="pr2_etherCAT"
         args="-i ecat0 -x $(find velo_bench)/urdf/cycle.xml" 
         output="screen"/>
 
-  <rosparam file="$(find velo_bench)/cycle_controllers.yaml" command="load" />
+  <rosparam command="load"
+			file="$(find velo_bench)/config/cycle_controllers.yaml" />
+
+  <!-- NOTE: Cycle controller uses simple, standard PR2 transmissions and controllers.
+             Thus, this program can be used to exercise (burn-in) the actuator in 
+             a gripper-agnostic way.  We do not need to get a gripper transmission
+             working in order to use this cycle controller. -->
 
   <node name="calibration_controller"
         pkg="pr2_controller_manager" type="spawner"
@@ -27,14 +33,10 @@
         args="--wait=glueEmpty2Bool/calibratedBool  cycle_controller"
         respawn="false" output="screen" />
 
-  <node if="0" name="plot_effort"
+  <!-- Plot info from the transmission -->
+  <node name="plot_ballscrew"
         pkg="rxtools" type="rxplot"
-        args="-t EFFORT joint_states/effort[0]"
-        respawn="false" output="screen" />
-
-  <node if="0" name="plot_pos"
-        pkg="rxtools" type="rxplot"
-        args="-t POSITION joint_states/position[0]"
+        args="-t BALLSCREW -b 100 -p 30 joint_states/position[0] joint_states/effort[0]"
         respawn="false" output="screen" />
 
 </launch>
