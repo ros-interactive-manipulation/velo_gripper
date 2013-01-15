@@ -1,18 +1,10 @@
 <launch>
 
-  <!-- Robot Description --> 
-  <!-- <param name="robot_description" command="$(find xacro)/xacro.py '$(find velo_pr2)/urdf/pr2.urdf.xacro'" /> -->
+  <arg name="interface" default="eth1" /> <!-- use ecat0 on a PR2-->
 
-  <!-- WHEN ON A DESKTOP -->
   <node name="controller_manager" launch-prefix="pr2-grant" 
         pkg="pr2_etherCAT" type="pr2_etherCAT"
-        args="-i eth1 -x $(find velo_bench)/urdf/bench_l_gripper.xml"
-        output="screen"/>
-
-  <!-- WHEN ON A PR2 -->
-  <node if="0" name="controller_manager" launch-prefix="pr2-grant" 
-        pkg="pr2_etherCAT" type="pr2_etherCAT"
-        args="-i ecat0 -x $(find velo_bench)/urdf/bench_l_gripper.xml"
+        args="-i $(arg interface) -x $(find velo_bench)/urdf/bench_l_gripper.xml"
         output="screen"/>
 
   <!-- NOTE: namespaces are buried inside this yaml file. -->
