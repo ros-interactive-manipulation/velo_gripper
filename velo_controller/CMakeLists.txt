@@ -38,3 +38,6 @@ rosbuild_add_library(velo_controller
 rosbuild_add_executable(velo_trans_tests src/velo_trans_tests.cpp)
 target_link_libraries(  velo_trans_tests velo_transmission)
 
+rosbuild_add_executable(pr2-grant src/pr2-grant.cpp)
+target_link_libraries( pr2-grant cap)
+
