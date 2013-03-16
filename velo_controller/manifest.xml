@@ -12,6 +12,8 @@
 
   <url>http://ros.org/wiki/velo_controller</url>
 
+  <rosdep name="libcap-dev"/>
+
   <depend package="roscpp"/>
   <depend package="rospy"/>
   <depend package="actionlib"/>
