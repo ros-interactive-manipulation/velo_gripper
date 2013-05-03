@@ -1,6 +1,8 @@
 <launch>
 
-  <arg name="interface" default="eth1" /> <!-- use ecat0 on a PR2-->
+  <arg name="interface" default="eth0" /> <!-- use ecat0 on a PR2-->
+  <arg name="show_plots" default="false" />
+  <arg name="ui" default="false" />
 
   <node name="controller_manager" launch-prefix="pr2-grant" 
         pkg="pr2_etherCAT" type="pr2_etherCAT"
@@ -48,10 +50,13 @@
   </group>
 
   <!-- Plot info from the transmission -->
-  <node name="plot_stuff"
+  <node if="$(arg show_plots)" name="plot_stuff"
         pkg="rxtools" type="rxplot"
         args="-b 100 -p 30 /l_gripper_joint/state/gap_size /l_gripper_joint/state/gap_force /l_gripper_joint/state/tendon_position /l_gripper_joint/state/tendon_force /l_gripper_joint/state/motor_torque"
         respawn="false" output="screen" />
+
+  <!--start ui-->
+  <node if="$(arg ui)" name="velo_ui" pkg="velo_bench" type="velo_ui"/>
 
 </launch>
 
