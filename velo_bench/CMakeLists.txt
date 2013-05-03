@@ -16,6 +16,32 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 #set the default path for built libraries to the "lib" directory
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
+# build is where the UI file outputs (ui_*.h) go.
+include_directories( build )
+
+find_package(Qt4 COMPONENTS QtCore QtGui QtOpenGL REQUIRED)
+include(${QT_USE_FILE})
+add_definitions(-DQT_NO_KEYWORDS)
+
+qt4_wrap_ui(UIC_FILES
+  ui/velo_window.ui
+)
+
+qt4_wrap_cpp(MOC_FILES
+  src/velo_main_window.h
+)
+
+rosbuild_add_executable(velo_ui
+  src/velo_ui.cpp
+  src/velo_main_window.cpp
+  ${UIC_FILES}
+  ${MOC_FILES}
+)
+
+target_link_libraries(velo_ui
+  ${QT_LIBRARIES}
+)
+
 #uncomment if you have defined messages
 #rosbuild_genmsg()
 #uncomment if you have defined services

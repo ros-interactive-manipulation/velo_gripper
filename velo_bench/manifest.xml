@@ -9,6 +9,9 @@
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/velo_bench</url>
 
+  <depend package="roscpp" />
+  <depend package="pr2_controllers_msgs" />
+
 </package>
 
 
