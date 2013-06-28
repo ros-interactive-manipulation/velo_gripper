@@ -249,6 +249,7 @@
     <child link="l_gripper_l_finger_tip_frame"/>
     <axis xyz="0 1 0"/>
     <dynamics damping="10.0"/>
+    <limit effort="333.3" lower="-99999.9" upper="99999.9" velocity="9.9"/>
   </joint>
 
   <transmission name="l_gripper_trans" type="velo_controller/VeloTransmission"  >
