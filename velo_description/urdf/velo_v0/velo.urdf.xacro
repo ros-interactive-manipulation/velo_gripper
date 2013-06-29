@@ -302,9 +302,9 @@
       <child link="${side}_gripper_l_finger_tip_frame"/>
       <axis xyz="0 1 0" />
       <dynamics damping="${gripper_damping}" />
-<!--
+
     <limit effort="333.3" lower="-99999.9" upper="99999.9" velocity="9.9"/>
-    <safety_controller k_position="1e6" k_velocity="1e6" soft_lower_limit="-99999.1" soft_upper_limit="99999.1"/>
+<!--    <safety_controller k_position="1e6" k_velocity="1e6" soft_lower_limit="-99999.1" soft_upper_limit="99999.1"/>
 -->
     </joint>
 
