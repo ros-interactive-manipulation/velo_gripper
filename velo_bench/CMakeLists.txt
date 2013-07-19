@@ -19,7 +19,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 # build is where the UI file outputs (ui_*.h) go.
 include_directories( build )
 
-find_package(Qt4 COMPONENTS QtCore QtGui QtOpenGL REQUIRED)
+find_package(Qt4 COMPONENTS QtCore QtGui REQUIRED)
 include(${QT_USE_FILE})
 add_definitions(-DQT_NO_KEYWORDS)
 
