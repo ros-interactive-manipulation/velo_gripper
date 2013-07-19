@@ -56,7 +56,7 @@
         respawn="false" output="screen" />
 
   <!--start ui-->
-  <node if="$(arg ui)" name="velo_ui" pkg="velo_bench" type="velo_ui"/>
+  <node if="$(arg ui)" name="velo_ui" pkg="velo_bench" type="velo_ui" required="true"/>
 
 </launch>
 
